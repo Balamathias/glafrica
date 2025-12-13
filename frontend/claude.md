@@ -1,4 +1,4 @@
-# Green Life Africa's Website - Development Instructions
+# Green Livestock Africa's Website - Development Instructions
 
 ## Project Overview
 This is a Next.js 15 application for Green Life Africa. The site must be sleek, professional, and highly mobile-responsive with smooth animations and a cohesive visual identity. The core idea is to provide a rich showcase of livestock data, image/video gallery (infinite discovery) like pinterest with varied sizes, robust and deep search; deep AI integration using Open AI SDK.
@@ -26,6 +26,12 @@ Use these colors as the primary palette. Supplement with standard Tailwind utili
 - Use Tailwind responsive prefixes: `sm:`, `md:`, `lg:`, `xl:`, `2xl:`
 - Maintain readability across all screen sizes
 - Default fonts: Geist Sans (--font-geist-sans), Geist Mono (--font-geist-mono)
+
+### SEO
+- Use Next.js metadata features for SEO
+- Implement proper Open Graph and Twitter card metadata
+- Use semantic HTML for better accessibility
+- This application is aimed at being SEO-friendly; make sure you pay attention to that as well.
 
 ## Project Structure
 
