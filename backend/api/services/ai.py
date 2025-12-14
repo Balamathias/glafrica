@@ -13,7 +13,7 @@ class AIService:
             api_key=settings.GEMINI_API_KEY,
             base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
         )
-        self.model = "gemini-2.0-flash"
+        self.model = "gemini-2.5-flash"
         self.embedding_model = "gemini-embedding-001"
 
     def get_embedding(self, text: str) -> List[float]:
@@ -278,8 +278,8 @@ class AIService:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": message}
                 ],
-                temperature=0.7,
-                max_tokens=1000,
+                temperature=0.4,
+                max_tokens=400,
             )
             return response.choices[0].message.content
         except Exception as e:
@@ -322,7 +322,7 @@ class AIService:
 - Help investors and farmers find the perfect livestock
 - Provide accurate information about breeds, pricing, and livestock care
 - Guide users toward making informed investment decisions
-- Be warm, professional, and genuinely helpful
+- Be warm, professional, and genuinely helpful, and straight to the point.
 
 ## Current Inventory Overview
 {inventory_text}
