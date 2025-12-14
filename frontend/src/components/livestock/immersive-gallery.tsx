@@ -1,17 +1,32 @@
 "use client"
 
 import { useEffect, useMemo } from "react"
+import { useSearchParams } from "next/navigation"
 import { useInView } from "react-intersection-observer"
-import { GalleryCard } from "./gallery-card"
+import { motion } from "framer-motion"
 import { Loader2, RefreshCw, AlertCircle } from "lucide-react"
 import { useLivestockInfinite } from "@/lib/hooks"
-import { useFilterStore } from "@/lib/store"
+import { GalleryCard } from "@/components/gallery/gallery-card"
 import { SkeletonGalleryCard } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { motion } from "framer-motion"
+import type { SearchFilters } from "@/lib/types"
 
-export function InfiniteGallery() {
-  const { filters } = useFilterStore()
+export function ImmersiveGallery() {
+  const searchParams = useSearchParams()
+
+  // Build filters from URL params
+  const filters: SearchFilters = useMemo(() => ({
+    category: searchParams.get("category") || undefined,
+    gender: (searchParams.get("gender") as SearchFilters["gender"]) || undefined,
+    search: searchParams.get("search") || undefined,
+    ordering: searchParams.get("sort") || "-created_at",
+    min_price: searchParams.get("min_price")
+      ? parseInt(searchParams.get("min_price")!)
+      : undefined,
+    max_price: searchParams.get("max_price")
+      ? parseInt(searchParams.get("max_price")!)
+      : undefined,
+  }), [searchParams])
 
   const {
     data,
@@ -34,6 +49,8 @@ export function InfiniteGallery() {
     return data?.pages.flatMap((page) => page.results) ?? []
   }, [data])
 
+  const totalCount = data?.pages[0]?.count || 0
+
   // Fetch next page when sentinel is in view
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
@@ -41,10 +58,13 @@ export function InfiniteGallery() {
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  // Loading skeleton
+  // Loading skeleton - CSS columns masonry
   if (isLoading) {
     return (
-      <div className="p-4 md:p-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
+          <div className="h-5 w-40 bg-muted rounded animate-pulse" />
+        </div>
         <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="mb-4 break-inside-avoid">
@@ -59,7 +79,7 @@ export function InfiniteGallery() {
   // Error state
   if (isError) {
     return (
-      <div className="p-8 text-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -84,16 +104,19 @@ export function InfiniteGallery() {
   // Empty state
   if (items.length === 0) {
     return (
-      <div className="p-8 text-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md mx-auto"
         >
-          <div className="text-6xl mb-4">🐄</div>
-          <h3 className="text-lg font-semibold mb-2">No livestock found</h3>
+          <div className="text-6xl mb-4">🔍</div>
+          <h3 className="font-serif text-2xl font-semibold mb-2">
+            No livestock found
+          </h3>
           <p className="text-muted-foreground">
-            No animals match your current filters. Try adjusting your search criteria.
+            Try adjusting your filters or search terms to find what you&apos;re
+            looking for.
           </p>
         </motion.div>
       </div>
@@ -101,19 +124,16 @@ export function InfiniteGallery() {
   }
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Results count */}
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           Showing <span className="font-medium text-foreground">{items.length}</span>{" "}
-          {data?.pages[0]?.count && (
-            <>of <span className="font-medium text-foreground">{data.pages[0].count}</span></>
-          )}{" "}
-          listings
+          of <span className="font-medium text-foreground">{totalCount}</span> listings
         </p>
       </div>
 
-      {/* CSS Columns Masonry Grid */}
+      {/* CSS Columns Masonry Grid - More reliable than react-responsive-masonry */}
       <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
         {items.map((item, index) => (
           <div key={item.id} className="mb-4 break-inside-avoid">
@@ -140,10 +160,7 @@ export function InfiniteGallery() {
             className="text-center"
           >
             <p className="text-muted-foreground text-sm">
-              You&apos;ve reached the end of the herd.
-            </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
-              {items.length} animals shown
+              You&apos;ve seen all {totalCount} listings
             </p>
           </motion.div>
         )}

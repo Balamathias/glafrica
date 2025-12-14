@@ -1,160 +1,454 @@
-import { Metadata } from "next"
-import Image from "next/image"
-import { CheckCircle, Users, Shield, Sparkles } from "lucide-react"
+"use client"
 
-export const metadata: Metadata = {
-  title: "About Us",
-  description:
-    "Learn about Green Livestock Africa - Africa's premier platform for premium livestock investment.",
-}
+import { useRef } from "react"
+import { motion, useScroll, useTransform } from "framer-motion"
+import Image from "next/image"
+import Link from "next/link"
+import {
+  ArrowRight,
+  Shield,
+  Leaf,
+  Users,
+  TrendingUp,
+  Award,
+  Heart,
+  Globe,
+  CheckCircle2,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Footer } from "@/components/layout/footer"
+
+const values = [
+  {
+    icon: Shield,
+    title: "Trust & Transparency",
+    description:
+      "Every animal comes with verified documentation, health records, and genetic lineage you can trust.",
+  },
+  {
+    icon: Leaf,
+    title: "Sustainable Practices",
+    description:
+      "We partner with farmers who prioritize ethical breeding, animal welfare, and environmental stewardship.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Investment Grade",
+    description:
+      "Our rigorous selection ensures you access only the finest livestock suitable for serious investors.",
+  },
+  {
+    icon: Users,
+    title: "Community First",
+    description:
+      "Building bridges between traditional farming and modern investment, empowering local communities.",
+  },
+]
+
+const stats = [
+  { value: "2019", label: "Founded" },
+  { value: "500+", label: "Livestock Listed" },
+  { value: "98%", label: "Verified Animals" },
+  { value: "15+", label: "Partner Farms" },
+]
+
+const team = [
+  {
+    name: "Adebayo Okonkwo",
+    role: "Founder & CEO",
+    image: "/team/ceo.jpg",
+    bio: "Former agricultural economist with 15 years in livestock investment.",
+  },
+  {
+    name: "Amina Diallo",
+    role: "Head of Operations",
+    image: "/team/operations.jpg",
+    bio: "Veterinary expert ensuring the health and quality of every animal.",
+  },
+  {
+    name: "Chidi Nwachukwu",
+    role: "Technology Lead",
+    image: "/team/tech.jpg",
+    bio: "Building the digital infrastructure for modern livestock trading.",
+  },
+]
 
 export default function AboutPage() {
+  const heroRef = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  })
+
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1, 1.15])
+  const imageOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0.3])
+  const contentY = useTransform(scrollYProgress, [0, 0.5], [0, -60])
+
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <section className="relative py-20 md:py-32 overflow-hidden">
-        <div className="absolute inset-0 z-0">
+    <main className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <section
+        ref={heroRef}
+        className="relative h-[70vh] min-h-[500px] overflow-hidden"
+      >
+        {/* Background Image with Parallax */}
+        <motion.div
+          style={{ scale: imageScale, opacity: imageOpacity }}
+          className="absolute inset-0"
+        >
           <Image
             src="/atmospheric/high-res-wide-shot-with-negative-text.png"
-            alt="African landscape"
+            alt="African landscape with livestock"
             fill
-            className="object-cover opacity-20"
+            className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background" />
-        </div>
+          {/* Overlays */}
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-background" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40" />
+        </motion.div>
 
-        <div className="relative z-10 max-w-4xl mx-auto px-4 md:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-serif mb-6">
-            The Future of{" "}
-            <span className="text-gradient-primary">Livestock Investment</span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Green Livestock Africa connects discerning investors with Africa&apos;s
-            finest livestock. We combine tradition with technology to make
-            agricultural investment accessible, transparent, and profitable.
-          </p>
-        </div>
+        {/* Content */}
+        <motion.div
+          style={{ y: contentY }}
+          className="relative z-10 h-full flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8"
+        >
+          <div className="max-w-4xl mx-auto text-center">
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6"
+            >
+              <Heart className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-white/90">
+                Our Story
+              </span>
+            </motion.div>
+
+            {/* Heading */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight mb-6"
+            >
+              Redefining{" "}
+              <span className="text-primary">Livestock</span>
+              <br />
+              Investment in Africa
+            </motion.h1>
+
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed"
+            >
+              Bridging tradition with innovation to create Africa&apos;s most
+              trusted livestock marketplace.
+            </motion.p>
+          </div>
+        </motion.div>
+
+        {/* Scroll fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </section>
 
-      {/* Mission */}
-      <section className="py-16 md:py-24 bg-muted/30">
-        <div className="max-w-6xl mx-auto px-4 md:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold font-serif mb-6">
-                Our Mission
-              </h2>
-              <p className="text-muted-foreground mb-4 leading-relaxed">
-                We believe that quality livestock investment should be accessible
-                to everyone. Our platform bridges the gap between traditional
-                farming practices and modern technology, creating a marketplace
-                where trust, quality, and transparency are paramount.
-              </p>
-              <p className="text-muted-foreground leading-relaxed">
-                Every animal on our platform undergoes rigorous verification.
-                We document genetics, health histories, and vaccination records
-                to ensure you&apos;re making an informed investment decision.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { icon: Shield, label: "Verified Quality", value: "100%" },
-                { icon: Users, label: "Happy Investors", value: "500+" },
-                { icon: CheckCircle, label: "Successful Sales", value: "1,000+" },
-                { icon: Sparkles, label: "AI-Powered", value: "24/7" },
-              ].map((stat, i) => (
-                <div
-                  key={i}
-                  className="p-6 rounded-2xl bg-background border shadow-sm"
-                >
-                  <stat.icon className="w-8 h-8 text-primary mb-3" />
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+      {/* Mission Section */}
+      <section className="py-20 md:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+            {/* Image */}
+            <motion.div
+              initial={{ opacity: 0, x: -40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+              className="relative aspect-[4/3] rounded-3xl overflow-hidden"
+            >
+              <Image
+                src="/atmospheric/high-res-wide-shot-with-negative-text.png"
+                alt="Our mission"
+                fill
+                className="object-cover"
+              />
+              {/* Glassmorphic overlay card */}
+              <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">Pan-African Reach</p>
+                    <p className="text-white/60 text-sm">
+                      Connecting farmers across the continent
+                    </p>
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            </motion.div>
+
+            {/* Content */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+            >
+              <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
+                Our <span className="text-primary">Mission</span>
+              </h2>
+              <p className="text-muted-foreground text-lg leading-relaxed mb-6">
+                Green Livestock Africa was born from a simple vision: to transform
+                how Africa trades and invests in livestock. We saw an industry
+                rich in tradition but lacking in transparency, accessibility, and
+                trust.
+              </p>
+              <p className="text-muted-foreground text-lg leading-relaxed mb-8">
+                Our platform bridges this gap, connecting discerning investors
+                with premium, verified livestock while empowering local farmers
+                with access to a broader market. Every animal on our platform
+                comes with complete documentation—health records, genetic
+                lineage, and quality certifications.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {["Verified Genetics", "Health Certified", "Ethical Sourcing"].map(
+                  (tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      {tag}
+                    </span>
+                  )
+                )}
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Values */}
-      <section className="py-16 md:py-24">
-        <div className="max-w-6xl mx-auto px-4 md:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold font-serif mb-12 text-center">
-            What Sets Us Apart
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Verified Genetics",
-                description:
-                  "Every animal comes with documented lineage and genetic information, ensuring you know exactly what you're investing in.",
-              },
-              {
-                title: "Health Transparency",
-                description:
-                  "Complete vaccination histories and health records are available for every listing. No surprises, just confidence.",
-              },
-              {
-                title: "AI-Powered Discovery",
-                description:
-                  "Our intelligent assistant helps you find the perfect animals based on your investment goals and preferences.",
-              },
-              {
-                title: "Premium Selection",
-                description:
-                  "We curate only the finest livestock. Our strict quality standards mean you're choosing from the best of the best.",
-              },
-              {
-                title: "Secure Transactions",
-                description:
-                  "Protected payments and verified sellers ensure your investment is safe from start to finish.",
-              },
-              {
-                title: "Expert Support",
-                description:
-                  "Our team of agricultural experts is always available to guide you through your livestock investment journey.",
-              },
-            ].map((value, i) => (
-              <div key={i} className="p-6 rounded-2xl bg-muted/30 border">
-                <h3 className="text-lg font-semibold mb-2">{value.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {value.description}
-                </p>
-              </div>
+      {/* Stats Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8"
+          >
+            {stats.map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="text-center p-6 rounded-2xl bg-background border border-border/50"
+              >
+                <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary mb-2">
+                  {stat.value}
+                </div>
+                <div className="text-muted-foreground text-sm md:text-base">
+                  {stat.label}
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Values Section */}
+      <section className="py-20 md:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
+              Our <span className="text-primary">Values</span>
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              The principles that guide everything we do
+            </p>
+          </motion.div>
+
+          {/* Values Grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {values.map((value, index) => {
+              const Icon = value.icon
+              return (
+                <motion.div
+                  key={value.title}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className={cn(
+                    "group relative p-6 rounded-2xl",
+                    "bg-background border border-border/50",
+                    "hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5",
+                    "transition-all duration-300"
+                  )}
+                >
+                  {/* Icon */}
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                    <Icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-foreground text-lg mb-2">
+                    {value.title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {value.description}
+                  </p>
+                </motion.div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Team Section */}
+      <section className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
+              Meet the <span className="text-primary">Team</span>
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              The passionate people behind Green Livestock Africa
+            </p>
+          </motion.div>
+
+          {/* Team Grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {team.map((member, index) => (
+              <motion.div
+                key={member.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className={cn(
+                  "group relative overflow-hidden rounded-2xl",
+                  "bg-background border border-border/50",
+                  "hover:shadow-xl hover:shadow-primary/5",
+                  "transition-all duration-300"
+                )}
+              >
+                {/* Image placeholder */}
+                <div className="aspect-[4/3] bg-gradient-to-br from-primary/20 via-primary/10 to-background relative overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Users className="w-12 h-12 text-primary/50" />
+                    </div>
+                  </div>
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+                </div>
+                {/* Content */}
+                <div className="p-6">
+                  <h3 className="font-semibold text-foreground text-lg">
+                    {member.name}
+                  </h3>
+                  <p className="text-primary text-sm font-medium mb-2">
+                    {member.role}
+                  </p>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {member.bio}
+                  </p>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-16 md:py-24 bg-primary/5">
-        <div className="max-w-3xl mx-auto px-4 md:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold font-serif mb-4">
-            Ready to Start Your Journey?
-          </h2>
-          <p className="text-muted-foreground mb-8">
-            Join thousands of investors who trust Green Livestock Africa for
-            their agricultural investments.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="/browse"
-              className="inline-flex items-center justify-center h-12 px-8 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
-            >
-              Browse Livestock
-            </a>
-            <a
-              href="/search"
-              className="inline-flex items-center justify-center h-12 px-8 bg-background border rounded-lg font-medium hover:bg-muted transition-colors"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Try AI Search
-            </a>
-          </div>
+      {/* CTA Section */}
+      <section className="py-20 md:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className={cn(
+              "relative overflow-hidden rounded-3xl p-8 md:p-12 lg:p-16",
+              "bg-gradient-to-br from-primary/20 via-primary/10 to-background",
+              "border border-primary/20"
+            )}
+          >
+            {/* Background decorations */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+
+            <div className="relative z-10 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/20 mb-6">
+                <Award className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
+                Ready to Invest?
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto mb-8">
+                Discover our curated selection of premium livestock and start
+                your agricultural investment journey today.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link
+                  href="/livestock"
+                  className={cn(
+                    "group inline-flex items-center justify-center gap-2",
+                    "px-8 py-4 rounded-full",
+                    "bg-primary text-primary-foreground font-semibold",
+                    "shadow-lg shadow-primary/30",
+                    "hover:shadow-xl hover:shadow-primary/40 hover:scale-105",
+                    "transition-all duration-300",
+                    "active:scale-95"
+                  )}
+                >
+                  Browse Livestock
+                  <ArrowRight
+                    size={18}
+                    className="group-hover:translate-x-1 transition-transform"
+                  />
+                </Link>
+                <Link
+                  href="/contact"
+                  className={cn(
+                    "inline-flex items-center justify-center gap-2",
+                    "px-8 py-4 rounded-full",
+                    "bg-background/50 backdrop-blur-sm text-foreground font-semibold",
+                    "border border-border/50",
+                    "hover:bg-background/80 hover:border-primary/30",
+                    "transition-all duration-300"
+                  )}
+                >
+                  Contact Us
+                </Link>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
-    </div>
+
+      <Footer />
+    </main>
   )
 }

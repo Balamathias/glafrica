@@ -3,12 +3,13 @@ import type {
   Livestock,
   LivestockListItem,
   Category,
+  CategoryWithPreview,
   PaginatedResponse,
   ChatResponse,
   SearchFilters,
 } from './types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
 // Create axios instance with defaults
 export const api = axios.create({
@@ -79,6 +80,15 @@ export const categoriesApi = {
     try {
       const { data } = await api.get<PaginatedResponse<Category>>('/categories/')
       return data.results
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getWithPreviews(): Promise<CategoryWithPreview[]> {
+    try {
+      const { data } = await api.get<CategoryWithPreview[]>('/categories/with-previews/')
+      return data
     } catch (error) {
       handleApiError(error)
     }

@@ -1,25 +1,66 @@
-import { Hero } from "@/components/home/hero"
-import { InfiniteGallery } from "@/components/gallery/infinite-gallery"
+import { Metadata } from "next"
+import { Navbar } from "@/components/navigation"
+import { Footer } from "@/components/layout"
+import {
+  Hero,
+  HeroTransition,
+  ValueProps,
+  CategoriesShowcase,
+  FeaturedPreview,
+  Testimonials,
+  AITeaser,
+  CTASection,
+} from "@/components/home"
 
-export default function Home() {
+export const metadata: Metadata = {
+  title: "Green Livestock Africa | Premium Livestock Investment",
+  description:
+    "Discover and invest in Africa's finest livestock. Premium breeds, verified genetics, documented health histories. Your gateway to agricultural wealth.",
+  openGraph: {
+    title: "Green Livestock Africa | Premium Livestock Investment",
+    description:
+      "Discover and invest in Africa's finest livestock. Premium breeds, verified genetics.",
+    images: [
+      {
+        url: "/atmospheric/high-res-wide-shot-with-negative-text.png",
+        width: 1200,
+        height: 630,
+        alt: "Green Livestock Africa - Premium African Livestock",
+      },
+    ],
+  },
+}
+
+export default function HomePage() {
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <Hero />
+    <>
+      <Navbar />
+      <main>
+        {/* Hero Section - Full viewport immersive video */}
+        <Hero />
 
-      {/* Gallery Section */}
-      <section id="gallery" className="scroll-mt-16">
-        <header className="px-4 md:px-8 pt-12 pb-6 max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold font-serif mb-2">
-            Featured Livestock
-          </h2>
-          <p className="text-muted-foreground">
-            Browse our curated selection of premium animals available for investment
-          </p>
-        </header>
+        {/* Smooth gradient transition from dark hero to content */}
+        <HeroTransition />
 
-        <InfiniteGallery />
-      </section>
-    </div>
+        {/* Value Propositions - Trust & credibility */}
+        <ValueProps />
+
+        {/* Categories Showcase - Browse by category */}
+        <CategoriesShowcase />
+
+        {/* Featured Livestock Preview */}
+        <FeaturedPreview />
+
+        {/* Testimonials - Social proof */}
+        <Testimonials />
+
+        {/* AI Assistant Teaser */}
+        <AITeaser />
+
+        {/* Call to Action */}
+        <CTASection />
+      </main>
+      <Footer />
+    </>
   )
 }

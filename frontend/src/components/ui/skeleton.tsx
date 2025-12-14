@@ -29,10 +29,14 @@ function SkeletonCard() {
   )
 }
 
-function SkeletonGalleryCard() {
+// Predefined aspect ratios to avoid hydration mismatch
+const SKELETON_ASPECTS = [0.75, 1, 0.8, 0.9, 1.2, 0.85, 1.1, 0.95]
+
+function SkeletonGalleryCard({ index = 0 }: { index?: number }) {
+  const aspectRatio = SKELETON_ASPECTS[index % SKELETON_ASPECTS.length]
   return (
-    <div className="rounded-xl overflow-hidden">
-      <Skeleton className="w-full" style={{ aspectRatio: Math.random() * 0.5 + 0.75 }} />
+    <div className="rounded-2xl overflow-hidden bg-muted animate-pulse">
+      <div className="w-full" style={{ aspectRatio }} />
     </div>
   )
 }

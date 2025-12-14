@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -37,6 +37,12 @@ export function LivestockDetailModal() {
   const [isLiked, setIsLiked] = useState(false)
 
   const { data: livestock, isLoading, error } = useLivestock(selectedLivestockId)
+
+  // Reset media index when switching to a different livestock
+  useEffect(() => {
+    setCurrentMediaIndex(0)
+    setIsVideoPlaying(false)
+  }, [selectedLivestockId])
 
   const handleClose = () => {
     closeDetailModal()
@@ -84,7 +90,10 @@ export function LivestockDetailModal() {
     }
   }
 
-  const currentMedia = livestock?.media?.[currentMediaIndex]
+  // Safely get current media, ensuring index is within bounds
+  const mediaArray = livestock?.media || []
+  const safeIndex = currentMediaIndex < mediaArray.length ? currentMediaIndex : 0
+  const currentMedia = mediaArray[safeIndex]
 
   return (
     <AnimatePresence>
@@ -168,7 +177,7 @@ export function LivestockDetailModal() {
                   </div>
 
                   {/* Navigation Arrows */}
-                  {livestock.media.length > 1 && (
+                  {mediaArray.length > 1 && (
                     <>
                       <button
                         onClick={handlePrevMedia}
@@ -186,9 +195,9 @@ export function LivestockDetailModal() {
                   )}
 
                   {/* Thumbnails */}
-                  {livestock.media.length > 1 && (
+                  {mediaArray.length > 1 && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 p-2 rounded-xl bg-black/50 backdrop-blur-sm">
-                      {livestock.media.map((media, index) => (
+                      {mediaArray.map((media, index) => (
                         <button
                           key={media.id}
                           onClick={() => {
@@ -197,7 +206,7 @@ export function LivestockDetailModal() {
                           }}
                           className={cn(
                             "relative w-12 h-12 rounded-lg overflow-hidden border-2 transition-all",
-                            index === currentMediaIndex
+                            index === safeIndex
                               ? "border-primary scale-105"
                               : "border-transparent opacity-70 hover:opacity-100"
                           )}

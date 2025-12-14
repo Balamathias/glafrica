@@ -60,6 +60,15 @@ export function useCategories() {
   })
 }
 
+// Categories with previews query (for homepage showcase)
+export function useCategoriesWithPreviews() {
+  return useQuery({
+    queryKey: [...queryKeys.categories, "with-previews"],
+    queryFn: categoriesApi.getWithPreviews,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
 // Chat mutation
 export function useChatSend() {
   return useMutation({

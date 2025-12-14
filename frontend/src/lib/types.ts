@@ -16,6 +16,11 @@ export interface Category {
   icon?: string | null
 }
 
+export interface CategoryWithPreview extends Category {
+  livestock_count: number
+  preview_image: Media | null
+}
+
 export interface Tag {
   id: string
   name: string

@@ -1,0 +1,8 @@
+export { Hero } from "./hero"
+export { HeroTransition } from "./hero-transition"
+export { ValueProps } from "./value-props"
+export { CategoriesShowcase } from "./categories-showcase"
+export { FeaturedPreview } from "./featured-preview"
+export { Testimonials } from "./testimonials"
+export { AITeaser } from "./ai-teaser"
+export { CTASection } from "./cta-section"
