@@ -1,15 +1,42 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import {
   LivestockHero,
   FloatingFilterBar,
   ImmersiveGallery,
   AISearchModal,
 } from "@/components/livestock"
+import { useModalStore } from "@/lib/store"
 
 export function LivestockPageClient() {
   const [isAISearchOpen, setIsAISearchOpen] = useState(false)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const { openDetailModal, isDetailModalOpen } = useModalStore()
+
+  // Handle highlight parameter to auto-open modal
+  useEffect(() => {
+    const highlightId = searchParams.get("highlight")
+    if (highlightId) {
+      openDetailModal(highlightId)
+    }
+  }, [searchParams, openDetailModal])
+
+  // Clear highlight param when modal closes
+  useEffect(() => {
+    if (!isDetailModalOpen) {
+      const highlightId = searchParams.get("highlight")
+      if (highlightId) {
+        // Remove highlight param from URL without navigation
+        const newParams = new URLSearchParams(searchParams.toString())
+        newParams.delete("highlight")
+        const newUrl = newParams.toString() ? `/livestock?${newParams.toString()}` : "/livestock"
+        router.replace(newUrl, { scroll: false })
+      }
+    }
+  }, [isDetailModalOpen, searchParams, router])
 
   return (
     <>

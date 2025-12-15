@@ -54,22 +54,28 @@ const stats = [
 
 const team = [
   {
-    name: "Adebayo Okonkwo",
-    role: "Founder & CEO",
-    image: "/team/ceo.jpg",
-    bio: "Former agricultural economist with 15 years in livestock investment.",
+    name: "Eromosele Edward Ozah",
+    role: "Chief Executive Officer",
+    image: "/people/ceo.jpeg",
+    bio: "Visionary leader driving Green Livestock Africa's mission to transform livestock investment across the continent.",
   },
   {
-    name: "Amina Diallo",
-    role: "Head of Operations",
-    image: "/team/operations.jpg",
-    bio: "Veterinary expert ensuring the health and quality of every animal.",
+    name: "Balogun Sofihullah Esq.",
+    role: "Legal Advisor / General Counsel",
+    image: "/people/balogun.jpeg",
+    bio: "Ensuring legal compliance and protecting stakeholder interests across all operations.",
   },
   {
-    name: "Chidi Nwachukwu",
-    role: "Technology Lead",
-    image: "/team/tech.jpg",
-    bio: "Building the digital infrastructure for modern livestock trading.",
+    name: "Abdulfatai Yussuf",
+    role: "Chief Finance Officer",
+    image: "/people/yussuf.jpeg",
+    bio: "Managing financial strategy and ensuring sustainable growth for Green Livestock Africa.",
+  },
+  {
+    name: "Sodiq Bello",
+    role: "Business Development Manager",
+    image: "/people/sodiq.jpeg",
+    bio: "Driving partnerships and expanding Green Livestock Africa's reach across new markets.",
   },
 ]
 
@@ -353,13 +359,22 @@ export default function AboutPage() {
                   "transition-all duration-300"
                 )}
               >
-                {/* Image placeholder */}
+                {/* Team member image */}
                 <div className="aspect-[4/3] bg-gradient-to-br from-primary/20 via-primary/10 to-background relative overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center">
-                      <Users className="w-12 h-12 text-primary/50" />
+                  {member.image ? (
+                    <Image
+                      src={member.image}
+                      alt={member.name}
+                      fill
+                      className="object-cover object-top"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center">
+                        <Users className="w-12 h-12 text-primary/50" />
+                      </div>
                     </div>
-                  </div>
+                  )}
                   {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
                 </div>
