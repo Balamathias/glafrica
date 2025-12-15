@@ -38,7 +38,7 @@ export function Hero() {
   return (
     <section
       ref={containerRef}
-      className="relative h-screen w-full overflow-hidden py-8 md:py-16"
+      className="relative h-screen w-full overflow-hidden py-8 md:py-24 md:pb-16"
     >
       {/* Video Background */}
       <motion.div
