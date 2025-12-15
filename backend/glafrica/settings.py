@@ -110,20 +110,20 @@ if db_config:
     DATABASES['default'] = cast(dict[str, Any], dict(db_config))
     # DATABASES['hosted'] = cast(dict[str, Any], dict(db_config))
 
-# from urllib.parse import urlparse, parse_qsl
+from urllib.parse import urlparse, parse_qsl
 
-# tmpPostgres = urlparse(os.getenv("DB_URL"))
+tmpPostgres = urlparse(os.getenv("DB_URL"))
 
     
-# DATABASES['default'] = {
-#     'ENGINE': 'django.db.backends.postgresql',
-#     'NAME': tmpPostgres.path.replace('/', ''),
-#     'USER': tmpPostgres.username,
-#     'PASSWORD': tmpPostgres.password,
-#     'HOST': tmpPostgres.hostname,
-#     'PORT': 5432,
-#     'OPTIONS': dict(parse_qsl(tmpPostgres.query)),
-# }
+DATABASES['default'] = {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': tmpPostgres.path.replace('/', ''),
+    'USER': tmpPostgres.username,
+    'PASSWORD': tmpPostgres.password,
+    'HOST': tmpPostgres.hostname,
+    'PORT': 5432,
+    'OPTIONS': dict(parse_qsl(tmpPostgres.query)),
+}
 
 
 
