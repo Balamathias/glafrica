@@ -57,6 +57,7 @@ export function Navbar() {
               <span className="font-serif font-bold text-xl tracking-tight">
                 <span className="text-primary">Green</span>
                 <span className="text-foreground">Livestock</span>
+                <span className="text-primary hidden sm:inline">Africa</span>
               </span>
             </Link>
 

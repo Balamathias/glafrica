@@ -918,6 +918,117 @@ export const usersApi = {
   },
 }
 
+// Contact Inquiry types
+export interface ContactInquiry {
+  id: string
+  name: string
+  email: string
+  phone: string
+  subject: 'purchase' | 'investment' | 'partnership' | 'visit' | 'support' | 'other'
+  subject_display: string
+  message?: string
+  status: 'new' | 'read' | 'replied' | 'closed'
+  status_display: string
+  notes?: string
+  replied_at: string | null
+  replied_by: number | null
+  replied_by_name: string | null
+  created_at: string
+  updated_at?: string
+}
+
+export interface InquiryStats {
+  total: number
+  new: number
+  read: number
+  replied: number
+  closed: number
+  by_subject: Array<{ subject: string; count: number }>
+}
+
+// Inquiries API
+export const inquiriesApi = {
+  async getList(
+    page: number = 1,
+    filters?: {
+      status?: string
+      subject?: string
+      search?: string
+      date_from?: string
+      date_to?: string
+    }
+  ): Promise<PaginatedResponse<ContactInquiry>> {
+    try {
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+
+      if (filters) {
+        if (filters.status) params.append('status', filters.status)
+        if (filters.subject) params.append('subject', filters.subject)
+        if (filters.search) params.append('search', filters.search)
+        if (filters.date_from) params.append('date_from', filters.date_from)
+        if (filters.date_to) params.append('date_to', filters.date_to)
+      }
+
+      const { data } = await adminApi.get<PaginatedResponse<ContactInquiry>>(`/inquiries/?${params}`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getById(id: string): Promise<ContactInquiry> {
+    try {
+      const { data } = await adminApi.get<ContactInquiry>(`/inquiries/${id}/`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getStats(): Promise<InquiryStats> {
+    try {
+      const { data } = await adminApi.get<InquiryStats>('/inquiries/stats/')
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async updateStatus(
+    id: string,
+    status: ContactInquiry['status'],
+    notes?: string
+  ): Promise<ContactInquiry> {
+    try {
+      const { data } = await adminApi.patch<ContactInquiry>(`/inquiries/${id}/`, {
+        status,
+        notes,
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async markRead(id: string): Promise<{ detail: string }> {
+    try {
+      const { data } = await adminApi.post<{ detail: string }>(`/inquiries/${id}/mark_read/`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    try {
+      await adminApi.delete(`/inquiries/${id}/`)
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
 // Export default admin API object
 export default {
   auth: authApi,
@@ -928,4 +1039,5 @@ export default {
   tags: tagsApi,
   media: mediaApi,
   users: usersApi,
+  inquiries: inquiriesApi,
 }

@@ -3,7 +3,7 @@ Admin API views for full CRUD operations with bulk support.
 """
 import csv
 from io import StringIO
-from django.db.models import Q, Count, Sum
+from django.db.models import Q, Count, Sum, F
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import viewsets, status, filters
@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from ..models import Livestock, MediaAsset, Category, Tag, AuditLog
+from ..models import Livestock, MediaAsset, Category, Tag, AuditLog, ContactInquiry
 from ..permissions import (
     IsAdminUser, CanManageLivestock, CanManageCategories,
     CanManageTags, CanManageMedia
@@ -30,6 +30,9 @@ from .serializers import (
     BulkMarkSoldSerializer,
     MediaUploadSerializer,
     ExportSerializer,
+    AdminContactInquiryListSerializer,
+    AdminContactInquiryDetailSerializer,
+    UpdateInquiryStatusSerializer,
 )
 
 
@@ -230,7 +233,19 @@ class AdminLivestockViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def export(self, request):
         """Export livestock data to CSV/Excel."""
-        serializer = ExportSerializer(data=request.query_params)
+        # Convert QueryDict to regular dict for serializer
+        # Handle 'ids' specially since it can be a list
+        export_data = {
+            'format': request.query_params.get('format', 'csv'),
+            'include_sold': request.query_params.get('include_sold', 'true').lower() == 'true',
+        }
+
+        # Handle multiple ids parameters
+        ids = request.query_params.getlist('ids')
+        if ids:
+            export_data['ids'] = ids
+
+        serializer = ExportSerializer(data=export_data)
         serializer.is_valid(raise_exception=True)
 
         export_format = serializer.validated_data.get('format', 'csv')
@@ -532,3 +547,135 @@ class AdminAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(created_at__date__lte=date_to)
 
         return queryset
+
+
+class AdminContactInquiryViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for admin contact inquiry management.
+    Allows viewing, updating status, and managing contact form submissions.
+    """
+    queryset = ContactInquiry.objects.select_related('replied_by')
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'email', 'message']
+    ordering_fields = ['created_at', 'status', 'name']
+    ordering = ['-created_at']
+    http_method_names = ['get', 'post', 'patch', 'delete']  # No create (POST on list) - created via public API
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return AdminContactInquiryListSerializer
+        return AdminContactInquiryDetailSerializer
+
+    def create(self, request, *args, **kwargs):
+        """Disable create - inquiries are created via public contact form."""
+        return Response(
+            {'detail': 'Creating inquiries via admin API is not allowed. Use the public contact form.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Filter by status
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        # Filter by subject
+        subject = self.request.query_params.get('subject')
+        if subject:
+            queryset = queryset.filter(subject=subject)
+
+        # Filter by date range
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+        if date_from:
+            queryset = queryset.filter(created_at__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(created_at__date__lte=date_to)
+
+        return queryset
+
+    def perform_update(self, serializer):
+        """Track status changes and set replied_by when status changes to replied."""
+        instance = serializer.instance
+        old_status = instance.status
+        new_status = serializer.validated_data.get('status', old_status)
+
+        # Auto-set replied_at and replied_by when marking as replied
+        if old_status != 'replied' and new_status == 'replied':
+            serializer.validated_data['replied_at'] = timezone.now()
+            serializer.validated_data['replied_by'] = self.request.user
+
+        instance = serializer.save()
+
+        # Log the action
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type='update',
+            resource_type='inquiry',
+            description=f"Updated inquiry from {instance.name}: status {old_status} → {new_status}",
+            resource_id=str(instance.id),
+            changes={'status': {'old': old_status, 'new': new_status}},
+            request=self.request
+        )
+
+    def perform_destroy(self, instance):
+        name = instance.name
+        inquiry_id = str(instance.id)
+
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type='delete',
+            resource_type='inquiry',
+            description=f"Deleted inquiry from: {name}",
+            resource_id=inquiry_id,
+            request=self.request
+        )
+
+        instance.delete()
+
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        """Mark an inquiry as read."""
+        inquiry = self.get_object()
+        if inquiry.status == 'new':
+            inquiry.status = 'read'
+            inquiry.save()
+
+            AuditLog.log_action(
+                user=request.user,
+                action_type='update',
+                resource_type='inquiry',
+                description=f"Marked inquiry from {inquiry.name} as read",
+                resource_id=str(inquiry.id),
+                request=request
+            )
+
+        return Response({'detail': 'Inquiry marked as read.'})
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get inquiry statistics."""
+        total = ContactInquiry.objects.count()
+        new = ContactInquiry.objects.filter(status='new').count()
+        read = ContactInquiry.objects.filter(status='read').count()
+        replied = ContactInquiry.objects.filter(status='replied').count()
+        closed = ContactInquiry.objects.filter(status='closed').count()
+
+        # By subject
+        by_subject = list(
+            ContactInquiry.objects.values('subject')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+
+        return Response({
+            'total': total,
+            'new': new,
+            'read': read,
+            'replied': replied,
+            'closed': closed,
+            'by_subject': by_subject
+        })

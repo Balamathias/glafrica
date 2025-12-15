@@ -3,8 +3,12 @@ import re
 from openai import OpenAI
 from django.conf import settings
 from django.db.models import Q, Min, Max
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Generator, Iterator
 from ..models import Livestock, Category
+
+
+# Type alias for conversation messages
+ConversationMessage = Dict[str, str]  # {"role": "user" | "assistant", "content": str}
 
 
 class AIService:
@@ -262,29 +266,87 @@ class AIService:
 
         return results
 
-    def generate_chat_response(self, message: str, context_livestock: List[Livestock] = None) -> str:
+    def generate_chat_response(
+        self,
+        message: str,
+        context_livestock: List[Livestock] = None,
+        conversation_history: List[ConversationMessage] = None
+    ) -> str:
         """
-        Generate a response using RAG with enhanced context.
+        Generate a response using RAG with enhanced context and conversation history.
         """
         if context_livestock is None:
             context_livestock = []
+        if conversation_history is None:
+            conversation_history = []
 
         system_prompt = self._build_system_prompt(context_livestock)
+
+        # Build messages with conversation history
+        messages = [{"role": "system", "content": system_prompt}]
+
+        # Add conversation history (limit to last 10 exchanges to control context)
+        for msg in conversation_history[-20:]:  # Last 20 messages (10 exchanges)
+            messages.append({"role": msg["role"], "content": msg["content"]})
+
+        # Add current message
+        messages.append({"role": "user", "content": message})
 
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": message}
-                ],
+                messages=messages,
                 temperature=0.4,
-                max_tokens=400,
+                max_tokens=1000,
             )
             return response.choices[0].message.content
         except Exception as e:
             print(f"AI Response Error: {e}")
             return "I apologize, but I'm having trouble connecting right now. Please try again in a moment."
+
+    def generate_chat_response_stream(
+        self,
+        message: str,
+        context_livestock: List[Livestock] = None,
+        conversation_history: List[ConversationMessage] = None
+    ) -> Iterator[str]:
+        """
+        Generate a streaming response using RAG with enhanced context and conversation history.
+        Yields text chunks as they are generated.
+        """
+        if context_livestock is None:
+            context_livestock = []
+        if conversation_history is None:
+            conversation_history = []
+
+        system_prompt = self._build_system_prompt(context_livestock)
+
+        # Build messages with conversation history
+        messages = [{"role": "system", "content": system_prompt}]
+
+        # Add conversation history (limit to last 10 exchanges to control context)
+        for msg in conversation_history[-20:]:  # Last 20 messages (10 exchanges)
+            messages.append({"role": msg["role"], "content": msg["content"]})
+
+        # Add current message
+        messages.append({"role": "user", "content": message})
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.4,
+                max_tokens=400,
+                stream=True,  # Enable streaming
+            )
+
+            for chunk in response:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+
+        except Exception as e:
+            print(f"AI Streaming Error: {e}")
+            yield "I apologize, but I'm having trouble connecting right now. Please try again in a moment."
 
     def _build_system_prompt(self, livestock_list: List[Livestock]) -> str:
         """

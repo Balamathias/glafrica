@@ -75,11 +75,12 @@ export const useFilterStore = create<FilterState>((set) => ({
 }))
 
 // Chat Store - handles chat assistant state
-interface ChatMessage {
+export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  isStreaming?: boolean // Indicates if this message is currently being streamed
 }
 
 interface ChatState {
@@ -87,13 +88,20 @@ interface ChatState {
   isExpanded: boolean
   messages: ChatMessage[]
   isTyping: boolean
+  streamingMessageId: string | null // ID of the message currently being streamed
   openChat: () => void
   closeChat: () => void
   toggleChat: () => void
   toggleExpanded: () => void
-  addMessage: (role: 'user' | 'assistant', content: string) => void
+  addMessage: (role: 'user' | 'assistant', content: string, isStreaming?: boolean) => string // Returns message ID
+  updateMessage: (id: string, content: string) => void
+  appendToMessage: (id: string, chunk: string) => void
+  finishStreaming: (id: string) => void
   setTyping: (typing: boolean) => void
+  setStreamingMessageId: (id: string | null) => void
   clearMessages: () => void
+  // Get conversation history for API calls (excludes welcome message)
+  getHistory: () => { role: 'user' | 'assistant'; content: string }[]
 }
 
 const welcomeMessage: ChatMessage = {
@@ -104,27 +112,67 @@ const welcomeMessage: ChatMessage = {
   timestamp: new Date(),
 }
 
-export const useChatStore = create<ChatState>((set) => ({
+export const useChatStore = create<ChatState>((set, get) => ({
   isOpen: false,
   isExpanded: false,
   messages: [welcomeMessage],
   isTyping: false,
+  streamingMessageId: null,
   openChat: () => set({ isOpen: true }),
   closeChat: () => set({ isOpen: false }),
   toggleChat: () => set((state) => ({ isOpen: !state.isOpen })),
   toggleExpanded: () => set((state) => ({ isExpanded: !state.isExpanded })),
-  addMessage: (role, content) =>
+
+  addMessage: (role, content, isStreaming = false) => {
+    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
     set((state) => ({
       messages: [
         ...state.messages,
         {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id,
           role,
           content,
           timestamp: new Date(),
+          isStreaming,
         },
       ],
+      streamingMessageId: isStreaming ? id : state.streamingMessageId,
+    }))
+    return id
+  },
+
+  updateMessage: (id, content) =>
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg.id === id ? { ...msg, content } : msg
+      ),
     })),
+
+  appendToMessage: (id, chunk) =>
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg.id === id ? { ...msg, content: msg.content + chunk } : msg
+      ),
+    })),
+
+  finishStreaming: (id) =>
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg.id === id ? { ...msg, isStreaming: false } : msg
+      ),
+      streamingMessageId: null,
+      isTyping: false,
+    })),
+
   setTyping: (typing) => set({ isTyping: typing }),
-  clearMessages: () => set({ messages: [welcomeMessage] }),
+  setStreamingMessageId: (id) => set({ streamingMessageId: id }),
+  clearMessages: () => set({ messages: [welcomeMessage], streamingMessageId: null }),
+
+  getHistory: () => {
+    const { messages } = get()
+    // Exclude welcome message and return only role/content for API
+    return messages
+      .filter((msg) => msg.id !== 'welcome' && !msg.isStreaming)
+      .map(({ role, content }) => ({ role, content }))
+  },
 }))

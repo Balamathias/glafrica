@@ -3,7 +3,7 @@ Admin API serializers for full CRUD operations.
 """
 from django.utils import timezone
 from rest_framework import serializers
-from ..models import Livestock, MediaAsset, Category, Tag, AuditLog
+from ..models import Livestock, MediaAsset, Category, Tag, AuditLog, ContactInquiry
 
 
 class AdminMediaAssetSerializer(serializers.ModelSerializer):
@@ -257,3 +257,51 @@ class ExportSerializer(serializers.Serializer):
     include_sold = serializers.BooleanField(default=True)
     date_from = serializers.DateField(required=False)
     date_to = serializers.DateField(required=False)
+
+
+class AdminContactInquiryListSerializer(serializers.ModelSerializer):
+    """Contact inquiry list serializer for admin."""
+    subject_display = serializers.CharField(source='get_subject_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    replied_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContactInquiry
+        fields = [
+            'id', 'name', 'email', 'phone', 'subject', 'subject_display',
+            'status', 'status_display', 'replied_at', 'replied_by_name',
+            'created_at'
+        ]
+
+    def get_replied_by_name(self, obj):
+        if obj.replied_by:
+            return obj.replied_by.get_full_name() or obj.replied_by.username
+        return None
+
+
+class AdminContactInquiryDetailSerializer(serializers.ModelSerializer):
+    """Contact inquiry detail serializer for admin."""
+    subject_display = serializers.CharField(source='get_subject_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    replied_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContactInquiry
+        fields = [
+            'id', 'name', 'email', 'phone', 'subject', 'subject_display',
+            'message', 'status', 'status_display', 'notes',
+            'replied_at', 'replied_by', 'replied_by_name',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'name', 'email', 'phone', 'subject', 'message', 'created_at', 'updated_at']
+
+    def get_replied_by_name(self, obj):
+        if obj.replied_by:
+            return obj.replied_by.get_full_name() or obj.replied_by.username
+        return None
+
+
+class UpdateInquiryStatusSerializer(serializers.Serializer):
+    """Serializer for updating inquiry status."""
+    status = serializers.ChoiceField(choices=ContactInquiry.STATUS_CHOICES)
+    notes = serializers.CharField(required=False, allow_blank=True)

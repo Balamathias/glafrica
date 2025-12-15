@@ -14,9 +14,12 @@ import {
   ArrowRight,
   CheckCircle,
   Loader2,
+  AlertCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/layout/footer"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
 
 const contactMethods = [
   {
@@ -83,6 +86,7 @@ export default function ContactPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -96,16 +100,37 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError(null)
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const response = await fetch(`${API_URL}/contact/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formState),
+      })
 
-    setIsSubmitting(false)
-    setIsSubmitted(true)
-    setFormState({ name: "", email: "", phone: "", subject: "", message: "" })
+      if (!response.ok) {
+        const data = await response.json()
+        // Handle validation errors
+        if (data.name) throw new Error(`Name: ${data.name[0]}`)
+        if (data.email) throw new Error(`Email: ${data.email[0]}`)
+        if (data.message) throw new Error(`Message: ${data.message[0]}`)
+        if (data.subject) throw new Error(`Subject: ${data.subject[0]}`)
+        throw new Error(data.detail || "Failed to send message. Please try again.")
+      }
 
-    // Reset success message after 5 seconds
-    setTimeout(() => setIsSubmitted(false), 5000)
+      setIsSubmitted(true)
+      setFormState({ name: "", email: "", phone: "", subject: "", message: "" })
+
+      // Reset success message after 5 seconds
+      setTimeout(() => setIsSubmitted(false), 5000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (
@@ -445,6 +470,23 @@ export default function ContactPage() {
                     </motion.div>
                   )}
                 </div>
+
+                {/* Error Message */}
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-start gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20"
+                  >
+                    <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-destructive">
+                        Failed to send message
+                      </p>
+                      <p className="text-sm text-destructive/80 mt-1">{error}</p>
+                    </div>
+                  </motion.div>
+                )}
               </form>
             </motion.div>
 

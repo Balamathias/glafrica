@@ -104,14 +104,82 @@ export const categoriesApi = {
   },
 }
 
+// Chat message type for conversation history
+export interface ChatHistoryMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+// SSE event types from the streaming endpoint
+export interface StreamEvent {
+  type: 'context' | 'chunk' | 'done' | 'error'
+  content?: string
+  count?: number
+  message?: string
+}
+
 // Chat API
 export const chatApi = {
-  async send(message: string): Promise<ChatResponse> {
+  // Non-streaming endpoint (backwards compatible)
+  async send(message: string, history: ChatHistoryMessage[] = []): Promise<ChatResponse> {
     try {
-      const { data } = await api.post<ChatResponse>('/chat/send/', { message })
+      const { data } = await api.post<ChatResponse>('/chat/send/', { message, history })
       return data
     } catch (error) {
       handleApiError(error)
+    }
+  },
+
+  // Streaming endpoint using Server-Sent Events
+  async *stream(
+    message: string,
+    history: ChatHistoryMessage[] = []
+  ): AsyncGenerator<StreamEvent, void, unknown> {
+    const response = await fetch(`${API_URL}/chat/stream/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message, history }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const reader = response.body?.getReader()
+    if (!reader) {
+      throw new Error('Response body is not readable')
+    }
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+
+        // Process complete SSE events from the buffer
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || '' // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6)) as StreamEvent
+              yield data
+            } catch {
+              // Skip malformed JSON
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock()
     }
   },
 }

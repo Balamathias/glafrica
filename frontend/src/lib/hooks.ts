@@ -69,10 +69,11 @@ export function useCategoriesWithPreviews() {
   })
 }
 
-// Chat mutation
+// Chat mutation (non-streaming, for backwards compatibility)
 export function useChatSend() {
   return useMutation({
-    mutationFn: (message: string) => chatApi.send(message),
+    mutationFn: ({ message, history = [] }: { message: string; history?: { role: 'user' | 'assistant'; content: string }[] }) =>
+      chatApi.send(message, history),
   })
 }
 

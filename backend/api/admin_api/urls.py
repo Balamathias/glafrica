@@ -11,6 +11,7 @@ from .views import (
     AdminTagViewSet,
     AdminMediaViewSet,
     AdminAuditLogViewSet,
+    AdminContactInquiryViewSet,
 )
 from .dashboard_views import (
     DashboardSummaryView,
@@ -33,6 +34,7 @@ router.register(r'categories', AdminCategoryViewSet, basename='admin-categories'
 router.register(r'tags', AdminTagViewSet, basename='admin-tags')
 router.register(r'media', AdminMediaViewSet, basename='admin-media')
 router.register(r'audit-logs', AdminAuditLogViewSet, basename='admin-audit-logs')
+router.register(r'inquiries', AdminContactInquiryViewSet, basename='admin-inquiries')
 
 urlpatterns = [
     # Authentication endpoints

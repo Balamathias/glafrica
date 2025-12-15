@@ -231,3 +231,50 @@ class AuditLog(TimeStampedModel):
             ip_address=ip_address,
             user_agent=user_agent
         )
+
+
+# ============================================
+# CONTACT & INQUIRIES
+# ============================================
+
+class ContactInquiry(TimeStampedModel):
+    """Store contact form submissions from the public website."""
+    SUBJECT_CHOICES = [
+        ('purchase', 'Livestock Purchase'),
+        ('investment', 'Investment Inquiry'),
+        ('partnership', 'Partnership Opportunity'),
+        ('visit', 'Schedule a Visit'),
+        ('support', 'General Support'),
+        ('other', 'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('new', 'New'),
+        ('read', 'Read'),
+        ('replied', 'Replied'),
+        ('closed', 'Closed'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200)
+    email = models.EmailField()
+    phone = models.CharField(max_length=30, blank=True)
+    subject = models.CharField(max_length=20, choices=SUBJECT_CHOICES)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
+    replied_at = models.DateTimeField(null=True, blank=True)
+    replied_by = models.ForeignKey(
+        'auth.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='replied_inquiries'
+    )
+    notes = models.TextField(blank=True, help_text="Internal admin notes")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Contact Inquiry"
+        verbose_name_plural = "Contact Inquiries"
+
+    def __str__(self):
+        return f"{self.name} - {self.get_subject_display()}"

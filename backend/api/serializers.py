@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Livestock, MediaAsset, Category, Tag
+from .models import Livestock, MediaAsset, Category, Tag, ContactInquiry
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -107,3 +107,37 @@ class LivestockListSerializer(serializers.ModelSerializer):
 
     def get_media_count(self, obj):
         return obj.media.count()
+
+
+# ============================================
+# CONTACT FORM SERIALIZERS
+# ============================================
+
+class ContactInquirySerializer(serializers.ModelSerializer):
+    """Serializer for public contact form submissions."""
+
+    class Meta:
+        model = ContactInquiry
+        fields = ['name', 'email', 'phone', 'subject', 'message']
+
+    def validate_name(self, value):
+        if len(value.strip()) < 2:
+            raise serializers.ValidationError("Name must be at least 2 characters.")
+        return value.strip()
+
+    def validate_email(self, value):
+        # Basic email validation is handled by EmailField
+        return value.lower().strip()
+
+    def validate_message(self, value):
+        if len(value.strip()) < 20:
+            raise serializers.ValidationError("Message must be at least 20 characters.")
+        if len(value) > 5000:
+            raise serializers.ValidationError("Message cannot exceed 5000 characters.")
+        return value.strip()
+
+    def validate_subject(self, value):
+        valid_subjects = [choice[0] for choice in ContactInquiry.SUBJECT_CHOICES]
+        if value not in valid_subjects:
+            raise serializers.ValidationError(f"Invalid subject. Choose from: {', '.join(valid_subjects)}")
+        return value

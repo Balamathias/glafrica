@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useState } from "react"
+import { useRef, useEffect, useState, useCallback } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useChatStore } from "@/lib/store"
-import { useChatSend } from "@/lib/hooks"
+import { chatApi } from "@/lib/api"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -34,25 +34,29 @@ export function ChatAssistant() {
     isExpanded,
     messages,
     isTyping,
+    streamingMessageId,
     openChat,
     closeChat,
     toggleExpanded,
     addMessage,
+    appendToMessage,
+    finishStreaming,
     setTyping,
     clearMessages,
+    getHistory,
   } = useChatStore()
 
-  const { mutateAsync: sendMessage } = useChatSend()
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [isHovered, setIsHovered] = useState(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages or streaming updates
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages, isTyping])
+  }, [messages, isTyping, streamingMessageId])
 
   // Focus input when chat opens
   useEffect(() => {
@@ -61,30 +65,63 @@ export function ChatAssistant() {
     }
   }, [isOpen])
 
-  const handleSend = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort()
+    }
+  }, [])
+
+  const handleSend = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = e.currentTarget
     const input = form.elements.namedItem("message") as HTMLInputElement
     const query = input.value.trim()
 
-    if (!query) return
+    if (!query || isTyping) return
 
     input.value = ""
+
+    // Add user message
     addMessage("user", query)
     setTyping(true)
 
+    // Get conversation history (excludes the message we just added since it's the current query)
+    const history = getHistory()
+
+    // Create a placeholder message for streaming
+    const assistantMessageId = addMessage("assistant", "", true)
+
     try {
-      const response = await sendMessage(query)
-      addMessage("assistant", response.response)
-    } catch {
-      addMessage(
-        "assistant",
-        "I apologize, but I'm having trouble connecting right now. Please try again in a moment."
-      )
-    } finally {
-      setTyping(false)
+      // Use streaming API
+      for await (const event of chatApi.stream(query, history)) {
+        if (event.type === 'chunk' && event.content) {
+          appendToMessage(assistantMessageId, event.content)
+        } else if (event.type === 'done') {
+          finishStreaming(assistantMessageId)
+        } else if (event.type === 'error') {
+          // Replace empty content with error message
+          appendToMessage(
+            assistantMessageId,
+            event.message || "I apologize, but I'm having trouble connecting right now. Please try again in a moment."
+          )
+          finishStreaming(assistantMessageId)
+        }
+      }
+    } catch (error) {
+      console.error('Chat stream error:', error)
+      // If the message is still empty, add error text
+      const currentMessages = useChatStore.getState().messages
+      const assistantMsg = currentMessages.find(m => m.id === assistantMessageId)
+      if (!assistantMsg?.content) {
+        appendToMessage(
+          assistantMessageId,
+          "I apologize, but I'm having trouble connecting right now. Please try again in a moment."
+        )
+      }
+      finishStreaming(assistantMessageId)
     }
-  }
+  }, [isTyping, addMessage, setTyping, getHistory, appendToMessage, finishStreaming])
 
   const handleSuggestionClick = (suggestion: string) => {
     if (inputRef.current) {
@@ -230,33 +267,43 @@ export function ChatAssistant() {
                       )}
                     >
                       {msg.role === "assistant" ? (
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                            ul: ({ children }) => (
-                              <ul className="list-disc ml-4 mb-2 space-y-1">{children}</ul>
-                            ),
-                            ol: ({ children }) => (
-                              <ol className="list-decimal ml-4 mb-2 space-y-1">{children}</ol>
-                            ),
-                            strong: ({ children }) => (
-                              <strong className="font-semibold text-foreground">{children}</strong>
-                            ),
-                            a: ({ href, children }) => (
-                              <a
-                                href={href}
-                                className="text-primary underline decoration-primary/30 hover:decoration-primary transition-colors"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                {children}
-                              </a>
-                            ),
-                          }}
-                        >
-                          {msg.content}
-                        </ReactMarkdown>
+                        <>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                              ul: ({ children }) => (
+                                <ul className="list-disc ml-4 mb-2 space-y-1">{children}</ul>
+                              ),
+                              ol: ({ children }) => (
+                                <ol className="list-decimal ml-4 mb-2 space-y-1">{children}</ol>
+                              ),
+                              strong: ({ children }) => (
+                                <strong className="font-semibold text-foreground">{children}</strong>
+                              ),
+                              a: ({ href, children }) => (
+                                <a
+                                  href={href}
+                                  className="text-primary underline decoration-primary/30 hover:decoration-primary transition-colors"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {children}
+                                </a>
+                              ),
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                          {/* Streaming cursor */}
+                          {msg.isStreaming && (
+                            <motion.span
+                              className="inline-block w-2 h-4 ml-0.5 bg-primary/70 rounded-sm"
+                              animate={{ opacity: [1, 0] }}
+                              transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+                            />
+                          )}
+                        </>
                       ) : (
                         msg.content
                       )}
@@ -264,8 +311,8 @@ export function ChatAssistant() {
                   </motion.div>
                 ))}
 
-                {/* Typing Indicator */}
-                {isTyping && (
+                {/* Typing Indicator - only show when typing but not yet streaming */}
+                {isTyping && !streamingMessageId && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
