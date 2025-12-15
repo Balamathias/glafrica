@@ -336,7 +336,7 @@ class AIService:
                 model=self.model,
                 messages=messages,
                 temperature=0.4,
-                max_tokens=400,
+                max_tokens=1000,
                 stream=True,  # Enable streaming
             )
 
