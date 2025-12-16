@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+# Force psycopg to use pure-python implementation (no libpq C library needed)
+# This MUST be set before any psycopg imports - required for Vercel serverless
+os.environ.setdefault('PSYCOPG_IMPL', 'python')
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -97,25 +101,11 @@ WSGI_APPLICATION = 'glafrica.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Database Configuration
-# Using psycopg3 via Django's native postgresql_psycopg backend (Django 4.2+)
 from urllib.parse import urlparse, parse_qsl
 
-# Determine which PostgreSQL engine to use
-# Django 4.2+ has native psycopg3 support via postgresql_psycopg
-# Fall back to postgresql (psycopg2) for older versions or if psycopg3 isn't available
-def get_postgres_engine():
-    """Get the appropriate PostgreSQL engine."""
-    try:
-        import psycopg
-        # psycopg3 is available, try to use native backend
-        import django
-        if django.VERSION >= (4, 2):
-            return 'django.db.backends.postgresql_psycopg'
-    except ImportError:
-        pass
-    return 'django.db.backends.postgresql'
-
-POSTGRES_ENGINE = get_postgres_engine()
+# Django 5.x supports psycopg3 natively - it will auto-detect psycopg (3.x) if installed
+# The 'postgresql' backend in Django 5.x tries psycopg first, then falls back to psycopg2
+POSTGRES_ENGINE = 'django.db.backends.postgresql'
 
 DB_URL = os.getenv("DB_URL")
 
