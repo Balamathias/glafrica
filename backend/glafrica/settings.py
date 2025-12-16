@@ -20,6 +20,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from datetime import timedelta
+import dj_database_url
+from typing import Any, cast
 
 
 
@@ -120,7 +122,7 @@ if DB_URL:
 
     if db_config:
         DATABASES['default'] = cast(dict[str, Any], dict(db_config))
-        
+
 else:
     # Local development fallback
     DATABASES = {
