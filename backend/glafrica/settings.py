@@ -19,9 +19,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 from dotenv import load_dotenv
 load_dotenv()
 
-import dj_database_url
-from typing import Any
-from typing import cast
 from datetime import timedelta
 
 
@@ -33,9 +30,15 @@ from datetime import timedelta
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', True)
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '.vercel.app',  # All Vercel preview deployments
+    '.glafrica.com',  # Your production domain
+    '.greenlivestockafrica.com'
+]
 
 
 # Application definition
@@ -93,37 +96,38 @@ WSGI_APPLICATION = 'glafrica.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'glafrica'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'matiecodes'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
-}
-
-db_config = dj_database_url.config(default=os.getenv('DB_URL'))
-
-if db_config:
-    DATABASES['default'] = cast(dict[str, Any], dict(db_config))
-    # DATABASES['hosted'] = cast(dict[str, Any], dict(db_config))
-
+# Database Configuration
+# Use psycopg3 (django.db.backends.postgresql_psycopg) for Vercel compatibility
 from urllib.parse import urlparse, parse_qsl
 
-tmpPostgres = urlparse(os.getenv("DB_URL"))
+DB_URL = os.getenv("DB_URL")
 
-    
-DATABASES['default'] = {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': tmpPostgres.path.replace('/', ''),
-    'USER': tmpPostgres.username,
-    'PASSWORD': tmpPostgres.password,
-    'HOST': tmpPostgres.hostname,
-    'PORT': 5432,
-    'OPTIONS': dict(parse_qsl(tmpPostgres.query)),
-}
+if DB_URL:
+    # Parse the database URL for hosted/production environments
+    tmpPostgres = urlparse(DB_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg',  # psycopg3 engine
+            'NAME': tmpPostgres.path.replace('/', ''),
+            'USER': tmpPostgres.username,
+            'PASSWORD': tmpPostgres.password,
+            'HOST': tmpPostgres.hostname,
+            'PORT': tmpPostgres.port or 5432,
+            'OPTIONS': dict(parse_qsl(tmpPostgres.query)),
+        }
+    }
+else:
+    # Local development fallback
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg',  # psycopg3 engine
+            'NAME': os.getenv('DB_NAME', 'glafrica'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'matiecodes'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
+    }
 
 
 
@@ -204,7 +208,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 20,
     'DEFAULT_FILTER_BACKENDS': [
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
