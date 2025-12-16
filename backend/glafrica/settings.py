@@ -13,10 +13,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
-# Force psycopg to use pure-python implementation (no libpq C library needed)
-# This MUST be set before any psycopg imports - required for Vercel serverless
-os.environ.setdefault('PSYCOPG_IMPL', 'python')
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -103,10 +99,6 @@ WSGI_APPLICATION = 'glafrica.wsgi.application'
 # Database Configuration
 from urllib.parse import urlparse, parse_qsl
 
-# Django 5.x supports psycopg3 natively - it will auto-detect psycopg (3.x) if installed
-# The 'postgresql' backend in Django 5.x tries psycopg first, then falls back to psycopg2
-POSTGRES_ENGINE = 'django.db.backends.postgresql'
-
 DB_URL = os.getenv("DB_URL")
 
 if DB_URL:
@@ -114,7 +106,7 @@ if DB_URL:
     tmpPostgres = urlparse(DB_URL)
     DATABASES = {
         'default': {
-            'ENGINE': POSTGRES_ENGINE,
+            'ENGINE': 'django.db.backends.postgresql',
             'NAME': tmpPostgres.path.replace('/', ''),
             'USER': tmpPostgres.username,
             'PASSWORD': tmpPostgres.password,
@@ -127,7 +119,7 @@ else:
     # Local development fallback
     DATABASES = {
         'default': {
-            'ENGINE': POSTGRES_ENGINE,
+            'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('DB_NAME', 'glafrica'),
             'USER': os.getenv('DB_USER', 'postgres'),
             'PASSWORD': os.getenv('DB_PASSWORD', 'matiecodes'),
