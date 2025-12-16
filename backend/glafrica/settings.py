@@ -115,6 +115,12 @@ if DB_URL:
             'OPTIONS': dict(parse_qsl(tmpPostgres.query)),
         }
     }
+
+    db_config = dj_database_url.config(default=os.getenv('DB_URL'))
+
+    if db_config:
+        DATABASES['default'] = cast(dict[str, Any], dict(db_config))
+        
 else:
     # Local development fallback
     DATABASES = {
