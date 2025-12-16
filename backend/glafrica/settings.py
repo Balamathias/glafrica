@@ -97,8 +97,25 @@ WSGI_APPLICATION = 'glafrica.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Database Configuration
-# Use psycopg3 (django.db.backends.postgresql_psycopg) for Vercel compatibility
+# Using psycopg3 via Django's native postgresql_psycopg backend (Django 4.2+)
 from urllib.parse import urlparse, parse_qsl
+
+# Determine which PostgreSQL engine to use
+# Django 4.2+ has native psycopg3 support via postgresql_psycopg
+# Fall back to postgresql (psycopg2) for older versions or if psycopg3 isn't available
+def get_postgres_engine():
+    """Get the appropriate PostgreSQL engine."""
+    try:
+        import psycopg
+        # psycopg3 is available, try to use native backend
+        import django
+        if django.VERSION >= (4, 2):
+            return 'django.db.backends.postgresql_psycopg'
+    except ImportError:
+        pass
+    return 'django.db.backends.postgresql'
+
+POSTGRES_ENGINE = get_postgres_engine()
 
 DB_URL = os.getenv("DB_URL")
 
@@ -107,7 +124,7 @@ if DB_URL:
     tmpPostgres = urlparse(DB_URL)
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql_psycopg',  # psycopg3 engine
+            'ENGINE': POSTGRES_ENGINE,
             'NAME': tmpPostgres.path.replace('/', ''),
             'USER': tmpPostgres.username,
             'PASSWORD': tmpPostgres.password,
@@ -120,7 +137,7 @@ else:
     # Local development fallback
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql_psycopg',  # psycopg3 engine
+            'ENGINE': POSTGRES_ENGINE,
             'NAME': os.getenv('DB_NAME', 'glafrica'),
             'USER': os.getenv('DB_USER', 'postgres'),
             'PASSWORD': os.getenv('DB_PASSWORD', 'matiecodes'),
