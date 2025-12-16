@@ -18,8 +18,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 from dotenv import load_dotenv
 
-os.environ["PSYCOPG_IMPL"] = "python"
-
 load_dotenv()
 
 from datetime import timedelta
