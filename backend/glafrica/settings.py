@@ -17,6 +17,9 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 from dotenv import load_dotenv
+
+os.environ["PSYCOPG_IMPL"] = "python"
+
 load_dotenv()
 
 from datetime import timedelta
@@ -99,42 +102,51 @@ WSGI_APPLICATION = 'glafrica.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Database Configuration
-from urllib.parse import urlparse, parse_qsl
+# from urllib.parse import urlparse, parse_qsl
 
-DB_URL = os.getenv("DB_URL")
+# DB_URL = os.getenv("DB_URL")
 
-if DB_URL:
-    # Parse the database URL for hosted/production environments
-    tmpPostgres = urlparse(DB_URL)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': tmpPostgres.path.replace('/', ''),
-            'USER': tmpPostgres.username,
-            'PASSWORD': tmpPostgres.password,
-            'HOST': tmpPostgres.hostname,
-            'PORT': tmpPostgres.port or 5432,
-            'OPTIONS': dict(parse_qsl(tmpPostgres.query)),
-        }
-    }
+# if DB_URL:
+#     # Parse the database URL for hosted/production environments
+#     tmpPostgres = urlparse(DB_URL)
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': tmpPostgres.path.replace('/', ''),
+#             'USER': tmpPostgres.username,
+#             'PASSWORD': tmpPostgres.password,
+#             'HOST': tmpPostgres.hostname,
+#             'PORT': tmpPostgres.port or 5432,
+#             'OPTIONS': dict(parse_qsl(tmpPostgres.query)),
+#         }
+#     }
 
-    db_config = dj_database_url.config(default=os.getenv('DB_URL'))
+#     db_config = dj_database_url.config(default=os.getenv('DB_URL'))
 
-    if db_config:
-        DATABASES['default'] = cast(dict[str, Any], dict(db_config))
+#     if db_config:
+#         DATABASES['default'] = cast(dict[str, Any], dict(db_config))
 
-else:
-    # Local development fallback
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'glafrica'),
-            'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'matiecodes'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-        }
-    }
+# else:
+#     # Local development fallback
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': os.getenv('DB_NAME', 'glafrica'),
+#             'USER': os.getenv('DB_USER', 'postgres'),
+#             'PASSWORD': os.getenv('DB_PASSWORD', 'matiecodes'),
+#             'HOST': os.getenv('DB_HOST', 'localhost'),
+#             'PORT': os.getenv('DB_PORT', '5432'),
+#         }
+#     }
+
+DATABASES = {
+    "default": dj_database_url.config(
+        default=os.getenv("DB_URL"),
+        conn_max_age=0,   # REQUIRED for Vercel
+        ssl_require=True
+    )
+}
+
 
 
 
