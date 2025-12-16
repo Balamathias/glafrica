@@ -360,13 +360,13 @@ export default function AboutPage() {
                 )}
               >
                 {/* Team member image */}
-                <div className="aspect-[4/3] bg-gradient-to-br from-primary/20 via-primary/10 to-background relative overflow-hidden">
+                <div className="aspect-[3/4] bg-gradient-to-br from-primary/20 via-primary/10 to-background relative overflow-hidden">
                   {member.image ? (
                     <Image
                       src={member.image}
                       alt={member.name}
                       fill
-                      className="object-cover"
+                      className="object-cover object-top"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
