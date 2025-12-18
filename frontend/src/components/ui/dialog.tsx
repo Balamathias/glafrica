@@ -152,7 +152,7 @@ function DialogHeader({
   className?: string
 }) {
   return (
-    <div className={cn("px-6 pt-6 pb-4", className)}>
+    <div className={cn("px-4 pt-6 pb-4 md:px-6", className)}>
       {children}
     </div>
   )
@@ -194,7 +194,7 @@ function DialogBody({
   className?: string
 }) {
   return (
-    <div className={cn("px-6 py-4 overflow-y-auto", className)}>
+    <div className={cn("px-4 py-4 md:px-6 overflow-y-auto", className)}>
       {children}
     </div>
   )
@@ -210,7 +210,7 @@ function DialogFooter({
   return (
     <div
       className={cn(
-        "px-6 py-4 bg-muted/30 border-t flex items-center justify-end gap-3",
+        "px-4 py-4 md:px-6 bg-muted/30 border-t flex items-center justify-end gap-3",
         className
       )}
     >

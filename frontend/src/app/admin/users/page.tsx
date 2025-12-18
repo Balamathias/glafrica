@@ -770,7 +770,7 @@ function CreateUserModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 px-4 py-4 md:px-6">
           {error && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
               <AlertCircle size={16} />
@@ -944,7 +944,7 @@ function ViewUserModal({
           <DialogTitle>User Details</DialogTitle>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="px-4 py-4 md:px-6">
           {/* User Header */}
           <div className="flex items-center gap-4 mb-6">
             <UserAvatar user={user} size="lg" />

@@ -513,7 +513,7 @@ export default function AdminInquiriesPage() {
                 </div>
               </DialogHeader>
 
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 px-4 py-4 md:px-6">
                 {/* Contact Info */}
                 <div className="flex flex-wrap gap-4 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
@@ -607,7 +607,7 @@ export default function AdminInquiriesPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 px-4 py-4 md:px-6">
             <div>
               <label className="block text-sm font-medium mb-1.5">Status</label>
               <Select

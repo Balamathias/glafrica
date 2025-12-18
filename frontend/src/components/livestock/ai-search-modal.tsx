@@ -121,7 +121,7 @@ export function AISearchModal({ isOpen, onClose }: AISearchModalProps) {
                 <X size={20} className="text-muted-foreground" />
               </button>
 
-              <div className="p-6 md:p-8">
+              <div className="px-4 py-6 md:px-8 md:py-8">
                 {/* Header */}
                 <div className="text-center mb-6">
                   <motion.div

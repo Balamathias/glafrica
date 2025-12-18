@@ -780,7 +780,7 @@ function ViewMediaModal({
           <DialogTitle>Media Details</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 py-4 md:px-6">
           {/* Media Preview */}
           <div className="relative aspect-square rounded-xl overflow-hidden bg-black">
             {media.media_type === "video" ? (

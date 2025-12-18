@@ -373,7 +373,7 @@ export function FullscreenDetailModal() {
                       </div>
 
                       {/* Details Section - Right Side */}
-                      <div className="lg:w-1/2 p-6 space-y-6 overflow-y-auto max-h-[50vh] lg:max-h-none">
+                      <div className="lg:w-1/2 px-4 py-6 md:px-6 space-y-6 overflow-y-auto max-h-[50vh] lg:max-h-none">
                         {/* Header */}
                         <div>
                           <div className="flex items-start justify-between gap-4">
@@ -540,7 +540,7 @@ export function FullscreenDetailModal() {
                   </div>
 
                   {/* Footer Actions */}
-                  <div className="border-t border-border/50 bg-muted/30 px-6 py-4">
+                  <div className="border-t border-border/50 bg-muted/30 px-4 py-4 md:px-6">
                     <div className="flex gap-3">
                       <Button
                         onClick={handleAskAbout}
