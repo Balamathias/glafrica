@@ -56,7 +56,7 @@ export function Navbar() {
               </div>
               <span className="font-serif font-bold text-xl tracking-tight">
                 <span className="text-primary">Green</span>
-                <span className="text-foreground">Livestock</span>
+                <span className="text-secondary">Livestock</span>
                 <span className="text-primary hidden sm:inline">Africa</span>
               </span>
             </Link>
@@ -69,7 +69,7 @@ export function Navbar() {
                   href={link.href}
                   className={cn(
                     "relative px-4 py-2 text-sm font-medium transition-colors duration-200",
-                    "text-foreground/70 hover:text-foreground",
+                    "text-secondary/70 hover:text-secondary",
                     "group"
                   )}
                 >
