@@ -299,7 +299,7 @@ export function ViewLivestockModal({
                     </div>
 
                     {/* Details Section */}
-                    <div className="lg:w-1/2 p-6 space-y-6">
+                    <div className="lg:w-1/2 px-4 py-6 md:px-6 space-y-6">
                       {/* Header */}
                       <div>
                         <div className="flex items-start justify-between gap-4">
@@ -447,7 +447,7 @@ export function ViewLivestockModal({
 
               {/* Footer Actions */}
               {data && (
-                <div className="border-t border-border/50 bg-muted/30 px-6 py-4">
+                <div className="border-t border-border/50 bg-muted/30 px-4 py-4 md:px-6">
                   <div className="flex items-center justify-between gap-3">
                     <Button
                       variant="outline"

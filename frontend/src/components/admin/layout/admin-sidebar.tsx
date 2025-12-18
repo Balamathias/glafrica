@@ -1,18 +1,17 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutDashboard,
   PawPrint,
-  Image,
+  Image as ImageIcon,
   Folder,
   Tags,
   BarChart3,
   Users,
-  ChevronRight,
   LogOut,
   PanelLeftClose,
   PanelLeft,
@@ -35,7 +34,6 @@ interface NavItem {
   href: string
   badge?: number | "dynamic"
   requiredRole?: "superadmin"
-  children?: { label: string; href: string }[]
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -46,13 +44,8 @@ const NAV_ITEMS: NavItem[] = [
     icon: PawPrint,
     href: "/admin/livestock",
     badge: "dynamic",
-    // children: [
-    //   { label: "All Livestock", href: "/admin/livestock" },
-    //   { label: "Add New", href: "/admin/livestock/create" },
-    //   { label: "Sold Items", href: "/admin/livestock?status=sold" },
-    // ],
   },
-  { id: "media", label: "Media Library", icon: Image, href: "/admin/media" },
+  { id: "media", label: "Media Library", icon: ImageIcon, href: "/admin/media" },
   { id: "categories", label: "Categories", icon: Folder, href: "/admin/categories" },
   { id: "tags", label: "Tags", icon: Tags, href: "/admin/tags" },
   { id: "inquiries", label: "Inquiries", icon: MessageSquare, href: "/admin/inquiries", badge: "dynamic" },
@@ -64,8 +57,6 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const { isSidebarExpanded, toggleSidebar } = useAdminUIStore()
   const { user, clearAuth } = useAuthStore()
-
-  const [expandedItem, setExpandedItem] = useState<string | null>(null)
 
   const isActive = (href: string) => {
     if (href === "/admin") return pathname === "/admin"
@@ -104,9 +95,13 @@ export function AdminSidebar() {
         {/* Logo Section */}
         <div className="flex h-16 items-center border-b border-border/50 px-4">
           <Link href="/admin" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-              <span className="text-xl font-bold text-primary">G</span>
-            </div>
+            <Image
+              src="/logo/logo.svg"
+              alt="Green Livestock Africa"
+              width={40}
+              height={40}
+              className="h-10 w-10 shrink-0"
+            />
             <AnimatePresence mode="wait">
               {isSidebarExpanded && (
                 <motion.span
@@ -129,115 +124,66 @@ export function AdminSidebar() {
             {visibleItems.map((item) => {
               const Icon = item.icon
               const active = isActive(item.href)
-              const hasChildren = item.children && item.children.length > 0
-              const isItemExpanded = expandedItem === item.id
 
               return (
                 <li key={item.id}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div>
-                        <Link
-                          href={hasChildren ? "#" : item.href}
-                          onClick={(e) => {
-                            if (hasChildren) {
-                              e.preventDefault()
-                              setExpandedItem(isItemExpanded ? null : item.id)
-                            }
-                          }}
-                          className={cn(
-                            "group relative flex items-center gap-3 rounded-xl px-3 py-2.5",
-                            "transition-all duration-200",
-                            "hover:bg-accent/80",
-                            active && "bg-primary/10 text-primary",
-                            !isSidebarExpanded && "justify-center"
-                          )}
-                        >
-                          {/* Active indicator */}
-                          {active && (
-                            <motion.div
-                              className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary"
-                              layoutId="activeIndicator"
-                              transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
-                            />
-                          )}
-
-                          <Icon
-                            className={cn(
-                              "h-5 w-5 shrink-0",
-                              "transition-colors duration-200",
-                              active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                            )}
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5",
+                          "transition-all duration-200",
+                          "hover:bg-accent/80",
+                          active && "bg-primary/10 text-primary",
+                          !isSidebarExpanded && "justify-center"
+                        )}
+                      >
+                        {/* Active indicator */}
+                        {active && (
+                          <motion.div
+                            className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary"
+                            layoutId="activeIndicator"
+                            transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
                           />
+                        )}
 
-                          <AnimatePresence mode="wait">
-                            {isSidebarExpanded && (
-                              <motion.div
-                                className="flex flex-1 items-center justify-between overflow-hidden"
-                                initial={{ opacity: 0, width: 0 }}
-                                animate={{ opacity: 1, width: "auto" }}
-                                exit={{ opacity: 0, width: 0 }}
-                                transition={{ duration: 0.2 }}
-                              >
-                                <span
-                                  className={cn(
-                                    "text-sm font-medium whitespace-nowrap",
-                                    active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                                  )}
-                                >
-                                  {item.label}
-                                </span>
+                        <Icon
+                          className={cn(
+                            "h-5 w-5 shrink-0",
+                            "transition-colors duration-200",
+                            active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                          )}
+                        />
 
-                                {/* Badge */}
-                                {item.badge && (
-                                  <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/20 px-1.5 text-xs font-medium text-primary">
-                                    {item.badge === "dynamic" ? "•" : item.badge}
-                                  </span>
-                                )}
-
-                                {/* Expand arrow for items with children */}
-                                {hasChildren && (
-                                  <ChevronRight
-                                    className={cn(
-                                      "ml-auto h-4 w-4 text-muted-foreground transition-transform duration-200",
-                                      isItemExpanded && "rotate-90"
-                                    )}
-                                  />
-                                )}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </Link>
-
-                        {/* Submenu */}
-                        <AnimatePresence>
-                          {hasChildren && isSidebarExpanded && isItemExpanded && (
-                            <motion.ul
-                              className="ml-6 mt-1 space-y-1 border-l border-border/50 pl-4"
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
+                        <AnimatePresence mode="wait">
+                          {isSidebarExpanded && (
+                            <motion.div
+                              className="flex flex-1 items-center justify-between overflow-hidden"
+                              initial={{ opacity: 0, width: 0 }}
+                              animate={{ opacity: 1, width: "auto" }}
+                              exit={{ opacity: 0, width: 0 }}
                               transition={{ duration: 0.2 }}
                             >
-                              {item.children?.map((child) => (
-                                <li key={child.href}>
-                                  <Link
-                                    href={child.href}
-                                    className={cn(
-                                      "block py-1.5 text-sm",
-                                      "text-muted-foreground hover:text-foreground",
-                                      "transition-colors duration-200",
-                                      pathname === child.href && "text-primary font-medium"
-                                    )}
-                                  >
-                                    {child.label}
-                                  </Link>
-                                </li>
-                              ))}
-                            </motion.ul>
+                              <span
+                                className={cn(
+                                  "text-sm font-medium whitespace-nowrap",
+                                  active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                )}
+                              >
+                                {item.label}
+                              </span>
+
+                              {/* Badge */}
+                              {item.badge && (
+                                <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/20 px-1.5 text-xs font-medium text-primary">
+                                  {item.badge === "dynamic" ? "•" : item.badge}
+                                </span>
+                              )}
+                            </motion.div>
                           )}
                         </AnimatePresence>
-                      </div>
+                      </Link>
                     </TooltipTrigger>
                     {!isSidebarExpanded && (
                       <TooltipContent side="right" className="font-medium">

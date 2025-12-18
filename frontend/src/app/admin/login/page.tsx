@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Eye, EyeOff, Lock, User, AlertCircle } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
-import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/lib/admin-store"
 import { authApi } from "@/lib/admin-api"
 import { Button } from "@/components/ui/button"
@@ -57,9 +57,13 @@ export default function AdminLoginPage() {
           {/* Logo */}
           <div className="flex justify-center mb-8">
             <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-                <span className="text-2xl font-bold text-primary">G</span>
-              </div>
+              <Image
+                src="/logo/logo.svg"
+                alt="Green Livestock Africa"
+                width={48}
+                height={48}
+                className="h-12 w-12"
+              />
               <div>
                 <h1 className="text-xl font-playfair font-bold">Green Livestock</h1>
                 <p className="text-xs text-muted-foreground">Admin Portal</p>

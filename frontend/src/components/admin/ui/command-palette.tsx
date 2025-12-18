@@ -239,6 +239,14 @@ export function CommandPalette() {
                     <X className="h-4 w-4 text-muted-foreground" />
                   </button>
                 )}
+                {/* Close button - visible on mobile, ESC hint on desktop */}
+                <button
+                  onClick={closeCommandPalette}
+                  className="sm:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+                  aria-label="Close search"
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
                 <kbd className="hidden sm:flex h-6 items-center gap-1 rounded border border-border bg-muted px-2 font-mono text-xs text-muted-foreground">
                   ESC
                 </kbd>

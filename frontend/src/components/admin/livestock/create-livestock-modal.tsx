@@ -256,7 +256,7 @@ function ModalContent({
       </AnimatePresence>
 
       {/* Header */}
-      <div className="relative border-b border-border/50 bg-muted/30 px-6 py-4">
+      <div className="relative border-b border-border/50 bg-muted/30 px-4 py-4 md:px-6">
         <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-primary via-primary/50 to-primary/20" />
         <div className="flex items-center justify-between">
           <div>
@@ -282,7 +282,7 @@ function ModalContent({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={state.currentStep}
@@ -309,7 +309,7 @@ function ModalContent({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-border/50 bg-muted/30 px-6 py-4">
+      <div className="border-t border-border/50 bg-muted/30 px-4 py-4 md:px-6">
         <div className="flex items-center justify-between">
           <Button
             variant="outline"

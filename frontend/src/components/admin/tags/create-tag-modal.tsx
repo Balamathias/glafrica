@@ -151,7 +151,7 @@ export function CreateTagModal({
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="relative border-b border-border/50 bg-muted/30 px-6 py-4">
+              <div className="relative border-b border-border/50 bg-muted/30 px-4 py-4 md:px-6">
                 <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-primary via-primary/50 to-primary/20" />
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -178,7 +178,7 @@ export function CreateTagModal({
 
               {/* Form */}
               <form onSubmit={handleSubmit}>
-                <div className="p-6 space-y-5">
+                <div className="px-4 py-6 md:px-6 space-y-5">
                   {/* Name */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium">
@@ -240,7 +240,7 @@ export function CreateTagModal({
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-border/50 bg-muted/30 px-6 py-4">
+                <div className="border-t border-border/50 bg-muted/30 px-4 py-4 md:px-6">
                   <div className="flex items-center justify-end gap-3">
                     <Button
                       type="button"

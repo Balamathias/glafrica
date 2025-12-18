@@ -395,7 +395,7 @@ export function EditLivestockModal({
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="relative border-b border-border/50 bg-muted/30 px-6 py-4">
+              <div className="relative border-b border-border/50 bg-muted/30 px-4 py-4 md:px-6">
                 <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-amber-500 via-amber-500/50 to-amber-500/20" />
                 <div className="flex items-center justify-between">
                   <div>
@@ -416,7 +416,7 @@ export function EditLivestockModal({
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto px-4 py-6 md:px-6">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -897,7 +897,7 @@ export function EditLivestockModal({
               </div>
 
               {/* Footer */}
-              <div className="border-t border-border/50 bg-muted/30 px-6 py-4">
+              <div className="border-t border-border/50 bg-muted/30 px-4 py-4 md:px-6">
                 <div className="flex items-center justify-end gap-3">
                   <Button
                     variant="ghost"
