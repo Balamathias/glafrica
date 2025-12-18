@@ -3,9 +3,10 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { motion, AnimatePresence, useAnimation } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Sparkles } from "lucide-react"
+import { ModeToggle } from "@/components/ui/mode-toggle"
 
 interface NavLink {
   href: string
@@ -60,8 +61,16 @@ export function MobileNav({ isOpen, onToggle, links }: MobileNavProps) {
             </span>
           </Link>
 
-          {/* Hamburger Button - Custom animated design */}
-          <button
+          {/* Right side - Mode Toggle & Hamburger */}
+          <div className="flex items-center gap-2">
+            <ModeToggle
+              variant={isOpen ? "outline" : "default"}
+              size="sm"
+              className="relative z-50"
+            />
+
+            {/* Hamburger Button - Custom animated design */}
+            <button
             onClick={onToggle}
             className="relative z-50 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20"
             aria-label={isOpen ? "Close menu" : "Open menu"}
@@ -94,7 +103,8 @@ export function MobileNav({ isOpen, onToggle, links }: MobileNavProps) {
                 className="block w-full h-0.5 rounded-full origin-center"
               />
             </div>
-          </button>
+            </button>
+          </div>
         </div>
       </motion.div>
 

@@ -6,6 +6,7 @@ import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { MobileNav } from "./mobile-nav"
+import { ModeToggle } from "@/components/ui/mode-toggle"
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -56,7 +57,10 @@ export function Navbar() {
               </div>
               <span className="font-serif font-bold text-xl tracking-tight">
                 <span className="text-primary">Green</span>
-                <span className="text-secondary">Livestock</span>
+                <span className={cn(
+                  "transition-colors duration-300",
+                  isScrolled ? "text-foreground" : "text-white"
+                )}>Livestock</span>
                 <span className="text-primary hidden sm:inline">Africa</span>
               </span>
             </Link>
@@ -68,9 +72,11 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "relative px-4 py-2 text-sm font-medium transition-colors duration-200",
-                    "text-secondary/70 hover:text-secondary",
-                    "group"
+                    "relative px-4 py-2 text-sm font-medium transition-colors duration-300",
+                    "group",
+                    isScrolled
+                      ? "text-foreground/70 hover:text-foreground"
+                      : "text-white/80 hover:text-white"
                   )}
                 >
                   {link.label}
@@ -80,8 +86,12 @@ export function Navbar() {
               ))}
             </div>
 
-            {/* CTA Button */}
-            <div className="flex items-center gap-4">
+            {/* CTA Button & Mode Toggle */}
+            <div className="flex items-center gap-3">
+              <ModeToggle
+                variant={isScrolled ? "outline" : "default"}
+                size="sm"
+              />
               <Link
                 href="/livestock"
                 className={cn(
