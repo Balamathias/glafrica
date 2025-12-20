@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   MessageSquare,
+  Globe,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAdminUIStore, useAuthStore } from "@/lib/admin-store"
@@ -50,6 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "tags", label: "Tags", icon: Tags, href: "/admin/tags" },
   { id: "inquiries", label: "Inquiries", icon: MessageSquare, href: "/admin/inquiries", badge: "dynamic" },
   { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
+  { id: "visitor-analytics", label: "Visitor Analytics", icon: Globe, href: "/admin/visitor-analytics" },
   { id: "users", label: "Users", icon: Users, href: "/admin/users", requiredRole: "superadmin" },
 ]
 

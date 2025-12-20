@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge"
 import { useModalStore, useChatStore } from "@/lib/store"
 import { useLivestock } from "@/lib/hooks"
 import { formatPrice, formatDate, GENDER_LABELS } from "@/lib/types"
+import { trackLivestockView } from "@/lib/analytics"
 
 export function LivestockDetailModal() {
   const { isDetailModalOpen, selectedLivestockId, closeDetailModal } = useModalStore()
@@ -51,6 +52,13 @@ export function LivestockDetailModal() {
     setIsVideoPlaying(false)
     setIsVideoMuted(true)
   }, [selectedLivestockId])
+
+  // Track livestock view when modal opens with data
+  React.useEffect(() => {
+    if (isDetailModalOpen && livestock?.id) {
+      trackLivestockView(livestock.id)
+    }
+  }, [isDetailModalOpen, livestock?.id])
 
   // Handle video play state
   React.useEffect(() => {

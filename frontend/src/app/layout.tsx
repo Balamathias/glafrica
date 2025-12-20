@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -6,6 +7,7 @@ import { QueryProvider } from "@/lib/query-client"
 import { Toaster } from "@/components/ui/sonner"
 import { FullscreenDetailModal } from "@/components/livestock/fullscreen-detail-modal"
 import { ChatAssistant } from "@/components/ai/chat-assistant"
+import { VisitTracker } from "@/components/analytics/visit-tracker"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -88,6 +90,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
+            <Suspense fallback={null}>
+              <VisitTracker />
+            </Suspense>
             {children}
             <FullscreenDetailModal />
             <ChatAssistant />

@@ -184,6 +184,57 @@ export interface TopItem {
   currency: string
 }
 
+// Visitor Analytics Types
+export interface VisitorSummary {
+  total_visits: number
+  unique_visitors: number
+  bounce_rate: number
+  avg_session_duration: number
+  visits_change: number
+  visitors_change: number
+  period_days: number
+}
+
+export interface VisitTrendItem {
+  date: string
+  visits: number
+  unique_visitors: number
+}
+
+export interface TopPageItem {
+  path: string
+  views: number
+  unique_visitors: number
+}
+
+export interface TopLivestockViewItem {
+  id: string
+  name: string
+  breed: string
+  price: number
+  category: string
+  views: number
+  unique_viewers: number
+}
+
+export interface DeviceBreakdownItem {
+  device_type: string
+  count: number
+  percentage: number
+}
+
+export interface TrafficSourceItem {
+  source: string
+  visits: number
+  percentage: number
+}
+
+export interface GeographicItem {
+  country: string
+  visitors: number
+  percentage: number
+}
+
 // Admin User types
 export interface UserProfile {
   role: 'superadmin' | 'admin' | 'staff' | 'viewer'
@@ -441,6 +492,84 @@ export const analyticsApi = {
       if (endDate) params.end_date = endDate
 
       const { data } = await adminApi.get<SalesAnalytics>('/analytics/sales/', { params })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  // Visitor Analytics Methods
+  async getVisitorSummary(days: number = 30): Promise<VisitorSummary> {
+    try {
+      const { data } = await adminApi.get<VisitorSummary>('/analytics/visitors/', {
+        params: { days },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getVisitTrend(days: number = 30): Promise<VisitTrendItem[]> {
+    try {
+      const { data } = await adminApi.get<VisitTrendItem[]>('/analytics/visits-trend/', {
+        params: { days },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getTopPages(limit: number = 10, days: number = 30): Promise<TopPageItem[]> {
+    try {
+      const { data } = await adminApi.get<TopPageItem[]>('/analytics/top-pages/', {
+        params: { limit, days },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getTopLivestockViews(limit: number = 10, days: number = 30): Promise<TopLivestockViewItem[]> {
+    try {
+      const { data } = await adminApi.get<TopLivestockViewItem[]>('/analytics/top-livestock/', {
+        params: { limit, days },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getDeviceBreakdown(days: number = 30): Promise<DeviceBreakdownItem[]> {
+    try {
+      const { data } = await adminApi.get<DeviceBreakdownItem[]>('/analytics/devices/', {
+        params: { days },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getTrafficSources(limit: number = 10, days: number = 30): Promise<TrafficSourceItem[]> {
+    try {
+      const { data } = await adminApi.get<TrafficSourceItem[]>('/analytics/referrers/', {
+        params: { limit, days },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getGeographicBreakdown(limit: number = 10, days: number = 30): Promise<GeographicItem[]> {
+    try {
+      const { data } = await adminApi.get<GeographicItem[]>('/analytics/geographic/', {
+        params: { limit, days },
+      })
       return data
     } catch (error) {
       handleApiError(error)

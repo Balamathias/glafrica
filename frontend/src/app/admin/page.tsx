@@ -10,12 +10,16 @@ import {
   Clock,
   ArrowRight,
   Plus,
+  Eye,
+  Users,
+  Globe,
+  Activity,
 } from "lucide-react"
 import Link from "next/link"
 
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/lib/admin-store"
-import { dashboardApi, type FullDashboard } from "@/lib/admin-api"
+import { dashboardApi, analyticsApi, type FullDashboard, type VisitorSummary } from "@/lib/admin-api"
 import { PageHeader } from "@/components/admin/ui/page-header"
 import { StatCard } from "@/components/admin/ui/stat-card"
 import { Button } from "@/components/ui/button"
@@ -49,6 +53,7 @@ function formatRelativeTime(timestamp: string) {
 export default function AdminDashboard() {
   const { user } = useAuthStore()
   const [dashboard, setDashboard] = useState<FullDashboard | null>(null)
+  const [visitorStats, setVisitorStats] = useState<VisitorSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -56,8 +61,12 @@ export default function AdminDashboard() {
   const loadDashboard = async () => {
     try {
       setIsLoading(true)
-      const data = await dashboardApi.getFullDashboard()
+      const [data, visitors] = await Promise.all([
+        dashboardApi.getFullDashboard(),
+        analyticsApi.getVisitorSummary(7).catch(() => null),
+      ])
       setDashboard(data)
+      setVisitorStats(visitors)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard")
     } finally {
@@ -263,12 +272,74 @@ export default function AdminDashboard() {
         </motion.div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Visitor Analytics Quick View */}
       <motion.div
         className="rounded-2xl glass border border-border/50 p-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
+              <Globe className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Site Traffic</h2>
+              <p className="text-sm text-muted-foreground">Last 7 days</p>
+            </div>
+          </div>
+          <Link href="/admin/visitor-analytics">
+            <Button variant="ghost" size="sm" className="gap-1">
+              View Details <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-2 mb-2">
+              <Eye className="h-4 w-4 text-blue-500" />
+              <span className="text-sm text-muted-foreground">Page Views</span>
+            </div>
+            <p className="text-2xl font-bold">{visitorStats?.total_visits?.toLocaleString() || 0}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-4 w-4 text-emerald-500" />
+              <span className="text-sm text-muted-foreground">Unique Visitors</span>
+            </div>
+            <p className="text-2xl font-bold">{visitorStats?.unique_visitors?.toLocaleString() || 0}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-4 w-4 text-orange-500" />
+              <span className="text-sm text-muted-foreground">Avg. Session</span>
+            </div>
+            <p className="text-2xl font-bold">
+              {visitorStats?.avg_session_duration
+                ? visitorStats.avg_session_duration < 60
+                  ? `${Math.round(visitorStats.avg_session_duration)}s`
+                  : `${Math.floor(visitorStats.avg_session_duration / 60)}m`
+                : "0s"}
+            </p>
+          </div>
+          <div className="p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="h-4 w-4 text-purple-500" />
+              <span className="text-sm text-muted-foreground">Bounce Rate</span>
+            </div>
+            <p className="text-2xl font-bold">{(visitorStats?.bounce_rate || 0).toFixed(1)}%</p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Quick Actions */}
+      <motion.div
+        className="rounded-2xl glass border border-border/50 p-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
       >
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">

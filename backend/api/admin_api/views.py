@@ -679,3 +679,50 @@ class AdminContactInquiryViewSet(viewsets.ModelViewSet):
             'closed': closed,
             'by_subject': by_subject
         })
+
+
+# ============================================
+# VISITOR ANALYTICS VIEWS
+# ============================================
+
+from ..services.analytics import AnalyticsService
+from ..permissions import CanViewAnalytics
+
+
+class VisitorAnalyticsView(APIView):
+    """
+    Admin endpoints for visitor analytics data.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser, CanViewAnalytics]
+
+    def get(self, request, action=None):
+        """Route to appropriate analytics method based on action."""
+        days = int(request.query_params.get('days', 30))
+        limit = int(request.query_params.get('limit', 10))
+
+        if action == 'summary':
+            return Response(AnalyticsService.get_visitor_summary(days))
+
+        elif action == 'visits-trend':
+            return Response(AnalyticsService.get_visit_trend(days))
+
+        elif action == 'top-pages':
+            return Response(AnalyticsService.get_top_pages(limit, days))
+
+        elif action == 'top-livestock':
+            return Response(AnalyticsService.get_top_livestock_views(limit, days))
+
+        elif action == 'devices':
+            return Response(AnalyticsService.get_device_breakdown(days))
+
+        elif action == 'referrers':
+            return Response(AnalyticsService.get_traffic_sources(limit, days))
+
+        elif action == 'geographic':
+            return Response(AnalyticsService.get_geographic_breakdown(limit, days))
+
+        else:
+            return Response(
+                {'error': 'Invalid action'},
+                status=status.HTTP_400_BAD_REQUEST
+            )

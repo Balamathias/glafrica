@@ -7,7 +7,7 @@ from django.db.models import Count, Sum, Avg, Q, F
 from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
 from django.utils import timezone
 
-from ..models import Livestock, Category, MediaAsset, AuditLog
+from ..models import Livestock, Category, MediaAsset, AuditLog, PageView, VisitorSession
 
 
 class AnalyticsService:
@@ -278,12 +278,16 @@ class AnalyticsService:
     def get_top_items(limit=10, by='views'):
         """
         Get top performing livestock items.
-        Note: Views tracking would require additional implementation.
-        Currently returns by price for available items.
+        Now supports actual view counts from PageView model.
         """
         items = Livestock.objects.filter(is_sold=False).select_related('category')
 
-        if by == 'price':
+        if by == 'views':
+            # Annotate with view count from PageView
+            items = items.annotate(
+                view_count=Count('page_views', filter=Q(page_views__event_type='livestock_view'))
+            ).order_by('-view_count')
+        elif by == 'price':
             items = items.order_by('-price')
         else:
             items = items.order_by('-created_at')
@@ -295,6 +299,242 @@ class AnalyticsService:
                 'category': item.category.name,
                 'price': float(item.price),
                 'currency': item.currency,
+                'view_count': getattr(item, 'view_count', 0),
             }
             for item in items[:limit]
+        ]
+
+    # ============================================
+    # VISITOR ANALYTICS METHODS
+    # ============================================
+
+    @staticmethod
+    def get_visitor_summary(days=30):
+        """Get visitor summary metrics for the specified period."""
+        start_date = timezone.now() - timedelta(days=days)
+        prev_start = start_date - timedelta(days=days)
+
+        # Current period metrics
+        current_views = PageView.objects.filter(created_at__gte=start_date)
+        current_sessions = VisitorSession.objects.filter(first_visit__gte=start_date)
+
+        total_visits = current_views.count()
+        unique_visitors = current_sessions.count()
+
+        # Calculate bounce rate (sessions with only 1 page view)
+        bounce_sessions = current_sessions.filter(page_count=1).count()
+        bounce_rate = round((bounce_sessions / unique_visitors * 100), 1) if unique_visitors > 0 else 0
+
+        # Average session duration (in seconds)
+        sessions_with_duration = current_sessions.exclude(page_count=1)
+        if sessions_with_duration.exists():
+            total_duration = sum(
+                (s.last_activity - s.first_visit).total_seconds()
+                for s in sessions_with_duration
+            )
+            avg_duration = total_duration / sessions_with_duration.count()
+        else:
+            avg_duration = 0
+
+        # Previous period for comparison
+        prev_views = PageView.objects.filter(
+            created_at__gte=prev_start,
+            created_at__lt=start_date
+        )
+        prev_sessions = VisitorSession.objects.filter(
+            first_visit__gte=prev_start,
+            first_visit__lt=start_date
+        )
+
+        prev_total_visits = prev_views.count()
+        prev_unique_visitors = prev_sessions.count()
+
+        # Calculate percentage changes
+        def calc_change(current, previous):
+            if previous == 0:
+                return 100 if current > 0 else 0
+            return round(((current - previous) / previous) * 100, 1)
+
+        return {
+            'total_visits': total_visits,
+            'unique_visitors': unique_visitors,
+            'bounce_rate': bounce_rate,
+            'avg_session_duration': round(avg_duration, 0),  # In seconds
+            'visits_change': calc_change(total_visits, prev_total_visits),
+            'visitors_change': calc_change(unique_visitors, prev_unique_visitors),
+            'period_days': days,
+        }
+
+    @staticmethod
+    def get_visit_trend(days=30):
+        """Get daily visit trend for the specified period."""
+        start_date = timezone.now() - timedelta(days=days)
+
+        # Page views by day
+        views_by_day = PageView.objects.filter(
+            created_at__gte=start_date
+        ).annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(
+            visits=Count('id'),
+            unique_sessions=Count('session_id', distinct=True)
+        ).order_by('date')
+
+        # Fill in missing dates
+        result = []
+        current_date = start_date.date()
+        end_date = timezone.now().date()
+        views_dict = {
+            item['date']: {
+                'visits': item['visits'],
+                'unique_visitors': item['unique_sessions']
+            }
+            for item in views_by_day
+        }
+
+        while current_date <= end_date:
+            data = views_dict.get(current_date, {'visits': 0, 'unique_visitors': 0})
+            result.append({
+                'date': current_date.isoformat(),
+                'visits': data['visits'],
+                'unique_visitors': data['unique_visitors'],
+            })
+            current_date += timedelta(days=1)
+
+        return result
+
+    @staticmethod
+    def get_top_pages(limit=10, days=30):
+        """Get most viewed pages."""
+        start_date = timezone.now() - timedelta(days=days)
+
+        top_pages = PageView.objects.filter(
+            created_at__gte=start_date,
+            event_type='page_view'
+        ).values('path').annotate(
+            views=Count('id'),
+            unique_visitors=Count('session_id', distinct=True)
+        ).order_by('-views')[:limit]
+
+        return list(top_pages)
+
+    @staticmethod
+    def get_top_livestock_views(limit=10, days=30):
+        """Get most viewed livestock items."""
+        start_date = timezone.now() - timedelta(days=days)
+
+        top_livestock = PageView.objects.filter(
+            created_at__gte=start_date,
+            event_type='livestock_view',
+            livestock__isnull=False
+        ).values(
+            'livestock__id',
+            'livestock__name',
+            'livestock__breed',
+            'livestock__price',
+            'livestock__category__name'
+        ).annotate(
+            views=Count('id'),
+            unique_viewers=Count('session_id', distinct=True)
+        ).order_by('-views')[:limit]
+
+        return [
+            {
+                'id': str(item['livestock__id']),
+                'name': item['livestock__name'],
+                'breed': item['livestock__breed'],
+                'price': float(item['livestock__price']) if item['livestock__price'] else 0,
+                'category': item['livestock__category__name'],
+                'views': item['views'],
+                'unique_viewers': item['unique_viewers'],
+            }
+            for item in top_livestock
+        ]
+
+    @staticmethod
+    def get_device_breakdown(days=30):
+        """Get visitor device type breakdown."""
+        start_date = timezone.now() - timedelta(days=days)
+
+        devices = VisitorSession.objects.filter(
+            first_visit__gte=start_date
+        ).values('device_type').annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        total = sum(d['count'] for d in devices)
+
+        return [
+            {
+                'device_type': item['device_type'],
+                'count': item['count'],
+                'percentage': round((item['count'] / total * 100), 1) if total > 0 else 0,
+            }
+            for item in devices
+        ]
+
+    @staticmethod
+    def get_traffic_sources(limit=10, days=30):
+        """Get traffic sources from referrers."""
+        start_date = timezone.now() - timedelta(days=days)
+        from urllib.parse import urlparse
+
+        # Get referrers
+        referrers = PageView.objects.filter(
+            created_at__gte=start_date,
+            referrer__isnull=False
+        ).exclude(referrer='').values_list('referrer', flat=True)
+
+        # Parse domains and count
+        domain_counts = {}
+        for referrer in referrers:
+            try:
+                parsed = urlparse(referrer)
+                domain = parsed.netloc or 'Direct'
+                if domain:
+                    domain_counts[domain] = domain_counts.get(domain, 0) + 1
+            except:
+                pass
+
+        # Add direct traffic (no referrer)
+        direct_count = PageView.objects.filter(
+            created_at__gte=start_date
+        ).filter(Q(referrer__isnull=True) | Q(referrer='')).count()
+
+        if direct_count > 0:
+            domain_counts['Direct / None'] = direct_count
+
+        # Sort and limit
+        sorted_sources = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:limit]
+        total = sum(count for _, count in sorted_sources)
+
+        return [
+            {
+                'source': source,
+                'visits': count,
+                'percentage': round((count / total * 100), 1) if total > 0 else 0,
+            }
+            for source, count in sorted_sources
+        ]
+
+    @staticmethod
+    def get_geographic_breakdown(limit=10, days=30):
+        """Get visitor geographic distribution by country."""
+        start_date = timezone.now() - timedelta(days=days)
+
+        countries = VisitorSession.objects.filter(
+            first_visit__gte=start_date
+        ).exclude(country='').values('country').annotate(
+            visitors=Count('id')
+        ).order_by('-visitors')[:limit]
+
+        total = sum(c['visitors'] for c in countries)
+
+        return [
+            {
+                'country': item['country'] or 'Unknown',
+                'visitors': item['visitors'],
+                'percentage': round((item['visitors'] / total * 100), 1) if total > 0 else 0,
+            }
+            for item in countries
         ]

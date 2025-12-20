@@ -12,6 +12,7 @@ from .views import (
     AdminMediaViewSet,
     AdminAuditLogViewSet,
     AdminContactInquiryViewSet,
+    VisitorAnalyticsView,
 )
 from .dashboard_views import (
     DashboardSummaryView,
@@ -50,9 +51,18 @@ urlpatterns = [
     path('dashboard/activity/', RecentActivityView.as_view(), name='dashboard-activity'),
     path('dashboard/top-items/', TopItemsView.as_view(), name='dashboard-top-items'),
 
-    # Analytics endpoints
+    # Analytics endpoints (Sales/Inventory)
     path('analytics/sales/', SalesAnalyticsView.as_view(), name='analytics-sales'),
     path('analytics/sales-trend/', SalesTrendView.as_view(), name='analytics-sales-trend'),
     path('analytics/revenue-trend/', RevenueTrendView.as_view(), name='analytics-revenue-trend'),
     path('analytics/inventory/', InventoryMetricsView.as_view(), name='analytics-inventory'),
+
+    # Visitor Analytics endpoints
+    path('analytics/visitors/', VisitorAnalyticsView.as_view(), {'action': 'summary'}, name='analytics-visitors'),
+    path('analytics/visits-trend/', VisitorAnalyticsView.as_view(), {'action': 'visits-trend'}, name='analytics-visits-trend'),
+    path('analytics/top-pages/', VisitorAnalyticsView.as_view(), {'action': 'top-pages'}, name='analytics-top-pages'),
+    path('analytics/top-livestock/', VisitorAnalyticsView.as_view(), {'action': 'top-livestock'}, name='analytics-top-livestock'),
+    path('analytics/devices/', VisitorAnalyticsView.as_view(), {'action': 'devices'}, name='analytics-devices'),
+    path('analytics/referrers/', VisitorAnalyticsView.as_view(), {'action': 'referrers'}, name='analytics-referrers'),
+    path('analytics/geographic/', VisitorAnalyticsView.as_view(), {'action': 'geographic'}, name='analytics-geographic'),
 ]

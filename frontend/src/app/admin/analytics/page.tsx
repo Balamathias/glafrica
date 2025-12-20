@@ -15,12 +15,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   RefreshCcw,
-  Download,
-  Filter,
   Loader2,
   PawPrint,
   Target,
-  Percent,
   Scale,
   Users,
   ImageIcon,
@@ -472,6 +469,7 @@ export default function AdminAnalyticsPage() {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true)
+      const days = parseInt(timeRange)
 
       const [
         summaryData,
@@ -484,8 +482,8 @@ export default function AdminAnalyticsPage() {
       ] = await Promise.all([
         dashboardApi.getSummary(),
         dashboardApi.getCategories(),
-        analyticsApi.getRevenueTrend(parseInt(timeRange)),
-        analyticsApi.getSalesTrend(parseInt(timeRange)),
+        analyticsApi.getRevenueTrend(days),
+        analyticsApi.getSalesTrend(days),
         analyticsApi.getInventoryMetrics(),
         analyticsApi.getSalesAnalytics(),
         dashboardApi.getTopItems(10, "price"),
