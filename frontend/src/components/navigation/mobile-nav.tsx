@@ -54,7 +54,7 @@ export function MobileNav({ isOpen, onToggle, links }: MobileNavProps) {
               />
             </div>
             <span className={cn(
-              "font-serif font-bold text-lg transition-colors duration-300",
+              "font-serif font-bold text-sm sm:text-lg transition-colors duration-300",
               isOpen ? "text-foreground" : "text-white"
             )}>
               Green Livestock Africa
