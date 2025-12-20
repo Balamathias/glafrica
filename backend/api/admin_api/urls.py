@@ -13,6 +13,9 @@ from .views import (
     AdminAuditLogViewSet,
     AdminContactInquiryViewSet,
     VisitorAnalyticsView,
+    AdminEggViewSet,
+    AdminEggCategoryViewSet,
+    AdminEggMediaViewSet,
 )
 from .dashboard_views import (
     DashboardSummaryView,
@@ -36,6 +39,9 @@ router.register(r'tags', AdminTagViewSet, basename='admin-tags')
 router.register(r'media', AdminMediaViewSet, basename='admin-media')
 router.register(r'audit-logs', AdminAuditLogViewSet, basename='admin-audit-logs')
 router.register(r'inquiries', AdminContactInquiryViewSet, basename='admin-inquiries')
+router.register(r'eggs', AdminEggViewSet, basename='admin-eggs')
+router.register(r'egg-categories', AdminEggCategoryViewSet, basename='admin-egg-categories')
+router.register(r'egg-media', AdminEggMediaViewSet, basename='admin-egg-media')
 
 urlpatterns = [
     # Authentication endpoints

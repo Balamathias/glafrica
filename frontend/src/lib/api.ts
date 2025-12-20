@@ -7,6 +7,11 @@ import type {
   PaginatedResponse,
   ChatResponse,
   SearchFilters,
+  Egg,
+  EggListItem,
+  EggCategory,
+  EggSearchFilters,
+  FreshnessStatus,
 } from './types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
@@ -184,9 +189,108 @@ export const chatApi = {
   },
 }
 
+// Eggs API
+export const eggsApi = {
+  // Get paginated list of eggs
+  async getList(page: number = 1, filters?: EggSearchFilters): Promise<PaginatedResponse<EggListItem>> {
+    try {
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+
+      if (filters) {
+        if (filters.category) params.append('category__slug', filters.category)
+        if (filters.egg_type) params.append('egg_type', filters.egg_type)
+        if (filters.size) params.append('size', filters.size)
+        if (filters.packaging) params.append('packaging', filters.packaging)
+        if (filters.is_featured !== undefined) params.append('is_featured', filters.is_featured.toString())
+        if (filters.search) params.append('search', filters.search)
+        if (filters.ordering) params.append('ordering', filters.ordering)
+      }
+
+      const { data } = await api.get<PaginatedResponse<EggListItem>>(`/eggs/?${params}`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  // Get single egg by ID
+  async getById(id: string): Promise<Egg> {
+    try {
+      const { data } = await api.get<Egg>(`/eggs/${id}/`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  // Get egg by slug
+  async getBySlug(slug: string): Promise<Egg> {
+    try {
+      const { data } = await api.get<Egg>(`/eggs/${slug}/`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  // AI-powered semantic search
+  async searchAI(query: string): Promise<EggListItem[]> {
+    try {
+      const { data } = await api.post<EggListItem[]>('/eggs/search_ai/', { query })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  // Get eggs by freshness status
+  async getByFreshness(status: FreshnessStatus): Promise<EggListItem[]> {
+    try {
+      const { data } = await api.get<EggListItem[]>(`/eggs/freshness_filter/?status=${status}`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  // Get featured eggs
+  async getFeatured(): Promise<EggListItem[]> {
+    try {
+      const { data } = await api.get<EggListItem[]>('/eggs/featured/')
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
+// Egg Categories API
+export const eggCategoriesApi = {
+  async getAll(): Promise<EggCategory[]> {
+    try {
+      const { data } = await api.get<PaginatedResponse<EggCategory>>('/egg-categories/')
+      return data.results
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getBySlug(slug: string): Promise<EggCategory> {
+    try {
+      const { data } = await api.get<EggCategory>(`/egg-categories/${slug}/`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
 // Export default API object
 export default {
   livestock: livestockApi,
   categories: categoriesApi,
   chat: chatApi,
+  eggs: eggsApi,
+  eggCategories: eggCategoriesApi,
 }

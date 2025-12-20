@@ -1158,6 +1158,433 @@ export const inquiriesApi = {
   },
 }
 
+// ============================================
+// EGG TYPES AND API
+// ============================================
+
+// Egg admin types
+export interface AdminEgg {
+  id: string
+  name: string
+  slug: string
+  breed: string
+  category_name: string
+  category_slug: string
+  category_id?: string
+  egg_type: 'table' | 'fertilized' | 'organic' | 'free_range'
+  size: 'small' | 'medium' | 'large' | 'extra_large' | 'jumbo'
+  packaging: 'crate_30' | 'tray_30' | 'tray_12' | 'half_crate_15' | 'custom'
+  eggs_per_unit: number
+  price: string
+  currency: string
+  quantity_available: number
+  production_date: string | null
+  expiry_date: string | null
+  days_until_expiry: number | null
+  freshness_status: 'fresh' | 'use_soon' | 'expiring_soon' | 'expired' | 'unknown'
+  location: string
+  is_available: boolean
+  is_featured: boolean
+  featured_image: {
+    id: string
+    url: string
+    media_type: string
+  } | null
+  media_count: number
+  tag_names: string[]
+  tag_ids?: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminEggDetail extends AdminEgg {
+  category_id: string
+  tag_ids: string[]
+  description: string
+  shelf_life_days: number | null
+  freshness_percentage: number
+  media: Array<{
+    id: string
+    url: string
+    media_type: string
+    is_primary: boolean
+    aspect_ratio: number
+    alt_text: string
+  }>
+}
+
+export interface AdminEggCategory {
+  id: string
+  name: string
+  slug: string
+  description: string
+  image: string | null
+  is_active: boolean
+  order: number
+  egg_count?: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface AdminEggMedia {
+  id: string
+  egg_id: string
+  egg_name: string
+  url: string
+  media_type: 'image' | 'video'
+  is_primary: boolean
+  aspect_ratio: number
+  alt_text: string
+  order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface EggStats {
+  total_eggs: number
+  available_eggs: number
+  featured_eggs: number
+  freshness: {
+    fresh: number
+    use_soon: number
+    expiring_soon: number
+    expired: number
+  }
+  total_value: number
+  eggs_by_category: Array<{
+    id: string
+    name: string
+    slug: string
+    total: number
+    available: number
+    value: number | null
+  }>
+  new_this_week: number
+  price_range: {
+    min: number
+    max: number
+    avg: number
+  }
+  currency: string
+}
+
+// Admin Eggs API
+export const adminEggsApi = {
+  async getList(
+    page: number = 1,
+    filters?: {
+      category?: string
+      egg_type?: string
+      size?: string
+      packaging?: string
+      freshness?: string
+      is_available?: boolean
+      is_featured?: boolean
+      search?: string
+      ordering?: string
+    }
+  ): Promise<PaginatedResponse<AdminEgg>> {
+    try {
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+
+      if (filters) {
+        if (filters.category) params.append('category__slug', filters.category)
+        if (filters.egg_type) params.append('egg_type', filters.egg_type)
+        if (filters.size) params.append('size', filters.size)
+        if (filters.packaging) params.append('packaging', filters.packaging)
+        if (filters.freshness) params.append('freshness', filters.freshness)
+        if (filters.is_available !== undefined) params.append('is_available', filters.is_available.toString())
+        if (filters.is_featured !== undefined) params.append('is_featured', filters.is_featured.toString())
+        if (filters.search) params.append('search', filters.search)
+        if (filters.ordering) params.append('ordering', filters.ordering)
+      }
+
+      const { data } = await adminApi.get<PaginatedResponse<AdminEgg>>(`/eggs/?${params}`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getById(id: string): Promise<AdminEgg> {
+    try {
+      const { data } = await adminApi.get<AdminEgg>(`/eggs/${id}/`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getDetail(id: string): Promise<AdminEggDetail> {
+    try {
+      const { data } = await adminApi.get<{
+        id: string
+        name: string
+        slug: string
+        breed: string
+        category: { id: string; name: string; slug: string }
+        tags: Array<{ id: string; name: string; slug: string }>
+        egg_type: AdminEgg['egg_type']
+        size: AdminEgg['size']
+        packaging: AdminEgg['packaging']
+        eggs_per_unit: number
+        price: string
+        currency: string
+        quantity_available: number
+        production_date: string | null
+        expiry_date: string | null
+        days_until_expiry: number
+        shelf_life_days: number | null
+        freshness_status: AdminEgg['freshness_status']
+        freshness_percentage: number
+        location: string
+        description: string
+        is_available: boolean
+        is_featured: boolean
+        media: Array<{ id: string; url: string; media_type: string; is_primary: boolean; aspect_ratio: number; alt_text: string }>
+        created_at: string
+        updated_at: string
+      }>(`/eggs/${id}/`)
+
+      // Transform the response to match AdminEggDetail interface
+      return {
+        ...data,
+        category_name: data.category.name,
+        category_slug: data.category.slug,
+        category_id: data.category.id,
+        tag_names: data.tags.map(t => t.name),
+        tag_ids: data.tags.map(t => t.id),
+        featured_image: data.media.find(m => m.is_primary) || data.media[0] || null,
+        media_count: data.media.length,
+      }
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async create(egg: Partial<AdminEgg>): Promise<AdminEgg> {
+    try {
+      const { data } = await adminApi.post<AdminEgg>('/eggs/', egg)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async update(id: string, updates: Partial<AdminEgg>): Promise<AdminEgg> {
+    try {
+      const { data } = await adminApi.patch<AdminEgg>(`/eggs/${id}/`, updates)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    try {
+      await adminApi.delete(`/eggs/${id}/`)
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async bulkDelete(ids: string[]): Promise<{ detail: string; count: number }> {
+    try {
+      const { data } = await adminApi.post<{ detail: string; count: number }>('/eggs/bulk_delete/', { ids })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async bulkUpdate(
+    ids: string[],
+    updates: Partial<AdminEgg>
+  ): Promise<{ detail: string; count: number }> {
+    try {
+      const { data } = await adminApi.post<{ detail: string; count: number }>('/eggs/bulk_update/', {
+        ids,
+        ...updates,
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getExpiringSoon(days: number = 7): Promise<AdminEgg[]> {
+    try {
+      const { data } = await adminApi.get<AdminEgg[]>('/eggs/expiring_soon/', {
+        params: { days },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getStats(): Promise<EggStats> {
+    try {
+      const { data } = await adminApi.get<EggStats>('/eggs/stats/')
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async uploadMedia(
+    eggId: string,
+    file: File,
+    options?: { media_type?: string; is_primary?: boolean; aspect_ratio?: number; alt_text?: string }
+  ): Promise<AdminEggMedia> {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      if (options?.media_type) formData.append('media_type', options.media_type)
+      if (options?.is_primary) formData.append('is_primary', 'true')
+      if (options?.aspect_ratio) formData.append('aspect_ratio', options.aspect_ratio.toString())
+      if (options?.alt_text) formData.append('alt_text', options.alt_text)
+
+      const { data } = await adminApi.post<AdminEggMedia>(`/eggs/${eggId}/upload_media/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async deleteMedia(_eggId: string, mediaId: string): Promise<void> {
+    try {
+      await adminApi.delete(`/egg-media/${mediaId}/`)
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
+// Admin Egg Categories API
+export const adminEggCategoriesApi = {
+  async getAll(): Promise<AdminEggCategory[]> {
+    try {
+      const { data } = await adminApi.get<AdminEggCategory[] | PaginatedResponse<AdminEggCategory>>('/egg-categories/')
+      // Handle both paginated and non-paginated responses
+      if (Array.isArray(data)) {
+        return data
+      }
+      return data.results || []
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getById(id: string): Promise<AdminEggCategory> {
+    try {
+      const { data } = await adminApi.get<AdminEggCategory>(`/egg-categories/${id}/`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async create(category: { name: string; description?: string; image?: File }): Promise<AdminEggCategory> {
+    try {
+      const formData = new FormData()
+      formData.append('name', category.name)
+      if (category.description) formData.append('description', category.description)
+      if (category.image) formData.append('image', category.image)
+
+      const { data } = await adminApi.post<AdminEggCategory>('/egg-categories/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async update(id: string, updates: Partial<AdminEggCategory> & { image?: File }): Promise<AdminEggCategory> {
+    try {
+      const formData = new FormData()
+      if (updates.name) formData.append('name', updates.name)
+      if (updates.description !== undefined) formData.append('description', updates.description)
+      if (updates.is_active !== undefined) formData.append('is_active', updates.is_active.toString())
+      if (updates.order !== undefined) formData.append('order', updates.order.toString())
+      if (updates.image) formData.append('image', updates.image)
+
+      const { data } = await adminApi.patch<AdminEggCategory>(`/egg-categories/${id}/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    try {
+      await adminApi.delete(`/egg-categories/${id}/`)
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
+// Admin Egg Media API
+export const adminEggMediaApi = {
+  async getList(
+    page: number = 1,
+    filters?: {
+      egg?: string
+      type?: 'image' | 'video'
+      ordering?: string
+    }
+  ): Promise<PaginatedResponse<AdminEggMedia>> {
+    try {
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+
+      if (filters) {
+        if (filters.egg) params.append('egg', filters.egg)
+        if (filters.type) params.append('type', filters.type)
+        if (filters.ordering) params.append('ordering', filters.ordering)
+      }
+
+      const { data } = await adminApi.get<PaginatedResponse<AdminEggMedia>>(`/egg-media/?${params}`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getById(id: string): Promise<AdminEggMedia> {
+    try {
+      const { data } = await adminApi.get<AdminEggMedia>(`/egg-media/${id}/`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async setPrimary(id: string): Promise<{ detail: string }> {
+    try {
+      const { data } = await adminApi.post<{ detail: string }>(`/egg-media/${id}/set_primary/`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    try {
+      await adminApi.delete(`/egg-media/${id}/`)
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
 // Export default admin API object
 export default {
   auth: authApi,
@@ -1169,4 +1596,7 @@ export default {
   media: mediaApi,
   users: usersApi,
   inquiries: inquiriesApi,
+  eggs: adminEggsApi,
+  eggCategories: adminEggCategoriesApi,
+  eggMedia: adminEggMediaApi,
 }

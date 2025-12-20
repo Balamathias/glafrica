@@ -11,6 +11,7 @@ import { ModeToggle } from "@/components/ui/mode-toggle"
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/livestock", label: "Livestock" },
+  { href: "/eggs", label: "Eggs" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ]

@@ -17,6 +17,7 @@ import {
   PanelLeft,
   MessageSquare,
   Globe,
+  Egg,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAdminUIStore, useAuthStore } from "@/lib/admin-store"
@@ -44,6 +45,13 @@ const NAV_ITEMS: NavItem[] = [
     label: "Livestock",
     icon: PawPrint,
     href: "/admin/livestock",
+    badge: "dynamic",
+  },
+  {
+    id: "eggs",
+    label: "Eggs",
+    icon: Egg,
+    href: "/admin/eggs",
     badge: "dynamic",
   },
   { id: "media", label: "Media Library", icon: ImageIcon, href: "/admin/media" },

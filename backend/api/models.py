@@ -99,6 +99,181 @@ class MediaAsset(TimeStampedModel):
 
 
 # ============================================
+# EGGS MODELS
+# ============================================
+
+class EggCategory(TimeStampedModel):
+    """Bird species/type that produces eggs (e.g., Chicken, Turkey, Quail)."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    image = CloudinaryField('image', blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name_plural = "Egg Categories"
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
+class Egg(TimeStampedModel):
+    """Individual egg product listing."""
+    SIZE_CHOICES = [
+        ('small', 'Small'),
+        ('medium', 'Medium'),
+        ('large', 'Large'),
+        ('extra_large', 'Extra Large'),
+        ('jumbo', 'Jumbo'),
+    ]
+
+    PACKAGING_CHOICES = [
+        ('crate_30', 'Crate (30 eggs)'),
+        ('tray_30', 'Tray (30 eggs)'),
+        ('tray_12', 'Tray (12 eggs)'),
+        ('half_crate_15', 'Half Crate (15 eggs)'),
+        ('custom', 'Custom'),
+    ]
+
+    EGG_TYPE_CHOICES = [
+        ('table', 'Table Eggs'),
+        ('fertilized', 'Fertilized/Hatching'),
+        ('organic', 'Organic'),
+        ('free_range', 'Free Range'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200, help_text="e.g., 'Fresh Farm Chicken Eggs'")
+    slug = models.SlugField(max_length=200, unique=True)
+    category = models.ForeignKey(
+        EggCategory,
+        on_delete=models.PROTECT,
+        related_name='eggs'
+    )
+    breed = models.CharField(max_length=100, blank=True, help_text="e.g., 'Rhode Island Red', 'Broiler'")
+    egg_type = models.CharField(max_length=20, choices=EGG_TYPE_CHOICES, default='table')
+    size = models.CharField(max_length=20, choices=SIZE_CHOICES, default='medium')
+    packaging = models.CharField(max_length=20, choices=PACKAGING_CHOICES, default='crate_30')
+    eggs_per_unit = models.PositiveIntegerField(default=30, help_text="Number of eggs per package")
+
+    # Pricing
+    price = models.DecimalField(max_digits=12, decimal_places=2, help_text="Price per package")
+    currency = models.CharField(max_length=3, default='NGN')
+
+    # Inventory
+    quantity_available = models.PositiveIntegerField(default=0, help_text="Number of packages in stock")
+
+    # Freshness
+    production_date = models.DateField(null=True, blank=True, help_text="Date eggs were produced/laid")
+    expiry_date = models.DateField(null=True, blank=True, help_text="Best before date")
+
+    # Location & Details
+    location = models.CharField(max_length=200, blank=True)
+    description = models.TextField(blank=True)
+
+    # Status
+    is_available = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False)
+
+    # Relations
+    tags = models.ManyToManyField(Tag, blank=True, related_name='eggs')
+
+    # Audit
+    created_by = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_eggs'
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_available', 'created_at']),
+            models.Index(fields=['category', 'is_available']),
+            models.Index(fields=['production_date']),
+            models.Index(fields=['expiry_date']),
+            models.Index(fields=['egg_type']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_packaging_display()})"
+
+    @property
+    def shelf_life_days(self):
+        """Total shelf life in days from production to expiry."""
+        if not self.production_date or not self.expiry_date:
+            return None
+        return (self.expiry_date - self.production_date).days
+
+    @property
+    def days_until_expiry(self):
+        """Days remaining until expiry."""
+        if not self.expiry_date:
+            return None
+        from django.utils import timezone
+        today = timezone.now().date()
+        return (self.expiry_date - today).days
+
+    @property
+    def freshness_status(self):
+        """Calculate freshness status based on remaining shelf life."""
+        days_left = self.days_until_expiry
+
+        if days_left is None:
+            return 'unknown'
+
+        if days_left < 0:
+            return 'expired'
+        elif days_left <= 3:
+            return 'expiring_soon'
+        elif days_left <= 7:
+            return 'use_soon'
+        else:
+            return 'fresh'
+
+    @property
+    def freshness_percentage(self):
+        """Percentage of freshness remaining (100% = just produced, 0% = expired)."""
+        shelf_life = self.shelf_life_days
+        days_left = self.days_until_expiry
+
+        if shelf_life is None or days_left is None or shelf_life <= 0:
+            return None
+        remaining = max(0, days_left)
+        return min(100, int((remaining / shelf_life) * 100))
+
+
+class EggMediaAsset(TimeStampedModel):
+    """Media files (images/videos) for eggs."""
+    MEDIA_TYPES = [
+        ('image', 'Image'),
+        ('video', 'Video'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    egg = models.ForeignKey(Egg, on_delete=models.CASCADE, related_name='media')
+    file = CloudinaryField('file', resource_type='auto')
+    media_type = models.CharField(max_length=10, choices=MEDIA_TYPES, default='image')
+    alt_text = models.CharField(max_length=255, blank=True)
+    is_primary = models.BooleanField(default=False, help_text="Show as main image")
+    order = models.PositiveIntegerField(default=0)
+    aspect_ratio = models.FloatField(default=1.0, help_text="Width / Height ratio for layout")
+
+    class Meta:
+        ordering = ['order', '-is_primary', '-created_at']
+        verbose_name = "Egg Media Asset"
+        verbose_name_plural = "Egg Media Assets"
+
+    def __str__(self):
+        return f"{self.media_type} for {self.egg.name}"
+
+
+# ============================================
 # ADMIN & AUTHENTICATION MODELS
 # ============================================
 
@@ -294,6 +469,7 @@ class PageView(TimeStampedModel):
     EVENT_TYPE_CHOICES = [
         ('page_view', 'Page View'),
         ('livestock_view', 'Livestock View'),
+        ('egg_view', 'Egg View'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -315,6 +491,15 @@ class PageView(TimeStampedModel):
         related_name='page_views'
     )
 
+    # Egg-specific tracking
+    egg = models.ForeignKey(
+        'Egg',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='page_views'
+    )
+
     class Meta:
         ordering = ['-created_at']
         indexes = [
@@ -322,6 +507,7 @@ class PageView(TimeStampedModel):
             models.Index(fields=['session_id', 'created_at']),
             models.Index(fields=['path', 'created_at']),
             models.Index(fields=['livestock', 'created_at']),
+            models.Index(fields=['egg', 'created_at']),
             models.Index(fields=['event_type', 'created_at']),
         ]
 

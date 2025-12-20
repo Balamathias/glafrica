@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import Livestock, MediaAsset, Category, Tag, ContactInquiry
+from .models import (
+    Livestock, MediaAsset, Category, Tag, ContactInquiry,
+    Egg, EggCategory, EggMediaAsset
+)
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -141,3 +144,145 @@ class ContactInquirySerializer(serializers.ModelSerializer):
         if value not in valid_subjects:
             raise serializers.ValidationError(f"Invalid subject. Choose from: {', '.join(valid_subjects)}")
         return value
+
+
+# ============================================
+# EGG SERIALIZERS
+# ============================================
+
+class EggCategorySerializer(serializers.ModelSerializer):
+    """Serializer for egg categories (bird species/types)."""
+    egg_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EggCategory
+        fields = ['id', 'name', 'slug', 'description', 'image', 'is_active', 'order', 'egg_count']
+
+    def get_egg_count(self, obj):
+        return obj.eggs.filter(is_available=True).count()
+
+
+class EggCategoryListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for egg category lists."""
+    egg_count = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EggCategory
+        fields = ['id', 'name', 'slug', 'description', 'image_url', 'egg_count']
+
+    def get_egg_count(self, obj):
+        return obj.eggs.filter(is_available=True).count()
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url if hasattr(obj.image, 'url') else str(obj.image)
+        return None
+
+
+class EggMediaSerializer(serializers.ModelSerializer):
+    """Serializer for egg media assets."""
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EggMediaAsset
+        fields = ['id', 'url', 'media_type', 'alt_text', 'is_primary', 'order', 'aspect_ratio']
+
+    def get_url(self, obj):
+        if obj.file:
+            return obj.file.url if hasattr(obj.file, 'url') else str(obj.file)
+        return None
+
+
+class EggListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for egg list views."""
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    category_slug = serializers.CharField(source='category.slug', read_only=True)
+    primary_image = serializers.SerializerMethodField()
+    freshness_status = serializers.CharField(read_only=True)
+    days_until_expiry = serializers.IntegerField(read_only=True)
+    freshness_percentage = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Egg
+        fields = [
+            'id', 'name', 'slug', 'category_name', 'category_slug', 'breed',
+            'egg_type', 'size', 'packaging', 'eggs_per_unit',
+            'price', 'currency', 'quantity_available',
+            'freshness_status', 'days_until_expiry', 'freshness_percentage',
+            'is_featured', 'primary_image', 'location', 'created_at'
+        ]
+
+    def get_primary_image(self, obj):
+        media = obj.media.filter(is_primary=True).first()
+        if not media:
+            media = obj.media.first()
+        if media and media.file:
+            return {
+                'url': media.file.url if hasattr(media.file, 'url') else str(media.file),
+                'aspect_ratio': media.aspect_ratio
+            }
+        return None
+
+
+class EggDetailSerializer(serializers.ModelSerializer):
+    """Full serializer for egg detail views."""
+    category = EggCategoryListSerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=EggCategory.objects.all(), source='category', write_only=True
+    )
+    media = EggMediaSerializer(many=True, read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
+    tag_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(), source='tags', write_only=True, many=True, required=False
+    )
+    freshness_status = serializers.CharField(read_only=True)
+    days_until_expiry = serializers.IntegerField(read_only=True)
+    shelf_life_days = serializers.IntegerField(read_only=True)
+    freshness_percentage = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Egg
+        fields = [
+            'id', 'name', 'slug', 'category', 'category_id', 'breed',
+            'egg_type', 'size', 'packaging', 'eggs_per_unit',
+            'price', 'currency', 'quantity_available',
+            'production_date', 'expiry_date',
+            'shelf_life_days', 'days_until_expiry', 'freshness_status', 'freshness_percentage',
+            'location', 'description', 'is_available', 'is_featured',
+            'media', 'tags', 'tag_ids',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class EggCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for creating and updating eggs (admin use)."""
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=EggCategory.objects.all(), source='category'
+    )
+    tag_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(), source='tags', many=True, required=False
+    )
+
+    class Meta:
+        model = Egg
+        fields = [
+            'name', 'slug', 'category_id', 'breed',
+            'egg_type', 'size', 'packaging', 'eggs_per_unit',
+            'price', 'currency', 'quantity_available',
+            'production_date', 'expiry_date',
+            'location', 'description', 'is_available', 'is_featured',
+            'tag_ids'
+        ]
+
+    def validate(self, data):
+        # Validate that expiry date is after production date
+        production_date = data.get('production_date')
+        expiry_date = data.get('expiry_date')
+        if production_date and expiry_date:
+            if expiry_date <= production_date:
+                raise serializers.ValidationError({
+                    'expiry_date': 'Expiry date must be after production date.'
+                })
+        return data

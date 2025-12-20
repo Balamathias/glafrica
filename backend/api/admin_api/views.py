@@ -13,10 +13,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from ..models import Livestock, MediaAsset, Category, Tag, AuditLog, ContactInquiry
+from ..models import Livestock, MediaAsset, Category, Tag, AuditLog, ContactInquiry, Egg, EggCategory, EggMediaAsset
 from ..permissions import (
     IsAdminUser, CanManageLivestock, CanManageCategories,
-    CanManageTags, CanManageMedia
+    CanManageTags, CanManageMedia, CanManageEggs
 )
 from .serializers import (
     AdminLivestockListSerializer,
@@ -33,6 +33,11 @@ from .serializers import (
     AdminContactInquiryListSerializer,
     AdminContactInquiryDetailSerializer,
     UpdateInquiryStatusSerializer,
+    AdminEggListSerializer,
+    AdminEggDetailSerializer,
+    AdminEggCategorySerializer,
+    AdminEggMediaAssetSerializer,
+    EggBulkUpdateSerializer,
 )
 
 
@@ -726,3 +731,397 @@ class VisitorAnalyticsView(APIView):
                 {'error': 'Invalid action'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+# ============================================
+# EGG ADMIN VIEWSETS
+# ============================================
+
+class AdminEggViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for admin egg management with bulk operations.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser, CanManageEggs]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'breed', 'location', 'description']
+    ordering_fields = ['name', 'price', 'created_at', 'updated_at', 'production_date', 'expiry_date']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        queryset = Egg.objects.select_related('category', 'created_by').prefetch_related('tags', 'media')
+
+        # Filter by category
+        category = self.request.query_params.get('category')
+        if category:
+            queryset = queryset.filter(category__slug=category)
+
+        # Filter by availability status
+        is_available = self.request.query_params.get('is_available')
+        if is_available is not None:
+            queryset = queryset.filter(is_available=is_available.lower() == 'true')
+
+        # Filter by egg type
+        egg_type = self.request.query_params.get('egg_type')
+        if egg_type:
+            queryset = queryset.filter(egg_type=egg_type)
+
+        # Filter by size
+        size = self.request.query_params.get('size')
+        if size:
+            queryset = queryset.filter(size=size)
+
+        # Filter by freshness status
+        freshness = self.request.query_params.get('freshness')
+        if freshness:
+            from datetime import timedelta
+            today = timezone.now().date()
+            if freshness == 'fresh':
+                queryset = queryset.filter(expiry_date__gt=today + timedelta(days=7))
+            elif freshness == 'use_soon':
+                queryset = queryset.filter(
+                    expiry_date__gt=today + timedelta(days=3),
+                    expiry_date__lte=today + timedelta(days=7)
+                )
+            elif freshness == 'expiring_soon':
+                queryset = queryset.filter(
+                    expiry_date__gt=today,
+                    expiry_date__lte=today + timedelta(days=3)
+                )
+            elif freshness == 'expired':
+                queryset = queryset.filter(expiry_date__lt=today)
+
+        # Filter by price range
+        min_price = self.request.query_params.get('min_price')
+        max_price = self.request.query_params.get('max_price')
+        if min_price:
+            queryset = queryset.filter(price__gte=min_price)
+        if max_price:
+            queryset = queryset.filter(price__lte=max_price)
+
+        return queryset
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return AdminEggListSerializer
+        return AdminEggDetailSerializer
+
+    def perform_create(self, serializer):
+        instance = serializer.save(created_by=self.request.user)
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type='create',
+            resource_type='egg',
+            description=f"Created egg: {instance.name}",
+            resource_id=str(instance.id),
+            request=self.request
+        )
+
+    def perform_update(self, serializer):
+        old_data = AdminEggDetailSerializer(serializer.instance).data
+        instance = serializer.save()
+        new_data = AdminEggDetailSerializer(instance).data
+
+        changes = {}
+        for key in new_data:
+            if key in old_data and old_data[key] != new_data[key]:
+                changes[key] = {'old': old_data[key], 'new': new_data[key]}
+
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type='update',
+            resource_type='egg',
+            description=f"Updated egg: {instance.name}",
+            resource_id=str(instance.id),
+            changes=changes,
+            request=self.request
+        )
+
+    def perform_destroy(self, instance):
+        name = instance.name
+        egg_id = str(instance.id)
+
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type='delete',
+            resource_type='egg',
+            description=f"Deleted egg: {name}",
+            resource_id=egg_id,
+            request=self.request
+        )
+
+        instance.delete()
+
+    @action(detail=False, methods=['post'])
+    def bulk_delete(self, request):
+        """Delete multiple eggs."""
+        serializer = BulkDeleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        ids = serializer.validated_data['ids']
+        eggs = Egg.objects.filter(id__in=ids)
+        count = eggs.count()
+        names = list(eggs.values_list('name', flat=True))
+
+        eggs.delete()
+
+        AuditLog.log_action(
+            user=request.user,
+            action_type='bulk_operation',
+            resource_type='egg',
+            description=f"Bulk deleted {count} eggs: {', '.join(names[:5])}{'...' if len(names) > 5 else ''}",
+            changes={'deleted_ids': [str(id) for id in ids]},
+            request=request
+        )
+
+        return Response({
+            'detail': f'Successfully deleted {count} items.',
+            'count': count
+        })
+
+    @action(detail=False, methods=['post'])
+    def bulk_update(self, request):
+        """Update multiple eggs with same values."""
+        serializer = EggBulkUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        ids = serializer.validated_data['ids']
+        updates = serializer.validated_data['updates']
+
+        if 'category' in updates:
+            try:
+                updates['category'] = EggCategory.objects.get(slug=updates['category'])
+            except EggCategory.DoesNotExist:
+                return Response(
+                    {'detail': f"Egg category '{updates['category']}' not found."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        count = Egg.objects.filter(id__in=ids).update(**updates)
+
+        AuditLog.log_action(
+            user=request.user,
+            action_type='bulk_operation',
+            resource_type='egg',
+            description=f"Bulk updated {count} eggs",
+            changes={'updated_ids': [str(id) for id in ids], 'updates': {k: str(v) for k, v in updates.items()}},
+            request=request
+        )
+
+        return Response({
+            'detail': f'Successfully updated {count} items.',
+            'count': count
+        })
+
+    @action(detail=False, methods=['get'])
+    def expiring_soon(self, request):
+        """Get eggs expiring within specified days."""
+        from datetime import timedelta
+        days = int(request.query_params.get('days', 7))
+        today = timezone.now().date()
+        cutoff = today + timedelta(days=days)
+
+        eggs = self.get_queryset().filter(
+            is_available=True,
+            expiry_date__lte=cutoff,
+            expiry_date__gt=today
+        ).order_by('expiry_date')
+
+        serializer = AdminEggListSerializer(eggs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get egg statistics summary."""
+        from datetime import timedelta
+        today = timezone.now().date()
+
+        queryset = self.get_queryset()
+        total = queryset.count()
+        available = queryset.filter(is_available=True).count()
+        expiring_soon = queryset.filter(
+            is_available=True,
+            expiry_date__lte=today + timedelta(days=7),
+            expiry_date__gt=today
+        ).count()
+        expired = queryset.filter(expiry_date__lt=today).count()
+
+        by_category = list(
+            queryset.values('category__name')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+
+        by_type = list(
+            queryset.values('egg_type')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+
+        total_value = queryset.filter(is_available=True).aggregate(
+            total=Sum(F('price') * F('quantity_available'))
+        )['total'] or 0
+
+        return Response({
+            'total': total,
+            'available': available,
+            'expiring_soon': expiring_soon,
+            'expired': expired,
+            'total_value': float(total_value),
+            'by_category': by_category,
+            'by_type': by_type
+        })
+
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    def upload_media(self, request, pk=None):
+        """Upload media for a specific egg."""
+        egg = self.get_object()
+
+        file = request.FILES.get('file')
+        if not file:
+            return Response(
+                {'detail': 'No file provided.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        media_type = request.data.get('media_type', 'image')
+        is_primary = request.data.get('is_primary', 'false').lower() == 'true'
+        aspect_ratio = float(request.data.get('aspect_ratio', 1.0))
+        alt_text = request.data.get('alt_text', '')
+
+        # If this is set as primary, unset others
+        if is_primary:
+            egg.media.filter(is_primary=True).update(is_primary=False)
+
+        media = EggMediaAsset.objects.create(
+            egg=egg,
+            file=file,
+            media_type=media_type,
+            is_primary=is_primary,
+            aspect_ratio=aspect_ratio,
+            alt_text=alt_text
+        )
+
+        AuditLog.log_action(
+            user=request.user,
+            action_type='create',
+            resource_type='egg_media',
+            description=f"Uploaded {media_type} for egg: {egg.name}",
+            resource_id=str(media.id),
+            request=request
+        )
+
+        return Response(
+            AdminEggMediaAssetSerializer(media).data,
+            status=status.HTTP_201_CREATED
+        )
+
+
+class AdminEggCategoryViewSet(viewsets.ModelViewSet):
+    """ViewSet for admin egg category management."""
+    queryset = EggCategory.objects.annotate(
+        egg_count=Count('eggs'),
+        available_count=Count('eggs', filter=Q(eggs__is_available=True))
+    )
+    serializer_class = AdminEggCategorySerializer
+    permission_classes = [IsAuthenticated, IsAdminUser, CanManageEggs]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'order', 'created_at', 'egg_count']
+    ordering = ['order', 'name']
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type='create',
+            resource_type='egg_category',
+            description=f"Created egg category: {instance.name}",
+            resource_id=str(instance.id),
+            request=self.request
+        )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type='update',
+            resource_type='egg_category',
+            description=f"Updated egg category: {instance.name}",
+            resource_id=str(instance.id),
+            request=self.request
+        )
+
+    def perform_destroy(self, instance):
+        if instance.eggs.exists():
+            return Response(
+                {'detail': 'Cannot delete category with existing eggs.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        name = instance.name
+        category_id = str(instance.id)
+
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type='delete',
+            resource_type='egg_category',
+            description=f"Deleted egg category: {name}",
+            resource_id=category_id,
+            request=self.request
+        )
+
+        instance.delete()
+
+
+class AdminEggMediaViewSet(viewsets.ModelViewSet):
+    """ViewSet for admin egg media management."""
+    queryset = EggMediaAsset.objects.select_related('egg')
+    serializer_class = AdminEggMediaAssetSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser, CanManageEggs]
+    parser_classes = [MultiPartParser, FormParser]
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['created_at', 'is_primary', 'order']
+    ordering = ['order', '-is_primary', '-created_at']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        egg_id = self.request.query_params.get('egg')
+        if egg_id:
+            queryset = queryset.filter(egg_id=egg_id)
+
+        media_type = self.request.query_params.get('type')
+        if media_type:
+            queryset = queryset.filter(media_type=media_type)
+
+        return queryset
+
+    @action(detail=True, methods=['post'])
+    def set_primary(self, request, pk=None):
+        """Set this media as the primary image."""
+        media = self.get_object()
+
+        EggMediaAsset.objects.filter(
+            egg=media.egg,
+            is_primary=True
+        ).update(is_primary=False)
+
+        media.is_primary = True
+        media.save()
+
+        return Response({'detail': 'Media set as primary.'})
+
+    def perform_destroy(self, instance):
+        egg_name = instance.egg.name
+        media_id = str(instance.id)
+
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type='delete',
+            resource_type='egg_media',
+            description=f"Deleted media from egg: {egg_name}",
+            resource_id=media_id,
+            request=self.request
+        )
+
+        instance.delete()

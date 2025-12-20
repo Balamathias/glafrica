@@ -149,3 +149,144 @@ export function formatRelativeTime(dateString: string): string {
 
   return formatDate(dateString)
 }
+
+// ============================================
+// EGG TYPES
+// ============================================
+
+// Egg size options
+export type EggSize = 'small' | 'medium' | 'large' | 'extra_large' | 'jumbo'
+
+export const EGG_SIZE_LABELS: Record<EggSize, string> = {
+  small: 'Small',
+  medium: 'Medium',
+  large: 'Large',
+  extra_large: 'Extra Large',
+  jumbo: 'Jumbo',
+}
+
+// Egg packaging options
+export type EggPackaging = 'crate_30' | 'tray_30' | 'tray_12' | 'half_crate_15' | 'custom'
+
+export const EGG_PACKAGING_LABELS: Record<EggPackaging, string> = {
+  crate_30: 'Crate (30 eggs)',
+  tray_30: 'Tray (30 eggs)',
+  tray_12: 'Tray (12 eggs)',
+  half_crate_15: 'Half Crate (15 eggs)',
+  custom: 'Custom',
+}
+
+// Egg type options
+export type EggType = 'table' | 'fertilized' | 'organic' | 'free_range'
+
+export const EGG_TYPE_LABELS: Record<EggType, string> = {
+  table: 'Table Eggs',
+  fertilized: 'Fertilized/Hatching',
+  organic: 'Organic',
+  free_range: 'Free Range',
+}
+
+// Freshness status
+export type FreshnessStatus = 'fresh' | 'use_soon' | 'expiring_soon' | 'expired' | 'unknown'
+
+export const FRESHNESS_LABELS: Record<FreshnessStatus, string> = {
+  fresh: 'Fresh',
+  use_soon: 'Use Soon',
+  expiring_soon: 'Expiring Soon',
+  expired: 'Expired',
+  unknown: 'No Date Set',
+}
+
+export const FRESHNESS_COLORS: Record<FreshnessStatus, { bg: string; text: string; border: string }> = {
+  fresh: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' },
+  use_soon: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300' },
+  expiring_soon: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300' },
+  expired: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+  unknown: { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-300' },
+}
+
+// Egg category (bird species)
+export interface EggCategory {
+  id: string
+  name: string
+  slug: string
+  description: string
+  image: string | null
+  is_active: boolean
+  order: number
+  egg_count?: number
+}
+
+// Egg media asset
+export interface EggMedia {
+  id: string
+  url: string
+  media_type: 'image' | 'video'
+  alt_text: string
+  is_primary: boolean
+  order: number
+  aspect_ratio: number
+}
+
+// Egg list item (lightweight for lists/grids)
+export interface EggListItem {
+  id: string
+  name: string
+  slug: string
+  category_name: string
+  breed: string
+  egg_type: EggType
+  size: EggSize
+  packaging: EggPackaging
+  eggs_per_unit: number
+  price: string
+  currency: string
+  quantity_available: number
+  freshness_status: FreshnessStatus
+  days_until_expiry: number | null
+  is_featured: boolean
+  primary_image: EggMedia | null
+  location: string
+}
+
+// Full egg detail
+export interface Egg extends EggListItem {
+  category: EggCategory
+  media: EggMedia[]
+  tags: Tag[]
+  production_date: string | null
+  expiry_date: string | null
+  shelf_life_days: number | null
+  freshness_percentage: number
+  description: string
+  is_available: boolean
+  created_at: string
+  updated_at: string
+}
+
+// Egg search filters
+export interface EggSearchFilters {
+  category?: string
+  egg_type?: EggType
+  size?: EggSize
+  packaging?: EggPackaging
+  freshness?: FreshnessStatus
+  is_featured?: boolean
+  search?: string
+  ordering?: string
+}
+
+// Format days until expiry
+export function formatDaysUntilExpiry(days: number | null | undefined): string {
+  if (days === null || days === undefined) return 'No expiry set'
+  if (days < 0) return 'Expired'
+  if (days === 0) return 'Expires today'
+  if (days === 1) return '1 day left'
+  return `${days} days left`
+}
+
+// Get freshness badge class
+export function getFreshnessClass(status: FreshnessStatus): string {
+  const colors = FRESHNESS_COLORS[status]
+  return `${colors.bg} ${colors.text} ${colors.border}`
+}

@@ -10,6 +10,7 @@ from .permissions import (
     CanManageMedia,
     CanViewAnalytics,
     CanManageUsers,
+    CanManageEggs,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     'CanManageMedia',
     'CanViewAnalytics',
     'CanManageUsers',
+    'CanManageEggs',
 ]

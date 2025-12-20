@@ -1,6 +1,6 @@
 import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query"
-import { livestockApi, categoriesApi, chatApi } from "./api"
-import type { SearchFilters, Livestock, LivestockListItem, Category, PaginatedResponse } from "./types"
+import { livestockApi, categoriesApi, chatApi, eggsApi, eggCategoriesApi } from "./api"
+import type { SearchFilters, Livestock, LivestockListItem, Category, PaginatedResponse, EggSearchFilters, Egg, EggListItem, EggCategory, FreshnessStatus } from "./types"
 
 // Query Keys factory for consistent cache management
 export const queryKeys = {
@@ -11,6 +11,19 @@ export const queryKeys = {
   detail: (id: string) => [...queryKeys.details(), id] as const,
   search: (query: string) => [...queryKeys.all, "search", query] as const,
   categories: ["categories"] as const,
+}
+
+// Egg Query Keys
+export const eggQueryKeys = {
+  all: ["eggs"] as const,
+  lists: () => [...eggQueryKeys.all, "list"] as const,
+  list: (filters?: EggSearchFilters) => [...eggQueryKeys.lists(), filters] as const,
+  details: () => [...eggQueryKeys.all, "detail"] as const,
+  detail: (id: string) => [...eggQueryKeys.details(), id] as const,
+  search: (query: string) => [...eggQueryKeys.all, "search", query] as const,
+  freshness: (status: FreshnessStatus) => [...eggQueryKeys.all, "freshness", status] as const,
+  featured: () => [...eggQueryKeys.all, "featured"] as const,
+  categories: ["egg-categories"] as const,
 }
 
 // Infinite query for gallery with pagination
@@ -90,5 +103,117 @@ export async function prefetchLivestockList(queryClient: any, filters?: SearchFi
     queryKey: queryKeys.list(filters),
     queryFn: () => livestockApi.getList(1, filters),
     initialPageParam: 1,
+  })
+}
+
+// ============================================
+// EGG HOOKS
+// ============================================
+
+// Infinite query for eggs gallery with pagination
+export function useEggsInfinite(filters?: EggSearchFilters) {
+  return useInfiniteQuery({
+    queryKey: eggQueryKeys.list(filters),
+    queryFn: async ({ pageParam = 1 }) => {
+      return eggsApi.getList(pageParam, filters)
+    },
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.next) return undefined
+      // Extract page number from next URL
+      const url = new URL(lastPage.next)
+      const page = url.searchParams.get("page")
+      return page ? parseInt(page) : undefined
+    },
+    initialPageParam: 1,
+  })
+}
+
+// Single egg query
+export function useEgg(id: string | null) {
+  return useQuery({
+    queryKey: eggQueryKeys.detail(id || ""),
+    queryFn: () => eggsApi.getById(id!),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
+// Egg by slug query
+export function useEggBySlug(slug: string | null) {
+  return useQuery({
+    queryKey: eggQueryKeys.detail(slug || ""),
+    queryFn: () => eggsApi.getBySlug(slug!),
+    enabled: !!slug,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
+// AI Search for eggs
+export function useEggSearch(query: string) {
+  return useQuery({
+    queryKey: eggQueryKeys.search(query),
+    queryFn: () => eggsApi.searchAI(query),
+    enabled: query.length >= 2,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  })
+}
+
+// Eggs by freshness status
+export function useEggsByFreshness(status: FreshnessStatus) {
+  return useQuery({
+    queryKey: eggQueryKeys.freshness(status),
+    queryFn: () => eggsApi.getByFreshness(status),
+    staleTime: 2 * 60 * 1000, // 2 minutes - freshness can change
+  })
+}
+
+// Featured eggs query
+export function useFeaturedEggs() {
+  return useQuery({
+    queryKey: eggQueryKeys.featured(),
+    queryFn: eggsApi.getFeatured,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
+// Egg Categories query
+export function useEggCategories() {
+  return useQuery({
+    queryKey: eggQueryKeys.categories,
+    queryFn: eggCategoriesApi.getAll,
+    staleTime: 10 * 60 * 1000, // 10 minutes - categories rarely change
+  })
+}
+
+// Egg Category by slug
+export function useEggCategory(slug: string | null) {
+  return useQuery({
+    queryKey: [...eggQueryKeys.categories, slug],
+    queryFn: () => eggCategoriesApi.getBySlug(slug!),
+    enabled: !!slug,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  })
+}
+
+// Prefetch helpers for SSR/SSG
+export async function prefetchEgg(queryClient: any, id: string) {
+  await queryClient.prefetchQuery({
+    queryKey: eggQueryKeys.detail(id),
+    queryFn: () => eggsApi.getById(id),
+  })
+}
+
+export async function prefetchEggList(queryClient: any, filters?: EggSearchFilters) {
+  await queryClient.prefetchInfiniteQuery({
+    queryKey: eggQueryKeys.list(filters),
+    queryFn: () => eggsApi.getList(1, filters),
+    initialPageParam: 1,
+  })
+}
+
+export async function prefetchEggCategories(queryClient: any) {
+  await queryClient.prefetchQuery({
+    queryKey: eggQueryKeys.categories,
+    queryFn: eggCategoriesApi.getAll,
   })
 }

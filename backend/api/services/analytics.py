@@ -7,7 +7,7 @@ from django.db.models import Count, Sum, Avg, Q, F
 from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
 from django.utils import timezone
 
-from ..models import Livestock, Category, MediaAsset, AuditLog, PageView, VisitorSession
+from ..models import Livestock, Category, MediaAsset, AuditLog, PageView, VisitorSession, Egg, EggCategory
 
 
 class AnalyticsService:
@@ -537,4 +537,205 @@ class AnalyticsService:
                 'percentage': round((item['visitors'] / total * 100), 1) if total > 0 else 0,
             }
             for item in countries
+        ]
+
+    # ============================================
+    # EGG ANALYTICS METHODS
+    # ============================================
+
+    @staticmethod
+    def get_top_egg_views(limit=10, days=30):
+        """Get most viewed egg products."""
+        start_date = timezone.now() - timedelta(days=days)
+
+        top_eggs = PageView.objects.filter(
+            created_at__gte=start_date,
+            event_type='egg_view',
+            egg__isnull=False
+        ).values(
+            'egg__id',
+            'egg__name',
+            'egg__breed',
+            'egg__price',
+            'egg__packaging',
+            'egg__freshness_status',
+            'egg__category__name'
+        ).annotate(
+            views=Count('id'),
+            unique_viewers=Count('session_id', distinct=True)
+        ).order_by('-views')[:limit]
+
+        return [
+            {
+                'id': str(item['egg__id']),
+                'name': item['egg__name'],
+                'breed': item['egg__breed'],
+                'price': float(item['egg__price']) if item['egg__price'] else 0,
+                'packaging': item['egg__packaging'],
+                'category': item['egg__category__name'],
+                'views': item['views'],
+                'unique_viewers': item['unique_viewers'],
+            }
+            for item in top_eggs
+        ]
+
+    @staticmethod
+    def get_egg_dashboard_summary():
+        """Get egg-specific dashboard summary metrics."""
+        now = timezone.now()
+        today = now.date()
+        week_ago = now - timedelta(days=7)
+
+        # Current counts
+        total_eggs = Egg.objects.count()
+        available_eggs = Egg.objects.filter(is_available=True).count()
+        featured_eggs = Egg.objects.filter(is_featured=True).count()
+
+        # Freshness metrics
+        fresh_count = 0
+        use_soon_count = 0
+        expiring_soon_count = 0
+        expired_count = 0
+
+        for egg in Egg.objects.filter(is_available=True):
+            status = egg.freshness_status
+            if status == 'fresh':
+                fresh_count += 1
+            elif status == 'use_soon':
+                use_soon_count += 1
+            elif status == 'expiring_soon':
+                expiring_soon_count += 1
+            elif status == 'expired':
+                expired_count += 1
+
+        # Total inventory value
+        total_value = Egg.objects.filter(
+            is_available=True
+        ).aggregate(
+            total=Sum(F('price') * F('quantity_available'))
+        )['total'] or Decimal('0')
+
+        # By category
+        eggs_by_category = list(
+            EggCategory.objects.filter(is_active=True).annotate(
+                total=Count('eggs'),
+                available=Count('eggs', filter=Q(eggs__is_available=True)),
+                value=Sum(
+                    F('eggs__price') * F('eggs__quantity_available'),
+                    filter=Q(eggs__is_available=True)
+                )
+            ).values('id', 'name', 'slug', 'total', 'available', 'value')
+        )
+
+        # New this week
+        new_this_week = Egg.objects.filter(
+            created_at__gte=week_ago
+        ).count()
+
+        # Price statistics
+        available_queryset = Egg.objects.filter(is_available=True)
+        min_price = available_queryset.order_by('price').values_list('price', flat=True).first() or 0
+        max_price = available_queryset.order_by('-price').values_list('price', flat=True).first() or 0
+        avg_price = available_queryset.aggregate(avg=Avg('price'))['avg'] or 0
+
+        return {
+            'total_eggs': total_eggs,
+            'available_eggs': available_eggs,
+            'featured_eggs': featured_eggs,
+            'freshness': {
+                'fresh': fresh_count,
+                'use_soon': use_soon_count,
+                'expiring_soon': expiring_soon_count,
+                'expired': expired_count,
+            },
+            'total_value': float(total_value),
+            'eggs_by_category': eggs_by_category,
+            'new_this_week': new_this_week,
+            'price_range': {
+                'min': float(min_price),
+                'max': float(max_price),
+                'avg': float(avg_price),
+            },
+            'currency': 'NGN',
+        }
+
+    @staticmethod
+    def get_eggs_by_category():
+        """Get egg distribution by category."""
+        categories = EggCategory.objects.filter(is_active=True).annotate(
+            total=Count('eggs'),
+            available=Count('eggs', filter=Q(eggs__is_available=True)),
+            total_units=Sum('eggs__quantity_available', filter=Q(eggs__is_available=True)),
+            value=Sum(
+                F('eggs__price') * F('eggs__quantity_available'),
+                filter=Q(eggs__is_available=True)
+            )
+        ).values('id', 'name', 'slug', 'total', 'available', 'total_units', 'value').order_by('order')
+
+        return list(categories)
+
+    @staticmethod
+    def get_expiring_eggs(days=7):
+        """Get eggs expiring within the specified number of days."""
+        now = timezone.now()
+        threshold_date = (now + timedelta(days=days)).date()
+
+        expiring = Egg.objects.filter(
+            is_available=True,
+            expiry_date__lte=threshold_date,
+            expiry_date__gte=now.date()
+        ).select_related('category').order_by('expiry_date')
+
+        return [
+            {
+                'id': str(egg.id),
+                'name': egg.name,
+                'breed': egg.breed,
+                'category': egg.category.name if egg.category else None,
+                'packaging': egg.packaging,
+                'quantity_available': egg.quantity_available,
+                'price': float(egg.price),
+                'production_date': egg.production_date.isoformat() if egg.production_date else None,
+                'expiry_date': egg.expiry_date.isoformat() if egg.expiry_date else None,
+                'days_until_expiry': egg.days_until_expiry,
+                'freshness_status': egg.freshness_status,
+            }
+            for egg in expiring
+        ]
+
+    @staticmethod
+    def get_top_egg_items(limit=10, by='views'):
+        """
+        Get top performing egg items.
+        Supports sorting by views, price, or freshness.
+        """
+        items = Egg.objects.filter(is_available=True).select_related('category')
+
+        if by == 'views':
+            # Annotate with view count from PageView
+            items = items.annotate(
+                view_count=Count('page_views', filter=Q(page_views__event_type='egg_view'))
+            ).order_by('-view_count')
+        elif by == 'price':
+            items = items.order_by('-price')
+        elif by == 'quantity':
+            items = items.order_by('-quantity_available')
+        else:
+            items = items.order_by('-created_at')
+
+        return [
+            {
+                'id': str(item.id),
+                'name': item.name,
+                'breed': item.breed,
+                'category': item.category.name if item.category else None,
+                'packaging': item.packaging,
+                'eggs_per_unit': item.eggs_per_unit,
+                'price': float(item.price),
+                'currency': item.currency,
+                'quantity_available': item.quantity_available,
+                'freshness_status': item.freshness_status,
+                'view_count': getattr(item, 'view_count', 0),
+            }
+            for item in items[:limit]
         ]

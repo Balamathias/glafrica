@@ -4,7 +4,7 @@ from openai import OpenAI
 from django.conf import settings
 from django.db.models import Q, Min, Max
 from typing import List, Dict, Any, Optional, Generator, Iterator
-from ..models import Livestock, Category
+from ..models import Livestock, Category, Egg, EggCategory
 
 
 # Type alias for conversation messages
@@ -426,3 +426,145 @@ class AIService:
 - End with a helpful follow-up question or call-to-action when appropriate
 """
         return base_prompt
+
+    def _extract_egg_search_terms(self, query: str) -> Dict[str, Any]:
+        """
+        Extract egg-specific search parameters from natural language query.
+        """
+        query_lower = query.lower()
+
+        extracted = {
+            'category': None,
+            'egg_type': None,
+            'size': None,
+            'packaging': None,
+            'freshness': None,
+            'price_max': None,
+            'location_terms': [],
+            'general_terms': [],
+        }
+
+        # Category detection (bird types)
+        category_map = {
+            'chicken': ['chicken', 'chickens', 'broiler', 'layer', 'hen', 'rooster'],
+            'turkey': ['turkey', 'turkeys'],
+            'quail': ['quail', 'quails'],
+            'duck': ['duck', 'ducks'],
+            'guinea-fowl': ['guinea', 'guinea fowl', 'guinea-fowl'],
+        }
+        for slug, keywords in category_map.items():
+            if any(kw in query_lower for kw in keywords):
+                extracted['category'] = slug
+                break
+
+        # Egg type detection
+        if 'fertilized' in query_lower or 'hatching' in query_lower:
+            extracted['egg_type'] = 'fertilized'
+        elif 'organic' in query_lower:
+            extracted['egg_type'] = 'organic'
+        elif 'free range' in query_lower or 'free-range' in query_lower:
+            extracted['egg_type'] = 'free_range'
+        elif 'table' in query_lower:
+            extracted['egg_type'] = 'table'
+
+        # Size detection
+        size_keywords = {
+            'small': ['small'],
+            'medium': ['medium'],
+            'large': ['large', 'big'],
+            'extra_large': ['extra large', 'extra-large', 'xl'],
+            'jumbo': ['jumbo'],
+        }
+        for size, keywords in size_keywords.items():
+            if any(kw in query_lower for kw in keywords):
+                extracted['size'] = size
+                break
+
+        # Packaging detection
+        if 'crate' in query_lower and '30' in query_lower:
+            extracted['packaging'] = 'crate_30'
+        elif 'tray' in query_lower and '30' in query_lower:
+            extracted['packaging'] = 'tray_30'
+        elif 'tray' in query_lower and '12' in query_lower:
+            extracted['packaging'] = 'tray_12'
+        elif 'half crate' in query_lower or '15' in query_lower:
+            extracted['packaging'] = 'half_crate_15'
+
+        # Freshness preference
+        if 'fresh' in query_lower or 'new' in query_lower:
+            extracted['freshness'] = 'fresh'
+
+        # Nigerian locations
+        nigerian_locations = [
+            'lagos', 'abuja', 'kano', 'ibadan', 'kaduna', 'port harcourt', 'benin',
+            'maiduguri', 'zaria', 'aba', 'jos', 'ilorin', 'oyo', 'enugu', 'abeokuta',
+        ]
+        for loc in nigerian_locations:
+            if loc in query_lower:
+                extracted['location_terms'].append(loc)
+
+        return extracted
+
+    def semantic_search_eggs(self, query: str, limit: int = 20) -> List[Egg]:
+        """
+        Search eggs using extracted terms from natural language query.
+        """
+        from datetime import timedelta
+        from django.utils import timezone
+
+        terms = self._extract_egg_search_terms(query)
+
+        queryset = Egg.objects.filter(is_available=True).select_related('category').prefetch_related('media', 'tags')
+
+        # Category filter
+        if terms['category']:
+            queryset = queryset.filter(category__slug=terms['category'])
+
+        # Egg type filter
+        if terms['egg_type']:
+            queryset = queryset.filter(egg_type=terms['egg_type'])
+
+        # Size filter
+        if terms['size']:
+            queryset = queryset.filter(size=terms['size'])
+
+        # Packaging filter
+        if terms['packaging']:
+            queryset = queryset.filter(packaging=terms['packaging'])
+
+        # Freshness filter
+        if terms['freshness'] == 'fresh':
+            today = timezone.now().date()
+            queryset = queryset.filter(expiry_date__gt=today + timedelta(days=7))
+
+        # Location filter
+        if terms['location_terms']:
+            loc_q = Q()
+            for loc in terms['location_terms']:
+                loc_q |= Q(location__icontains=loc)
+            queryset = queryset.filter(loc_q)
+
+        # Also do text search for general terms
+        words = re.findall(r'\b\w{3,}\b', query.lower())
+        if words:
+            text_q = Q()
+            for word in words[:5]:
+                text_q |= (
+                    Q(name__icontains=word) |
+                    Q(breed__icontains=word) |
+                    Q(description__icontains=word)
+                )
+            queryset = queryset.filter(text_q).distinct()
+
+        results = list(queryset[:limit])
+
+        # If no results, return recent/featured eggs
+        if not results:
+            results = list(
+                Egg.objects.filter(is_available=True)
+                .select_related('category')
+                .prefetch_related('media', 'tags')
+                .order_by('-is_featured', '-created_at')[:limit]
+            )
+
+        return results

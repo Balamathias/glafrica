@@ -6,12 +6,13 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser, AllowAny
 from rest_framework.throttling import AnonRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
-from django.http import StreamingHttpResponse
-from .models import Livestock, Category, Tag, MediaAsset, ContactInquiry, PageView, VisitorSession
+from django.http import StreamingHttpResponse, Http404
+from .models import Livestock, Category, Tag, MediaAsset, ContactInquiry, PageView, VisitorSession, Egg, EggCategory
 from .serializers import (
     LivestockSerializer, LivestockListSerializer,
     CategorySerializer, CategoryWithPreviewSerializer, TagSerializer,
-    ContactInquirySerializer
+    ContactInquirySerializer,
+    EggCategorySerializer, EggCategoryListSerializer, EggListSerializer, EggDetailSerializer
 )
 from .services.email import send_contact_notification_email
 
@@ -228,17 +229,31 @@ class TrackVisitView(APIView):
             except (Livestock.DoesNotExist, ValueError):
                 pass
 
+        # Get egg if tracking egg view
+        egg_id = request.data.get('egg_id')
+        egg = None
+        if egg_id and event_type == 'egg_view':
+            try:
+                egg = Egg.objects.get(id=egg_id)
+            except (Egg.DoesNotExist, ValueError):
+                pass
+
+        # Determine valid event type
+        valid_event_types = ['page_view', 'livestock_view', 'egg_view']
+        final_event_type = event_type if event_type in valid_event_types else 'page_view'
+
         # Create page view record
         PageView.objects.create(
             session_id=session_id,
             path=path[:500],  # Limit length
-            event_type=event_type if event_type in ['page_view', 'livestock_view'] else 'page_view',
+            event_type=final_event_type,
             referrer=referrer[:1000] if referrer else None,  # Limit length
             user_agent=user_agent[:500] if user_agent else '',
             ip_address=ip_address,
             country=country,
             device_type=device_type,
             livestock=livestock,
+            egg=egg,
         )
 
         return Response({'status': 'ok'}, status=status.HTTP_201_CREATED)
@@ -283,3 +298,134 @@ class TrackVisitView(APIView):
             pass  # Silent fail - don't break tracking
 
         return ''
+
+
+# ============================================
+# EGG VIEWSETS
+# ============================================
+
+class EggCategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public endpoint for egg categories (bird species/types).
+    Read-only access for public consumption.
+    """
+    queryset = EggCategory.objects.filter(is_active=True).prefetch_related('eggs')
+    permission_classes = [AllowAny]
+    lookup_field = 'slug'
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return EggCategoryListSerializer
+        return EggCategorySerializer
+
+    @action(detail=False, methods=['get'], url_path='with-counts')
+    def with_counts(self, request):
+        """Get categories with egg counts."""
+        categories = self.get_queryset()
+        serializer = EggCategoryListSerializer(categories, many=True)
+        return Response(serializer.data)
+
+
+class EggViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public endpoint for eggs.
+    Read-only access with filtering, search, and AI search capabilities.
+    Supports lookup by both UUID (id) and slug.
+    """
+    queryset = Egg.objects.filter(is_available=True).select_related('category').prefetch_related('media', 'tags')
+    permission_classes = [AllowAny]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['category__slug', 'egg_type', 'size', 'packaging', 'is_featured']
+    search_fields = ['name', 'breed', 'description', 'location']
+    ordering_fields = ['price', 'created_at', 'production_date', 'expiry_date']
+    ordering = ['-created_at']
+
+    def get_object(self):
+        """
+        Override to support lookup by either UUID or slug.
+        """
+        import uuid
+        lookup_value = self.kwargs.get('pk')
+        queryset = self.filter_queryset(self.get_queryset())
+
+        try:
+            # Try UUID lookup first
+            try:
+                uuid.UUID(str(lookup_value))
+                obj = queryset.get(id=lookup_value)
+            except (ValueError, TypeError):
+                # Not a valid UUID, try slug lookup
+                obj = queryset.get(slug=lookup_value)
+        except Egg.DoesNotExist:
+            raise Http404("Egg not found")
+
+        self.check_object_permissions(self.request, obj)
+        return obj
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return EggDetailSerializer
+        return EggListSerializer
+
+    @action(detail=False, methods=['post'], url_path='search-ai')
+    def search_ai(self, request):
+        """AI-powered egg search."""
+        query = request.data.get('query', '')
+        if not query:
+            return Response({'error': 'Query is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ai_service = AIService()
+        results = ai_service.semantic_search_eggs(query)
+        serializer = EggListSerializer(results, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='freshness-filter')
+    def freshness_filter(self, request):
+        """Filter eggs by freshness status."""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        freshness_status = request.query_params.get('status', 'fresh')
+        today = timezone.now().date()
+
+        if freshness_status == 'fresh':
+            # More than 7 days until expiry
+            eggs = self.queryset.filter(expiry_date__gt=today + timedelta(days=7))
+        elif freshness_status == 'use_soon':
+            # 4-7 days until expiry
+            eggs = self.queryset.filter(
+                expiry_date__gt=today + timedelta(days=3),
+                expiry_date__lte=today + timedelta(days=7)
+            )
+        elif freshness_status == 'expiring_soon':
+            # 0-3 days until expiry
+            eggs = self.queryset.filter(
+                expiry_date__gt=today,
+                expiry_date__lte=today + timedelta(days=3)
+            )
+        elif freshness_status == 'expired':
+            # Already expired
+            eggs = Egg.objects.filter(expiry_date__lt=today, is_available=True)
+        else:
+            eggs = self.queryset
+
+        serializer = EggListSerializer(eggs[:50], many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='featured')
+    def featured(self, request):
+        """Get featured eggs."""
+        eggs = self.queryset.filter(is_featured=True)[:12]
+        serializer = EggListSerializer(eggs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='by-category/(?P<category_slug>[^/.]+)')
+    def by_category(self, request, category_slug=None):
+        """Get eggs by category slug."""
+        eggs = self.queryset.filter(category__slug=category_slug)
+        page = self.paginate_queryset(eggs)
+        if page is not None:
+            serializer = EggListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = EggListSerializer(eggs, many=True)
+        return Response(serializer.data)
