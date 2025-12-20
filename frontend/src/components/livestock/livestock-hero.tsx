@@ -51,15 +51,26 @@ export function LivestockHero({ onAISearchClick }: LivestockHeroProps) {
 
   return (
     <section className="relative pt-24 pb-10 min-h-[420px] flex items-center justify-center">
-      {/* Background Image with Parallax Effect */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat overflow-hidden"
-        style={{
-          backgroundImage: "url('/atmospheric/high-res-wide-shot-with-negative-text.png')",
-        }}
-      >
-        {/* Dark Overlay */}
-        <div className="absolute inset-0 bg-black/60" />
+      {/* Background Video */}
+      <div className="absolute inset-0 overflow-hidden">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover scale-105"
+          poster="/atmospheric/high-res-wide-shot-with-negative-text.png"
+        >
+          <source
+            src="/atmospheric/4k-cinematic-loop-livestock-grazing.mp4"
+            type="video/mp4"
+          />
+          {/* Fallback to image if video doesn't load */}
+          Your browser does not support the video tag.
+        </video>
+
+        {/* Dark Overlay with subtle gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
 
         {/* Gradient Fade to Content */}
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent" />

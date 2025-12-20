@@ -278,3 +278,97 @@ class ContactInquiry(TimeStampedModel):
 
     def __str__(self):
         return f"{self.name} - {self.get_subject_display()}"
+
+
+# ============================================
+# ANALYTICS & VISIT TRACKING
+# ============================================
+
+class PageView(TimeStampedModel):
+    """Tracks individual page visits on the public site."""
+    DEVICE_TYPE_CHOICES = [
+        ('desktop', 'Desktop'),
+        ('mobile', 'Mobile'),
+        ('tablet', 'Tablet'),
+    ]
+    EVENT_TYPE_CHOICES = [
+        ('page_view', 'Page View'),
+        ('livestock_view', 'Livestock View'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session_id = models.CharField(max_length=64, db_index=True, help_text="Browser session identifier")
+    path = models.CharField(max_length=500, db_index=True)
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES, default='page_view')
+    referrer = models.URLField(blank=True, null=True, max_length=1000)
+    user_agent = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+    device_type = models.CharField(max_length=20, choices=DEVICE_TYPE_CHOICES, default='desktop')
+
+    # Livestock-specific tracking
+    livestock = models.ForeignKey(
+        'Livestock',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='page_views'
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['created_at']),
+            models.Index(fields=['session_id', 'created_at']),
+            models.Index(fields=['path', 'created_at']),
+            models.Index(fields=['livestock', 'created_at']),
+            models.Index(fields=['event_type', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.path} - {self.session_id[:8]}..."
+
+
+class VisitorSession(TimeStampedModel):
+    """Aggregates page views into visitor sessions for analytics."""
+    DEVICE_TYPE_CHOICES = [
+        ('desktop', 'Desktop'),
+        ('mobile', 'Mobile'),
+        ('tablet', 'Tablet'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session_id = models.CharField(max_length=64, unique=True, db_index=True)
+    first_visit = models.DateTimeField(auto_now_add=True)
+    last_activity = models.DateTimeField(auto_now=True)
+    page_count = models.PositiveIntegerField(default=1)
+    entry_page = models.CharField(max_length=500)
+    exit_page = models.CharField(max_length=500, blank=True)
+    device_type = models.CharField(max_length=20, choices=DEVICE_TYPE_CHOICES, default='desktop')
+    user_agent = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ['-last_activity']
+        indexes = [
+            models.Index(fields=['first_visit']),
+            models.Index(fields=['last_activity']),
+            models.Index(fields=['country']),
+        ]
+
+    def __str__(self):
+        return f"Session {self.session_id[:8]}... ({self.page_count} pages)"
+
+    @property
+    def duration_seconds(self):
+        """Calculate session duration in seconds."""
+        if self.last_activity and self.first_visit:
+            delta = self.last_activity - self.first_visit
+            return delta.total_seconds()
+        return 0
+
+    @property
+    def is_bounce(self):
+        """A bounce is a single-page session."""
+        return self.page_count == 1

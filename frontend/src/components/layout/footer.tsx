@@ -25,7 +25,7 @@ const contactInfo = [
   },
   {
     icon: MapPin,
-    value: "Lagos, Nigeria",
+    value: "Odhiogbor road, IGP checkpoint Ele-uma, Mbiama. Rivers State, Nigeria",
     href: null,
   },
 ]

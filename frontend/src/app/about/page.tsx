@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/layout/footer"
+import { Navbar } from "@/components/navigation"
 
 const values = [
   {
@@ -92,6 +93,7 @@ export default function AboutPage() {
 
   return (
     <main className="min-h-screen bg-background">
+      <Navbar />
       {/* Hero Section */}
       <section
         ref={heroRef}
@@ -177,7 +179,7 @@ export default function AboutPage() {
               className="relative aspect-[4/3] rounded-3xl overflow-hidden"
             >
               <Image
-                src="/atmospheric/high-res-wide-shot-with-negative-text.png"
+                src="/shared/local-cap.jpg"
                 alt="Our mission"
                 fill
                 className="object-cover"

@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/layout/footer"
+import { Navbar } from "@/components/navigation"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
 
@@ -39,7 +40,7 @@ const contactMethods = [
   {
     icon: MapPin,
     title: "Visit Us",
-    value: "Lagos, Nigeria",
+    value: "Odhiogbor road, IGP checkpoint Ele-uma, Mbiama. Rivers State, Nigeria",
     href: null,
     description: "By appointment only",
   },
@@ -144,6 +145,7 @@ export default function ContactPage() {
 
   return (
     <main className="min-h-screen bg-background">
+      <Navbar />
       {/* Hero Section */}
       <section
         ref={heroRef}
@@ -506,7 +508,7 @@ export default function ContactPage() {
                       <MapPin className="w-8 h-8 text-primary" />
                     </div>
                     <h3 className="font-semibold text-foreground mb-2">
-                      Lagos, Nigeria
+                      Odhiogbor road, IGP checkpoint Ele-uma, Mbiama. Rivers State, Nigeria
                     </h3>
                     <p className="text-muted-foreground text-sm">
                       Our headquarters and main showroom
