@@ -189,8 +189,12 @@ class AdminUserViewSet(ModelViewSet):
 
         return queryset.order_by('-date_joined')
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        """Override to return data with AdminUserSerializer for proper role handling."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         user = serializer.save()
+
         AuditLog.log_action(
             user=self.request.user,
             action_type='create',
@@ -199,6 +203,10 @@ class AdminUserViewSet(ModelViewSet):
             resource_id=str(user.id),
             request=self.request
         )
+
+        # Return response with AdminUserSerializer which handles profile/role properly
+        response_serializer = AdminUserSerializer(user)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     def perform_update(self, serializer):
         user = serializer.save()
