@@ -12,6 +12,7 @@ import type {
   EggCategory,
   EggSearchFilters,
   FreshnessStatus,
+  SmartSearchResponse,
 } from './types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
@@ -286,6 +287,22 @@ export const eggCategoriesApi = {
   },
 }
 
+// Smart Search API (unified search for both livestock and eggs)
+export const searchApi = {
+  /**
+   * Unified AI-powered search that automatically detects query intent
+   * and returns relevant livestock and/or eggs results.
+   */
+  async smartSearch(query: string): Promise<SmartSearchResponse> {
+    try {
+      const { data } = await api.post<SmartSearchResponse>('/search/', { query })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
 // Export default API object
 export default {
   livestock: livestockApi,
@@ -293,4 +310,5 @@ export default {
   chat: chatApi,
   eggs: eggsApi,
   eggCategories: eggCategoriesApi,
+  search: searchApi,
 }

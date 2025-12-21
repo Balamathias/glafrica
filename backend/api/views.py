@@ -58,6 +58,7 @@ class ChatView(viewsets.ViewSet):
     """
     Endpoint for AI Chatbot - allows anonymous access.
     Supports both regular and streaming responses.
+    Uses smart search to provide context for both livestock and eggs.
     """
     permission_classes = [AllowAny]
 
@@ -69,19 +70,24 @@ class ChatView(viewsets.ViewSet):
 
         ai_service = AIService()
 
-        # 1. Search for context based on current message
-        context_results = ai_service.semantic_search(message)
+        # Smart search for both livestock and eggs context
+        search_results = ai_service.smart_search(message)
+        context_livestock = search_results['livestock']
+        context_eggs = search_results['eggs']
 
-        # 2. Generate Response with conversation history
+        # Generate Response with conversation history and both contexts
         response_text = ai_service.generate_chat_response(
             message,
-            context_results,
-            conversation_history
+            context_livestock=context_livestock,
+            context_eggs=context_eggs,
+            conversation_history=conversation_history
         )
 
         return Response({
             "response": response_text,
-            "context_count": len(context_results)
+            "context_count": len(context_livestock) + len(context_eggs),
+            "livestock_count": len(context_livestock),
+            "eggs_count": len(context_eggs),
         })
 
     @action(detail=False, methods=['post'])
@@ -89,6 +95,7 @@ class ChatView(viewsets.ViewSet):
         """
         Streaming endpoint using Server-Sent Events (SSE).
         Accepts conversation history for context continuity.
+        Uses smart search for both livestock and eggs context.
         """
         message = request.data.get('message')
         conversation_history = request.data.get('history', [])
@@ -101,20 +108,23 @@ class ChatView(viewsets.ViewSet):
 
         ai_service = AIService()
 
-        # Search for context based on current message
-        context_results = ai_service.semantic_search(message)
+        # Smart search for both livestock and eggs context
+        search_results = ai_service.smart_search(message)
+        context_livestock = search_results['livestock']
+        context_eggs = search_results['eggs']
 
         def event_stream():
             """Generator that yields SSE formatted chunks."""
             try:
-                # Send context count first
-                yield f"data: {json.dumps({'type': 'context', 'count': len(context_results)})}\n\n"
+                # Send context count first (includes both livestock and eggs)
+                yield f"data: {json.dumps({'type': 'context', 'count': len(context_livestock) + len(context_eggs), 'livestock_count': len(context_livestock), 'eggs_count': len(context_eggs)})}\n\n"
 
-                # Stream the response
+                # Stream the response with both contexts
                 for chunk in ai_service.generate_chat_response_stream(
                     message,
-                    context_results,
-                    conversation_history
+                    context_livestock=context_livestock,
+                    context_eggs=context_eggs,
+                    conversation_history=conversation_history
                 ):
                     yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
 
@@ -132,6 +142,36 @@ class ChatView(viewsets.ViewSet):
         response['Cache-Control'] = 'no-cache'
         response['X-Accel-Buffering'] = 'no'  # Disable nginx buffering
         return response
+
+
+class SmartSearchView(APIView):
+    """
+    Unified AI-powered search endpoint for both livestock and eggs.
+    Automatically detects query intent and returns relevant results.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        query = request.data.get('query', '')
+        if not query:
+            return Response(
+                {'error': 'Query is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        ai_service = AIService()
+        results = ai_service.smart_search(query)
+
+        # Serialize results
+        livestock_serialized = LivestockListSerializer(results['livestock'], many=True).data
+        eggs_serialized = EggListSerializer(results['eggs'], many=True).data
+
+        return Response({
+            'livestock': livestock_serialized,
+            'eggs': eggs_serialized,
+            'intent': results['intent'],
+            'total_count': len(results['livestock']) + len(results['eggs']),
+        })
 
 
 class ContactRateThrottle(AnonRateThrottle):

@@ -7,6 +7,7 @@ import {
   ValueProps,
   CategoriesShowcase,
   FeaturedPreview,
+  EggsShowcase,
   Testimonials,
   AITeaser,
   CTASection,
@@ -50,6 +51,9 @@ export default function HomePage() {
 
         {/* Featured Livestock Preview */}
         <FeaturedPreview />
+
+        {/* Premium Eggs Showcase */}
+        <EggsShowcase />
 
         {/* Testimonials - Social proof */}
         <Testimonials />

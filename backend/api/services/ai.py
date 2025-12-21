@@ -35,6 +35,54 @@ class AIService:
             print(f"Error generating embedding: {e}")
             return []
 
+    def _detect_query_intent(self, query: str) -> Dict[str, bool]:
+        """
+        Detect whether the query is about livestock, eggs, or both.
+        Returns a dict indicating which product types to search.
+        """
+        query_lower = query.lower()
+
+        # Egg-specific keywords
+        egg_keywords = [
+            'egg', 'eggs', 'crate', 'tray', 'dozen', 'hatching', 'fertilized',
+            'fresh eggs', 'organic eggs', 'free range', 'table eggs', 'laying',
+            'yolk', 'shell', 'incubation',
+        ]
+
+        # Livestock-specific keywords (excluding birds that could mean eggs)
+        livestock_only_keywords = [
+            'cattle', 'cow', 'cows', 'bull', 'bulls', 'calf', 'calves', 'beef',
+            'goat', 'goats', 'buck', 'doe', 'kid', 'boer', 'kalahari',
+            'sheep', 'ram', 'ewe', 'lamb', 'lambs', 'wool',
+            'pig', 'pigs', 'swine', 'hog', 'sow', 'piglet', 'pork',
+            'livestock', 'animal', 'animals', 'breeding stock', 'herd',
+        ]
+
+        # Poultry keywords that could mean either live birds OR eggs
+        poultry_keywords = [
+            'chicken', 'chickens', 'poultry', 'hen', 'rooster', 'cockerel',
+            'turkey', 'turkeys', 'duck', 'ducks', 'quail', 'guinea fowl',
+            'broiler', 'layer', 'noiler',
+        ]
+
+        has_egg_keywords = any(kw in query_lower for kw in egg_keywords)
+        has_livestock_keywords = any(kw in query_lower for kw in livestock_only_keywords)
+        has_poultry_keywords = any(kw in query_lower for kw in poultry_keywords)
+
+        # Determine intent
+        if has_egg_keywords:
+            # Explicit egg search
+            return {'livestock': False, 'eggs': True}
+        elif has_livestock_keywords:
+            # Explicit livestock search
+            return {'livestock': True, 'eggs': False}
+        elif has_poultry_keywords:
+            # Poultry could mean either - search both
+            return {'livestock': True, 'eggs': True}
+        else:
+            # General query - search both
+            return {'livestock': True, 'eggs': True}
+
     def _extract_search_terms(self, query: str) -> Dict[str, Any]:
         """
         Extract meaningful search terms from a natural language query.
@@ -270,17 +318,21 @@ class AIService:
         self,
         message: str,
         context_livestock: List[Livestock] = None,
+        context_eggs: List[Egg] = None,
         conversation_history: List[ConversationMessage] = None
     ) -> str:
         """
         Generate a response using RAG with enhanced context and conversation history.
+        Now supports both livestock and eggs context.
         """
         if context_livestock is None:
             context_livestock = []
+        if context_eggs is None:
+            context_eggs = []
         if conversation_history is None:
             conversation_history = []
 
-        system_prompt = self._build_system_prompt(context_livestock)
+        system_prompt = self._build_system_prompt(context_livestock, context_eggs)
 
         # Build messages with conversation history
         messages = [{"role": "system", "content": system_prompt}]
@@ -308,18 +360,21 @@ class AIService:
         self,
         message: str,
         context_livestock: List[Livestock] = None,
+        context_eggs: List[Egg] = None,
         conversation_history: List[ConversationMessage] = None
     ) -> Iterator[str]:
         """
         Generate a streaming response using RAG with enhanced context and conversation history.
-        Yields text chunks as they are generated.
+        Yields text chunks as they are generated. Now supports both livestock and eggs context.
         """
         if context_livestock is None:
             context_livestock = []
+        if context_eggs is None:
+            context_eggs = []
         if conversation_history is None:
             conversation_history = []
 
-        system_prompt = self._build_system_prompt(context_livestock)
+        system_prompt = self._build_system_prompt(context_livestock, context_eggs)
 
         # Build messages with conversation history
         messages = [{"role": "system", "content": system_prompt}]
@@ -348,14 +403,22 @@ class AIService:
             print(f"AI Streaming Error: {e}")
             yield "I apologize, but I'm having trouble connecting right now. Please try again in a moment."
 
-    def _build_system_prompt(self, livestock_list: List[Livestock]) -> str:
+    def _build_system_prompt(
+        self,
+        livestock_list: List[Livestock],
+        eggs_list: List[Egg] = None
+    ) -> str:
         """
         Build a comprehensive system prompt with inventory context.
+        Now includes both livestock and eggs inventory.
         """
-        # Get inventory summary
+        if eggs_list is None:
+            eggs_list = []
+
+        # Get livestock inventory summary
         try:
             categories = Category.objects.prefetch_related('livestock').all()
-            inventory_summary = []
+            livestock_summary = []
 
             for category in categories:
                 available = category.livestock.filter(is_sold=False)
@@ -372,24 +435,66 @@ class AIService:
                     breed_str = ', '.join(breeds) if breeds else 'Various'
                     price_str = f"₦{min_p:,.0f} - ₦{max_p:,.0f}" if min_p and max_p else "Contact for price"
 
-                    inventory_summary.append(f"  • {category.name}: {count} available ({breed_str}). Price range: {price_str}")
+                    livestock_summary.append(f"  • {category.name}: {count} available ({breed_str}). Price range: {price_str}")
 
-            inventory_text = '\n'.join(inventory_summary) if inventory_summary else "  Currently updating inventory."
+            livestock_text = '\n'.join(livestock_summary) if livestock_summary else "  Currently updating livestock inventory."
         except Exception:
-            inventory_text = "  Inventory information temporarily unavailable."
+            livestock_text = "  Livestock inventory temporarily unavailable."
 
-        base_prompt = f"""You are the Green Livestock Africa AI Assistant - a knowledgeable, professional, and enthusiastic expert on livestock investment in Africa.
+        # Get eggs inventory summary
+        try:
+            egg_categories = EggCategory.objects.filter(is_active=True).prefetch_related('eggs')
+            eggs_summary = []
+
+            for category in egg_categories:
+                available = category.eggs.filter(is_available=True)
+                count = available.count()
+                if count > 0:
+                    # Get egg types available
+                    egg_types = list(available.values_list('egg_type', flat=True).distinct())
+                    type_labels = {
+                        'table': 'Table',
+                        'fertilized': 'Fertilized/Hatching',
+                        'organic': 'Organic',
+                        'free_range': 'Free Range'
+                    }
+                    types_str = ', '.join([type_labels.get(t, t) for t in egg_types[:3]])
+
+                    price_agg = available.aggregate(
+                        min_price=Min('price'),
+                        max_price=Max('price')
+                    )
+                    min_p = price_agg['min_price']
+                    max_p = price_agg['max_price']
+
+                    price_str = f"₦{min_p:,.0f} - ₦{max_p:,.0f}" if min_p and max_p else "Contact for price"
+
+                    # Get total eggs available
+                    total_units = sum(available.values_list('quantity_available', flat=True))
+
+                    eggs_summary.append(
+                        f"  • {category.name} Eggs: {count} products, {total_units} units in stock ({types_str}). Price: {price_str}/package"
+                    )
+
+            eggs_text = '\n'.join(eggs_summary) if eggs_summary else "  Currently updating eggs inventory."
+        except Exception:
+            eggs_text = "  Eggs inventory temporarily unavailable."
+
+        base_prompt = f"""You are the Green Livestock Africa AI Assistant - a knowledgeable, professional, and enthusiastic expert on livestock and eggs investment in Africa.
 
 ## Your Role
-- Help investors and farmers find the perfect livestock
-- Provide accurate information about breeds, pricing, and livestock care
+- Help investors and farmers find the perfect livestock AND fresh eggs
+- Provide accurate information about breeds, pricing, egg freshness, and care
 - Guide users toward making informed investment decisions
-- Be warm, professional, and genuinely helpful, and straight to the point.
+- Be warm, professional, genuinely helpful, and straight to the point
 
-## Current Inventory Overview
-{inventory_text}
+## Current Livestock Inventory
+{livestock_text}
 
-## Specific Matches for User's Query
+## Current Eggs Inventory
+{eggs_text}
+
+## Specific Livestock Matches
 """
 
         if not livestock_list:
@@ -409,21 +514,94 @@ class AIService:
    - Description: {stock.description[:150]}{'...' if len(stock.description) > 150 else ''}
 """
 
+        base_prompt += "\n## Specific Egg Matches\n"
+
+        if not eggs_list:
+            base_prompt += "No specific eggs matched the immediate search criteria.\n"
+        else:
+            for i, egg in enumerate(eggs_list[:5], 1):
+                # Get freshness info
+                freshness = egg.freshness_status
+                freshness_labels = {
+                    'fresh': 'Fresh (7+ days)',
+                    'use_soon': 'Use Soon (4-7 days)',
+                    'expiring_soon': 'Expiring Soon (0-3 days)',
+                    'expired': 'Expired',
+                    'unknown': 'Freshness N/A'
+                }
+                freshness_str = freshness_labels.get(freshness, 'N/A')
+
+                # Get egg type label
+                type_labels = {
+                    'table': 'Table Eggs',
+                    'fertilized': 'Fertilized/Hatching',
+                    'organic': 'Organic',
+                    'free_range': 'Free Range'
+                }
+                egg_type_str = type_labels.get(egg.egg_type, egg.egg_type)
+
+                # Get size label
+                size_labels = {
+                    'small': 'Small',
+                    'medium': 'Medium',
+                    'large': 'Large',
+                    'extra_large': 'Extra Large',
+                    'jumbo': 'Jumbo'
+                }
+                size_str = size_labels.get(egg.size, egg.size)
+
+                # Get packaging label
+                packaging_labels = {
+                    'crate_30': 'Crate (30 eggs)',
+                    'tray_30': 'Tray (30 eggs)',
+                    'tray_12': 'Tray (12 eggs)',
+                    'half_crate_15': 'Half Crate (15 eggs)',
+                    'custom': 'Custom'
+                }
+                packaging_str = packaging_labels.get(egg.packaging, egg.packaging)
+
+                tags = ', '.join([t.name for t in egg.tags.all()[:3]]) if egg.tags.exists() else 'N/A'
+
+                base_prompt += f"""
+{i}. **{egg.name}**
+   - Bird Type: {egg.category.name}
+   - Breed: {egg.breed or 'Various'}
+   - Egg Type: {egg_type_str}
+   - Size: {size_str} | Packaging: {packaging_str} ({egg.eggs_per_unit} eggs/pack)
+   - Price: ₦{egg.price:,.0f} per package
+   - Stock: {egg.quantity_available} packages available
+   - Freshness: {freshness_str}
+   - Location: {egg.location}
+   - Tags: {tags}
+   - Description: {egg.description[:150]}{'...' if len(egg.description) > 150 else ''}
+"""
+
         base_prompt += """
 ## Guidelines
-1. If matching livestock are found, highlight them enthusiastically and provide helpful details
+1. If matching livestock or eggs are found, highlight them enthusiastically with helpful details
 2. If no exact matches, suggest alternatives from our inventory or ask clarifying questions
-3. For pricing questions, always mention that prices may vary and suggest contacting for current rates
-4. For health/breeding questions, provide general best practices while noting our livestock comes with documentation
-5. Always encourage users to explore our collection or ask follow-up questions
-6. Use Nigerian Naira (₦) for all prices
-7. Be concise but informative - users appreciate quick, actionable responses
-8. If asked about something not in inventory, be honest but suggest alternatives
+3. For pricing questions, mention that prices may vary and suggest contacting for current rates
+4. For health/breeding questions, provide general best practices while noting our products come with documentation
+5. **For egg queries**: Emphasize freshness, recommend based on use case (table vs hatching), mention packaging options
+6. **For hatching eggs**: Explain fertilization rates, storage requirements, and incubation tips
+7. Always encourage users to explore our collection or ask follow-up questions
+8. Use Nigerian Naira (₦) for all prices
+9. Be concise but informative - users appreciate quick, actionable responses
+10. If asked about something not in inventory, be honest but suggest alternatives
+
+## Egg-Specific Knowledge
+- Table eggs are for consumption, fertilized eggs are for hatching/incubation
+- Freshness is key: Fresh eggs (7+ days to expiry) are best, use soon means 4-7 days
+- Packaging: Crate = 30 eggs, Half crate = 15 eggs, Tray = 12-30 eggs
+- Chicken eggs are most common, followed by turkey, quail, duck, and guinea fowl
+- Quail eggs are smaller but nutritionally dense
+- Free range and organic eggs command premium prices
 
 ## Response Style
 - Use markdown formatting for readability (bold, bullets, etc.)
 - Keep responses focused and under 300 words unless detailed info is requested
 - End with a helpful follow-up question or call-to-action when appropriate
+- If the user asks about eggs, prioritize egg information; if livestock, prioritize livestock
 """
         return base_prompt
 
@@ -446,11 +624,12 @@ class AIService:
 
         # Category detection (bird types)
         category_map = {
-            'chicken': ['chicken', 'chickens', 'broiler', 'layer', 'hen', 'rooster'],
+            'chicken': ['chicken', 'chickens', 'broiler', 'layer', 'hen', 'rooster', 'noiler'],
             'turkey': ['turkey', 'turkeys'],
             'quail': ['quail', 'quails'],
             'duck': ['duck', 'ducks'],
             'guinea-fowl': ['guinea', 'guinea fowl', 'guinea-fowl'],
+            'goose': ['goose', 'geese'],
         }
         for slug, keywords in category_map.items():
             if any(kw in query_lower for kw in keywords):
@@ -458,13 +637,13 @@ class AIService:
                 break
 
         # Egg type detection
-        if 'fertilized' in query_lower or 'hatching' in query_lower:
+        if 'fertilized' in query_lower or 'hatching' in query_lower or 'incubat' in query_lower:
             extracted['egg_type'] = 'fertilized'
         elif 'organic' in query_lower:
             extracted['egg_type'] = 'organic'
         elif 'free range' in query_lower or 'free-range' in query_lower:
             extracted['egg_type'] = 'free_range'
-        elif 'table' in query_lower:
+        elif 'table' in query_lower or 'eating' in query_lower or 'consumption' in query_lower:
             extracted['egg_type'] = 'table'
 
         # Size detection
@@ -481,23 +660,35 @@ class AIService:
                 break
 
         # Packaging detection
-        if 'crate' in query_lower and '30' in query_lower:
-            extracted['packaging'] = 'crate_30'
-        elif 'tray' in query_lower and '30' in query_lower:
-            extracted['packaging'] = 'tray_30'
-        elif 'tray' in query_lower and '12' in query_lower:
-            extracted['packaging'] = 'tray_12'
-        elif 'half crate' in query_lower or '15' in query_lower:
-            extracted['packaging'] = 'half_crate_15'
+        if 'crate' in query_lower:
+            if '30' in query_lower or 'full' in query_lower:
+                extracted['packaging'] = 'crate_30'
+            elif '15' in query_lower or 'half' in query_lower:
+                extracted['packaging'] = 'half_crate_15'
+        elif 'tray' in query_lower:
+            if '30' in query_lower:
+                extracted['packaging'] = 'tray_30'
+            elif '12' in query_lower or 'dozen' in query_lower:
+                extracted['packaging'] = 'tray_12'
 
         # Freshness preference
         if 'fresh' in query_lower or 'new' in query_lower:
             extracted['freshness'] = 'fresh'
 
+        # Price extraction
+        price_match = re.search(r'under\s*₦?\s*(\d+[k,]?\d*)', query_lower)
+        if price_match:
+            price_str = price_match.group(1).replace('k', '000').replace(',', '')
+            try:
+                extracted['price_max'] = int(price_str)
+            except ValueError:
+                pass
+
         # Nigerian locations
         nigerian_locations = [
             'lagos', 'abuja', 'kano', 'ibadan', 'kaduna', 'port harcourt', 'benin',
             'maiduguri', 'zaria', 'aba', 'jos', 'ilorin', 'oyo', 'enugu', 'abeokuta',
+            'sokoto', 'onitsha', 'warri', 'calabar', 'uyo', 'asaba', 'owerri',
         ]
         for loc in nigerian_locations:
             if loc in query_lower:
@@ -537,6 +728,10 @@ class AIService:
             today = timezone.now().date()
             queryset = queryset.filter(expiry_date__gt=today + timedelta(days=7))
 
+        # Price filter
+        if terms['price_max']:
+            queryset = queryset.filter(price__lte=terms['price_max'])
+
         # Location filter
         if terms['location_terms']:
             loc_q = Q()
@@ -546,13 +741,17 @@ class AIService:
 
         # Also do text search for general terms
         words = re.findall(r'\b\w{3,}\b', query.lower())
-        if words:
+        stopwords = {'egg', 'eggs', 'the', 'for', 'and', 'want', 'need', 'find', 'show', 'get', 'looking'}
+        search_words = [w for w in words[:5] if w not in stopwords]
+
+        if search_words:
             text_q = Q()
-            for word in words[:5]:
+            for word in search_words:
                 text_q |= (
                     Q(name__icontains=word) |
                     Q(breed__icontains=word) |
-                    Q(description__icontains=word)
+                    Q(description__icontains=word) |
+                    Q(category__name__icontains=word)
                 )
             queryset = queryset.filter(text_q).distinct()
 
@@ -566,5 +765,26 @@ class AIService:
                 .prefetch_related('media', 'tags')
                 .order_by('-is_featured', '-created_at')[:limit]
             )
+
+        return results
+
+    def smart_search(self, query: str, limit: int = 10) -> Dict[str, Any]:
+        """
+        Smart search that automatically detects whether to search livestock, eggs, or both.
+        Returns a dict with livestock and eggs results.
+        """
+        intent = self._detect_query_intent(query)
+
+        results = {
+            'livestock': [],
+            'eggs': [],
+            'intent': intent,
+        }
+
+        if intent['livestock']:
+            results['livestock'] = self.semantic_search(query, limit=limit)
+
+        if intent['eggs']:
+            results['eggs'] = self.semantic_search_eggs(query, limit=limit)
 
         return results

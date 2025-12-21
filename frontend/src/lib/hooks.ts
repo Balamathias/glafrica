@@ -1,6 +1,6 @@
 import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query"
-import { livestockApi, categoriesApi, chatApi, eggsApi, eggCategoriesApi } from "./api"
-import type { SearchFilters, Livestock, LivestockListItem, Category, PaginatedResponse, EggSearchFilters, Egg, EggListItem, EggCategory, FreshnessStatus } from "./types"
+import { livestockApi, categoriesApi, chatApi, eggsApi, eggCategoriesApi, searchApi } from "./api"
+import type { SearchFilters, Livestock, LivestockListItem, Category, PaginatedResponse, EggSearchFilters, Egg, EggListItem, EggCategory, FreshnessStatus, SmartSearchResponse } from "./types"
 
 // Query Keys factory for consistent cache management
 export const queryKeys = {
@@ -215,5 +215,27 @@ export async function prefetchEggCategories(queryClient: any) {
   await queryClient.prefetchQuery({
     queryKey: eggQueryKeys.categories,
     queryFn: eggCategoriesApi.getAll,
+  })
+}
+
+// ============================================
+// SMART SEARCH HOOKS (Unified Livestock + Eggs)
+// ============================================
+
+export const smartSearchKeys = {
+  all: ["smart-search"] as const,
+  search: (query: string) => [...smartSearchKeys.all, query] as const,
+}
+
+/**
+ * Unified smart search hook that automatically detects query intent
+ * and returns relevant livestock and/or eggs results.
+ */
+export function useSmartSearch(query: string) {
+  return useQuery({
+    queryKey: smartSearchKeys.search(query),
+    queryFn: () => searchApi.smartSearch(query),
+    enabled: query.length >= 2,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   })
 }

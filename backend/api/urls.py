@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     LivestockViewSet, CategoryViewSet, ChatView, ContactInquiryCreateView, TrackVisitView,
-    EggViewSet, EggCategoryViewSet
+    EggViewSet, EggCategoryViewSet, SmartSearchView
 )
 
 router = DefaultRouter()
@@ -15,6 +15,9 @@ router.register(r'egg-categories', EggCategoryViewSet, basename='egg-categories'
 urlpatterns = [
     # Public API endpoints
     path('', include(router.urls)),
+
+    # Unified AI-powered search for both livestock and eggs
+    path('search/', SmartSearchView.as_view(), name='smart-search'),
 
     # Contact form endpoint (public, rate-limited)
     path('contact/', ContactInquiryCreateView.as_view(), name='contact'),

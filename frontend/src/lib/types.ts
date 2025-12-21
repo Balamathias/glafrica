@@ -86,6 +86,19 @@ export interface ChatMessage {
 export interface ChatResponse {
   response: string
   context_count: number
+  livestock_count?: number
+  eggs_count?: number
+}
+
+// Smart search response (unified search for both livestock and eggs)
+export interface SmartSearchResponse {
+  livestock: LivestockListItem[]
+  eggs: EggListItem[]
+  intent: {
+    livestock: boolean
+    eggs: boolean
+  }
+  total_count: number
 }
 
 export interface SearchFilters {

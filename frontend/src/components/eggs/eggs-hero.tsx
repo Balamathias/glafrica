@@ -51,60 +51,55 @@ export function EggsHero({ onAISearchClick }: EggsHeroProps) {
 
   return (
     <section className="relative pt-24 pb-10 min-h-[420px] flex items-center justify-center overflow-hidden">
-      {/* Background with animated eggs pattern */}
-      <div className="absolute inset-0">
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-amber-900/30 to-orange-900/20" />
+      {/* Background Video */}
+      <div className="absolute inset-0 overflow-hidden">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover scale-105"
+          poster="/atmospheric/high-res-wide-shot-with-negative-text.png"
+        >
+          <source
+            src="/atmospheric/chicken.mp4"
+            type="video/mp4"
+          />
+          Your browser does not support the video tag.
+        </video>
 
-        {/* Animated decorative eggs */}
-        <div className="absolute inset-0 overflow-hidden">
-          {/* Large floating eggs */}
+        {/* Warm amber/orange tinted overlay for eggs theme */}
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-black/50 to-orange-900/30" />
+
+        {/* Dark overlay with gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
+
+        {/* Floating egg decorations (subtle) */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div
-            animate={{
-              y: [0, -20, 0],
-              rotate: [0, 5, 0],
-            }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-20 left-[10%] opacity-10"
+            animate={{ y: [0, -15, 0], rotate: [0, 5, 0] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-24 left-[8%] opacity-[0.07]"
           >
-            <Egg className="w-32 h-32 text-primary" />
+            <Egg className="w-28 h-28 text-amber-300" />
           </motion.div>
           <motion.div
-            animate={{
-              y: [0, 15, 0],
-              rotate: [0, -8, 0],
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute top-32 right-[15%] opacity-10"
+            animate={{ y: [0, 12, 0], rotate: [0, -6, 0] }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute top-36 right-[12%] opacity-[0.07]"
           >
-            <Egg className="w-24 h-24 text-amber-500" />
+            <Egg className="w-20 h-20 text-orange-300" />
           </motion.div>
           <motion.div
-            animate={{
-              y: [0, -12, 0],
-              rotate: [0, 10, 0],
-            }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-            className="absolute bottom-32 left-[25%] opacity-10"
+            animate={{ y: [0, -10, 0], rotate: [0, 8, 0] }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute bottom-36 right-[25%] opacity-[0.07]"
           >
-            <Egg className="w-20 h-20 text-orange-400" />
-          </motion.div>
-          <motion.div
-            animate={{
-              y: [0, 18, 0],
-              rotate: [0, -5, 0],
-            }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-            className="absolute bottom-24 right-[20%] opacity-10"
-          >
-            <Egg className="w-28 h-28 text-primary" />
+            <Egg className="w-24 h-24 text-amber-200" />
           </motion.div>
         </div>
 
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
-
-        {/* Bottom fade */}
+        {/* Gradient Fade to Content */}
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </div>
 
