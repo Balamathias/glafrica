@@ -191,18 +191,12 @@ class AdminUserViewSet(ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Override to return data with AdminUserSerializer for proper role handling."""
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        AuditLog.log_action(
-            user=self.request.user,
-            action_type='create',
-            resource_type='user',
-            description=f"Created admin user: {user.username}",
-            resource_id=str(user.id),
-            request=self.request
-        )
+        # Note: AuditLog is also called in the serializer's create method,
+        # so we skip it here to avoid duplicate logging
 
         # Return response with AdminUserSerializer which handles profile/role properly
         response_serializer = AdminUserSerializer(user)

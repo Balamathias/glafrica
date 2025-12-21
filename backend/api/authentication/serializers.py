@@ -221,7 +221,12 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        if attrs['password'] != attrs.pop('confirm_password'):
+        confirm_password = attrs.pop('confirm_password', None)
+        if not confirm_password:
+            raise serializers.ValidationError(
+                {"confirm_password": "This field is required."}
+            )
+        if attrs.get('password') != confirm_password:
             raise serializers.ValidationError(
                 {"confirm_password": "Passwords do not match."}
             )
