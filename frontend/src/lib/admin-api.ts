@@ -56,7 +56,21 @@ adminApi.interceptors.response.use(
 // Error handler
 function handleApiError(error: unknown): never {
   if (error instanceof AxiosError) {
-    const message = error.response?.data?.detail || error.message || 'An error occurred'
+    const data = error.response?.data
+
+    // Handle DRF validation errors (field-level errors)
+    if (data && typeof data === 'object' && !data.detail) {
+      // Convert field errors to a readable message
+      const fieldErrors = Object.entries(data)
+        .map(([field, errors]) => {
+          const errorMsg = Array.isArray(errors) ? errors.join(', ') : String(errors)
+          return `${field}: ${errorMsg}`
+        })
+        .join('; ')
+      throw new Error(fieldErrors || 'Validation error')
+    }
+
+    const message = data?.detail || error.message || 'An error occurred'
     throw new Error(message)
   }
   throw error

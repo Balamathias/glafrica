@@ -1,6 +1,7 @@
 """
 Authentication views for the admin API.
 """
+import logging
 from django.contrib.auth.models import User
 from django.utils import timezone
 from rest_framework import status, generics
@@ -20,6 +21,8 @@ from .serializers import (
     PasswordChangeSerializer,
     LogoutSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AdminTokenObtainPairView(TokenObtainPairView):
@@ -191,12 +194,24 @@ class AdminUserViewSet(ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Override to return data with AdminUserSerializer for proper role handling."""
-        serializer = self.get_serializer(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        logger.info(f"[AdminUserViewSet] Creating new user. Request data keys: {list(request.data.keys())}")
+        logger.debug(f"[AdminUserViewSet] Request data: {request.data}")
 
-        # Note: AuditLog is also called in the serializer's create method,
-        # so we skip it here to avoid duplicate logging
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+
+        if not serializer.is_valid():
+            logger.error(f"[AdminUserViewSet] Validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = serializer.save()
+            logger.info(f"[AdminUserViewSet] Successfully created user: {user.username} (ID: {user.id})")
+        except Exception as e:
+            logger.exception(f"[AdminUserViewSet] Error creating user: {str(e)}")
+            return Response(
+                {"detail": f"Error creating user: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         # Return response with AdminUserSerializer which handles profile/role properly
         response_serializer = AdminUserSerializer(user)

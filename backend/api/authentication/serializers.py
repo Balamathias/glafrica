@@ -1,14 +1,18 @@
 """
 Authentication serializers for the admin API.
 """
+import logging
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from ..models import UserProfile, AuditLog
+
+logger = logging.getLogger(__name__)
 
 
 class AdminTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -221,49 +225,77 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
+        logger.info(f"[AdminUserCreateSerializer] Validating user data. Fields: {list(attrs.keys())}")
+
         confirm_password = attrs.pop('confirm_password', None)
         if not confirm_password:
+            logger.error("[AdminUserCreateSerializer] confirm_password field is missing")
             raise serializers.ValidationError(
                 {"confirm_password": "This field is required."}
             )
         if attrs.get('password') != confirm_password:
+            logger.error("[AdminUserCreateSerializer] Passwords do not match")
             raise serializers.ValidationError(
                 {"confirm_password": "Passwords do not match."}
             )
-        validate_password(attrs['password'])
+
+        # Validate password with Django's validators
+        try:
+            validate_password(attrs['password'], user=User(
+                username=attrs.get('username'),
+                email=attrs.get('email'),
+                first_name=attrs.get('first_name', ''),
+                last_name=attrs.get('last_name', ''),
+            ))
+            logger.info("[AdminUserCreateSerializer] Password validation passed")
+        except DjangoValidationError as e:
+            logger.error(f"[AdminUserCreateSerializer] Password validation failed: {e.messages}")
+            raise serializers.ValidationError({"password": list(e.messages)})
+
         return attrs
 
     def create(self, validated_data):
+        logger.info(f"[AdminUserCreateSerializer] Creating user with data keys: {list(validated_data.keys())}")
+
         role = validated_data.pop('role')
         phone = validated_data.pop('phone', '')
         password = validated_data.pop('password')
 
-        # Create user
-        user = User.objects.create_user(**validated_data)
-        user.set_password(password)
-        user.is_staff = True
-        user.save()
+        logger.info(f"[AdminUserCreateSerializer] Creating user: {validated_data.get('username')}, role: {role}")
 
-        # Create profile
-        UserProfile.objects.create(
-            user=user,
-            role=role,
-            phone=phone
-        )
+        try:
+            # Create user
+            user = User.objects.create_user(**validated_data)
+            user.set_password(password)
+            user.is_staff = True
+            user.save()
+            logger.info(f"[AdminUserCreateSerializer] User created successfully: {user.username} (ID: {user.id})")
 
-        # Log the action
-        request = self.context.get('request')
-        if request:
-            AuditLog.log_action(
-                user=request.user,
-                action_type='create',
-                resource_type='user',
-                description=f"Created new admin user: {user.username} with role {role}",
-                resource_id=user.id,
-                request=request
+            # Create profile
+            profile = UserProfile.objects.create(
+                user=user,
+                role=role,
+                phone=phone
             )
+            logger.info(f"[AdminUserCreateSerializer] UserProfile created: {profile.id} with role {role}")
 
-        return user
+            # Log the action
+            request = self.context.get('request')
+            if request:
+                AuditLog.log_action(
+                    user=request.user,
+                    action_type='create',
+                    resource_type='user',
+                    description=f"Created new admin user: {user.username} with role {role}",
+                    resource_id=user.id,
+                    request=request
+                )
+
+            return user
+
+        except Exception as e:
+            logger.exception(f"[AdminUserCreateSerializer] Error creating user: {str(e)}")
+            raise
 
 
 class LogoutSerializer(serializers.Serializer):
