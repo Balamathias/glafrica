@@ -203,7 +203,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://glafrica.com",
     "https://www.glafrica.com",
     "https://green-livestock-africa.vercel.app",
-    "https://green-livestock-africa.com",
+    "https://greenlivestockafrica.com",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -212,6 +212,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://glafrica.com",
     "https://www.glafrica.com",
     "https://green-livestock-africa.vercel.app",
+    "https://greenlivestockafrica.com",
 ]
 
 # REST Framework Configuration
