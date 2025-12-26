@@ -40,7 +40,8 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '.vercel.app',  # All Vercel preview deployments
     '.glafrica.com',  # Your production domain
-    '.greenlivestockafrica.com'
+    '.greenlivestockafrica.com',
+    'greenlivestockafrica.com',
 ]
 
 
