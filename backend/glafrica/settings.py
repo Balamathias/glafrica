@@ -35,13 +35,16 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = ['*'] or os.getenv('ALLOWED_HOSTS', '').split(',') or [
+# Parse ALLOWED_HOSTS from environment or use defaults
+_env_hosts = os.getenv('ALLOWED_HOSTS', '')
+ALLOWED_HOSTS = [h.strip() for h in _env_hosts.split(',') if h.strip()] if _env_hosts else [
     'localhost',
     '127.0.0.1',
     '.vercel.app',  # All Vercel preview deployments
     '.glafrica.com',  # Your production domain
-    '.greenlivestockafrica.com',
+    '.greenlivestockafrica.com',  # Subdomain wildcard
     'greenlivestockafrica.com',
+    'www.greenlivestockafrica.com',
 ]
 
 
@@ -195,25 +198,49 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
+    # Local development
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://localhost:3002",
     "http://127.0.0.1:3001",
     "http://127.0.0.1:3002",
+    # Production domains
     "https://glafrica.com",
     "https://www.glafrica.com",
-    "https://green-livestock-africa.vercel.app",
     "https://greenlivestockafrica.com",
+    "https://www.greenlivestockafrica.com",
+    # Vercel deployments
+    "https://green-livestock-africa.vercel.app",
 ]
+
+# Allow all Vercel preview deployments
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
+]
+
 CORS_ALLOW_CREDENTIALS = True
+
+# Headers that are allowed in CORS requests
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 
 # CSRF Trusted Origins (required when CORS_ALLOW_CREDENTIALS = True)
 CSRF_TRUSTED_ORIGINS = [
     "https://glafrica.com",
     "https://www.glafrica.com",
-    "https://green-livestock-africa.vercel.app",
     "https://greenlivestockafrica.com",
+    "https://www.greenlivestockafrica.com",
+    "https://green-livestock-africa.vercel.app",
 ]
 
 # REST Framework Configuration
