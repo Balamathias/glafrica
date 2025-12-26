@@ -97,7 +97,7 @@ export function FeaturedPreview() {
             <p>Unable to load livestock. Please try again later.</p>
           </div>
         ) : featuredItems.length > 0 ? (
-          <div className="columns-2 lg:columns-3 gap-4">
+          <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
             {featuredItems.map((item, index) => (
               <motion.div
                 key={item.id}
@@ -108,7 +108,7 @@ export function FeaturedPreview() {
                   delay: 0.4 + index * 0.1,
                   ease: "easeOut",
                 }}
-                className="mb-4"
+                className="mb-4 break-inside-avoid"
               >
                 <GalleryCard item={item} priority={index < 3} />
               </motion.div>
