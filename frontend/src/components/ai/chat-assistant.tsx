@@ -481,7 +481,7 @@ export function ChatAssistant() {
 
               {/* Sparkle decorations */}
               <motion.div
-                className="absolute -top-1 -right-1"
+                className="absolute -top-1 -right-1 hidden"
                 animate={{
                   scale: [1, 1.2, 1],
                   rotate: [0, 10, 0],
