@@ -2,8 +2,21 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Mail, Phone, MapPin } from "lucide-react"
+import { Mail, Phone, MapPin, Instagram, Facebook } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+const socialLinks = [
+  {
+    icon: Instagram,
+    label: "Instagram",
+    href: "https://www.instagram.com/greenlivestockafricaa?igsh=aXJvNG83Y3g4Z3Q5&utm_source=qr",
+  },
+  {
+    icon: Facebook,
+    label: "Facebook",
+    href: "https://www.facebook.com/share/17bzfVWKzF/?mibextid=wwXIfr",
+  },
+]
 
 const quickLinks = [
   { label: "Home", href: "/" },
@@ -26,7 +39,7 @@ const contactInfo = [
   {
     icon: MapPin,
     value: "Odhiogbor road, IGP checkpoint Ele-uma, Mbiama. Rivers State, Nigeria",
-    href: null,
+    href: "https://maps.google.com/?q=5.053897,6.4551216",
   },
 ]
 
@@ -50,10 +63,33 @@ export function Footer() {
               />
               <h2 className="text-xl font-bold hidden md:block">Green Livestock Africa</h2>
             </Link>
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mb-5">
               Your gateway to premium African livestock investments. Verified
               genetics, documented health, transparent transactions.
             </p>
+            {/* Social Links */}
+            <div className="flex items-center gap-3">
+              {socialLinks.map((social) => {
+                const Icon = social.icon
+                return (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.label}
+                    className={cn(
+                      "flex items-center justify-center w-9 h-9 rounded-full",
+                      "bg-muted/50 text-muted-foreground",
+                      "hover:bg-primary hover:text-primary-foreground",
+                      "transition-all duration-200"
+                    )}
+                  >
+                    <Icon size={18} />
+                  </a>
+                )
+              })}
+            </div>
           </div>
 
           {/* Quick Links */}

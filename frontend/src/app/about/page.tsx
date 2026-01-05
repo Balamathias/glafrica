@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/layout/footer"
 import { Navbar } from "@/components/navigation"
+import { LocationMap } from "@/components/home/location-map"
 
 const values = [
   {
@@ -397,6 +398,9 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      {/* Location Map */}
+      <LocationMap />
 
       {/* CTA Section */}
       <section className="py-20 md:py-28 px-4 sm:px-6 lg:px-8">

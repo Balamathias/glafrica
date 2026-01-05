@@ -11,6 +11,7 @@ import {
   Testimonials,
   AITeaser,
   CTASection,
+  LocationMap,
 } from "@/components/home"
 
 export const metadata: Metadata = {
@@ -60,6 +61,9 @@ export default function HomePage() {
 
         {/* AI Assistant Teaser */}
         <AITeaser />
+
+        {/* Location Map */}
+        <LocationMap />
 
         {/* Call to Action */}
         <CTASection />
