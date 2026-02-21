@@ -26,7 +26,7 @@ interface CreateLivestockModalProps {
 
 const STEPS = [
   { id: 1, title: "Basic Info", description: "Name, breed, category" },
-  { id: 2, title: "Pricing", description: "Price and location" },
+  { id: 2, title: "Location", description: "Location details" },
   { id: 3, title: "Details", description: "Description and health" },
   { id: 4, title: "Media", description: "Photos, videos, tags" },
 ]
@@ -167,8 +167,6 @@ function ModalContent({
         gender: state.gender,
         age: state.age,
         weight: state.weight || undefined,
-        price: state.price,
-        currency: state.currency,
         location: state.location,
         description: state.description,
         health_status: state.health_status,

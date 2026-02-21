@@ -10,16 +10,12 @@ import {
   EGG_TYPE_LABELS,
   EGG_SIZE_LABELS,
   EGG_PACKAGING_LABELS,
-  FRESHNESS_LABELS,
 } from "@/lib/types"
-import type { EggType, EggSize, EggPackaging, FreshnessStatus } from "@/lib/types"
+import type { EggType, EggSize, EggPackaging } from "@/lib/types"
 
 const SORT_OPTIONS = [
   { value: "-created_at", label: "Newest" },
   { value: "created_at", label: "Oldest" },
-  { value: "price", label: "Price: Low to High" },
-  { value: "-price", label: "Price: High to Low" },
-  { value: "-production_date", label: "Freshest First" },
 ]
 
 interface EggsFloatingFilterBarProps {
@@ -40,7 +36,6 @@ export function EggsFloatingFilterBar({ onAISearchClick }: EggsFloatingFilterBar
   const activeType = searchParams.get("egg_type")
   const activeSize = searchParams.get("size")
   const activePackaging = searchParams.get("packaging")
-  const activeFreshness = searchParams.get("freshness")
 
   // Count active filters
   const activeFilterCount = [
@@ -49,7 +44,6 @@ export function EggsFloatingFilterBar({ onAISearchClick }: EggsFloatingFilterBar
     activeType,
     activeSize,
     activePackaging,
-    activeFreshness,
   ].filter(Boolean).length
 
   // Show/hide based on scroll position
@@ -197,7 +191,7 @@ export function EggsFloatingFilterBar({ onAISearchClick }: EggsFloatingFilterBar
                     className="overflow-hidden"
                   >
                     <div className="pt-3 border-t border-border/50">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {/* Egg Type */}
                         <GlassSelect
                           value={activeType || ""}
@@ -234,19 +228,6 @@ export function EggsFloatingFilterBar({ onAISearchClick }: EggsFloatingFilterBar
                           clearLabel="All Packaging"
                         />
 
-                        {/* Freshness */}
-                        <GlassSelect
-                          value={activeFreshness || ""}
-                          onChange={(value) => updateParams("freshness", value || null)}
-                          options={Object.entries(FRESHNESS_LABELS)
-                            .filter(([key]) => key !== "unknown")
-                            .map(([value, label]) => ({
-                              value,
-                              label,
-                            }))}
-                          placeholder="Freshness"
-                          clearLabel="Any Freshness"
-                        />
                       </div>
                     </div>
                   </motion.div>
@@ -291,12 +272,6 @@ export function EggsFloatingFilterBar({ onAISearchClick }: EggsFloatingFilterBar
                         <FilterChip
                           label={EGG_PACKAGING_LABELS[activePackaging as EggPackaging]}
                           onRemove={() => updateParams("packaging", null)}
-                        />
-                      )}
-                      {activeFreshness && (
-                        <FilterChip
-                          label={FRESHNESS_LABELS[activeFreshness as FreshnessStatus]}
-                          onRemove={() => updateParams("freshness", null)}
                         />
                       )}
                     </div>

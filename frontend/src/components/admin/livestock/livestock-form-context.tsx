@@ -27,9 +27,7 @@ export interface LivestockFormData {
   age: string
   weight: string
 
-  // Step 2: Pricing & Location
-  price: string
-  currency: string
+  // Step 2: Location
   location: string
 
   // Step 3: Details & Health
@@ -94,8 +92,6 @@ const initialFormData: LivestockFormData = {
   gender: "",
   age: "",
   weight: "",
-  price: "",
-  currency: "NGN",
   location: "",
   description: "",
   health_status: "",
@@ -136,31 +132,8 @@ const validationRules: Record<number, Record<string, (value: unknown, state: Liv
       if (!value) return "Please select a category"
       return null
     },
-    breed: (value) => {
-      if (!value || (value as string).trim().length < 2) {
-        return "Breed must be at least 2 characters"
-      }
-      return null
-    },
-    gender: (value) => {
-      if (!value) return "Please select a gender"
-      return null
-    },
-    age: (value) => {
-      if (!value || (value as string).trim().length === 0) {
-        return "Age is required"
-      }
-      return null
-    },
   },
   2: {
-    price: (value) => {
-      const num = parseFloat(value as string)
-      if (isNaN(num) || num <= 0) {
-        return "Price must be a positive number"
-      }
-      return null
-    },
     location: (value) => {
       if (!value || (value as string).trim().length === 0) {
         return "Location is required"
@@ -437,8 +410,6 @@ export function LivestockFormProvider({ children, editData }: LivestockFormProvi
       gender: state.gender,
       age: state.age,
       weight: state.weight,
-      price: state.price,
-      currency: state.currency,
       location: state.location,
       description: state.description,
       health_status: state.health_status,

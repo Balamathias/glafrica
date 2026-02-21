@@ -77,7 +77,7 @@ class LivestockSerializer(serializers.ModelSerializer):
         model = Livestock
         fields = [
             'id', 'name', 'breed', 'category', 'category_id',
-            'age', 'weight', 'gender', 'price', 'currency',
+            'age', 'weight', 'gender',
             'location', 'is_sold', 'description',
             'health_status', 'vaccination_history',
             'media', 'tags', 'tag_ids',
@@ -94,7 +94,7 @@ class LivestockListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Livestock
         fields = [
-            'id', 'name', 'breed', 'price', 'currency',
+            'id', 'name', 'breed',
             'location', 'featured_image', 'category_name',
             'media_count', 'is_sold'
         ]
@@ -199,17 +199,13 @@ class EggListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_slug = serializers.CharField(source='category.slug', read_only=True)
     primary_image = serializers.SerializerMethodField()
-    freshness_status = serializers.CharField(read_only=True)
-    days_until_expiry = serializers.IntegerField(read_only=True)
-    freshness_percentage = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Egg
         fields = [
             'id', 'name', 'slug', 'category_name', 'category_slug', 'breed',
             'egg_type', 'size', 'packaging', 'eggs_per_unit',
-            'price', 'currency', 'quantity_available',
-            'freshness_status', 'days_until_expiry', 'freshness_percentage',
+            'quantity_available',
             'is_featured', 'primary_image', 'location', 'created_at'
         ]
 
@@ -236,19 +232,13 @@ class EggDetailSerializer(serializers.ModelSerializer):
     tag_ids = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(), source='tags', write_only=True, many=True, required=False
     )
-    freshness_status = serializers.CharField(read_only=True)
-    days_until_expiry = serializers.IntegerField(read_only=True)
-    shelf_life_days = serializers.IntegerField(read_only=True)
-    freshness_percentage = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Egg
         fields = [
             'id', 'name', 'slug', 'category', 'category_id', 'breed',
             'egg_type', 'size', 'packaging', 'eggs_per_unit',
-            'price', 'currency', 'quantity_available',
-            'production_date', 'expiry_date',
-            'shelf_life_days', 'days_until_expiry', 'freshness_status', 'freshness_percentage',
+            'quantity_available',
             'location', 'description', 'is_available', 'is_featured',
             'media', 'tags', 'tag_ids',
             'created_at', 'updated_at'
@@ -270,19 +260,7 @@ class EggCreateUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'name', 'slug', 'category_id', 'breed',
             'egg_type', 'size', 'packaging', 'eggs_per_unit',
-            'price', 'currency', 'quantity_available',
-            'production_date', 'expiry_date',
+            'quantity_available',
             'location', 'description', 'is_available', 'is_featured',
             'tag_ids'
         ]
-
-    def validate(self, data):
-        # Validate that expiry date is after production date
-        production_date = data.get('production_date')
-        expiry_date = data.get('expiry_date')
-        if production_date and expiry_date:
-            if expiry_date <= production_date:
-                raise serializers.ValidationError({
-                    'expiry_date': 'Expiry date must be after production date.'
-                })
-        return data

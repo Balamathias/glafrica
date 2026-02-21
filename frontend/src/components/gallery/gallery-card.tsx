@@ -6,7 +6,6 @@ import { motion } from "framer-motion"
 import { Play, MapPin, Heart, Eye } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useModalStore } from "@/lib/store"
-import { formatPrice } from "@/lib/types"
 import type { LivestockListItem } from "@/lib/types"
 
 interface GalleryCardProps {
@@ -92,14 +91,9 @@ export function GalleryCard({ item, priority = false }: GalleryCardProps) {
               {item.name}
             </h3>
             <p className="text-muted-foreground text-sm mb-2 line-clamp-1">{item.breed}</p>
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-lg text-primary">
-                {formatPrice(item.price, item.currency)}
-              </span>
-              <div className="flex items-center gap-1 text-muted-foreground text-xs">
-                <MapPin size={12} />
-                <span className="truncate max-w-[80px]">{item.location}</span>
-              </div>
+            <div className="flex items-center gap-1 text-muted-foreground text-xs">
+              <MapPin size={12} />
+              <span className="truncate max-w-[120px]">{item.location}</span>
             </div>
           </div>
         </div>
@@ -243,15 +237,10 @@ export function GalleryCard({ item, priority = false }: GalleryCardProps) {
           </h3>
           <p className="text-white/70 text-sm mb-2 line-clamp-1">{item.breed}</p>
 
-          {/* Price and Location Row */}
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-lg text-primary">
-              {formatPrice(item.price, item.currency)}
-            </span>
-            <div className="flex items-center gap-1 text-white/60 text-xs">
-              <MapPin size={12} />
-              <span className="truncate max-w-[80px]">{item.location}</span>
-            </div>
+          {/* Location Row */}
+          <div className="flex items-center gap-1 text-white/60 text-xs">
+            <MapPin size={12} />
+            <span className="truncate max-w-[120px]">{item.location}</span>
           </div>
         </div>
       </div>

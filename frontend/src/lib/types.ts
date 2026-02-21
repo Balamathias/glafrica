@@ -35,9 +35,7 @@ export interface Livestock {
   category_id?: string
   age: string
   weight: string
-  gender: 'M' | 'F' | 'mixed'
-  price: string
-  currency: string
+  gender: 'M' | 'F' | 'mixed' | ''
   location: string
   is_sold: boolean
   description: string
@@ -54,8 +52,6 @@ export interface LivestockListItem {
   id: string
   name: string
   breed: string
-  price: string
-  currency: string
   location: string
   featured_image: Media | null
   category_name: string
@@ -105,8 +101,6 @@ export interface SearchFilters {
   category?: string
   gender?: 'M' | 'F' | 'mixed'
   is_sold?: boolean
-  min_price?: number
-  max_price?: number
   search?: string
   ordering?: string
 }
@@ -124,20 +118,6 @@ export const GENDER_LABELS: Record<string, string> = {
   M: 'Male',
   F: 'Female',
   mixed: 'Mixed (Group)',
-}
-
-// Currency formatter
-export function formatPrice(price: string | number, currency: string = 'NGN'): string {
-  const numPrice = typeof price === 'string' ? parseFloat(price) : price
-
-  const formatter = new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })
-
-  return formatter.format(numPrice)
 }
 
 // Date formatter
@@ -199,25 +179,6 @@ export const EGG_TYPE_LABELS: Record<EggType, string> = {
   free_range: 'Free Range',
 }
 
-// Freshness status
-export type FreshnessStatus = 'fresh' | 'use_soon' | 'expiring_soon' | 'expired' | 'unknown'
-
-export const FRESHNESS_LABELS: Record<FreshnessStatus, string> = {
-  fresh: 'Fresh',
-  use_soon: 'Use Soon',
-  expiring_soon: 'Expiring Soon',
-  expired: 'Expired',
-  unknown: 'No Date Set',
-}
-
-export const FRESHNESS_COLORS: Record<FreshnessStatus, { bg: string; text: string; border: string }> = {
-  fresh: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' },
-  use_soon: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300' },
-  expiring_soon: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300' },
-  expired: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
-  unknown: { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-300' },
-}
-
 // Egg category (bird species)
 export interface EggCategory {
   id: string
@@ -252,11 +213,7 @@ export interface EggListItem {
   size: EggSize
   packaging: EggPackaging
   eggs_per_unit: number
-  price: string
-  currency: string
   quantity_available: number
-  freshness_status: FreshnessStatus
-  days_until_expiry: number | null
   is_featured: boolean
   primary_image: EggMedia | null
   location: string
@@ -267,10 +224,6 @@ export interface Egg extends EggListItem {
   category: EggCategory
   media: EggMedia[]
   tags: Tag[]
-  production_date: string | null
-  expiry_date: string | null
-  shelf_life_days: number | null
-  freshness_percentage: number
   description: string
   is_available: boolean
   created_at: string
@@ -283,23 +236,8 @@ export interface EggSearchFilters {
   egg_type?: EggType
   size?: EggSize
   packaging?: EggPackaging
-  freshness?: FreshnessStatus
   is_featured?: boolean
   search?: string
   ordering?: string
 }
 
-// Format days until expiry
-export function formatDaysUntilExpiry(days: number | null | undefined): string {
-  if (days === null || days === undefined) return 'No expiry set'
-  if (days < 0) return 'Expired'
-  if (days === 0) return 'Expires today'
-  if (days === 1) return '1 day left'
-  return `${days} days left`
-}
-
-// Get freshness badge class
-export function getFreshnessClass(status: FreshnessStatus): string {
-  const colors = FRESHNESS_COLORS[status]
-  return `${colors.bg} ${colors.text} ${colors.border}`
-}

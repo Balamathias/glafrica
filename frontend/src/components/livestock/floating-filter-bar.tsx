@@ -10,8 +10,6 @@ import { cn } from "@/lib/utils"
 const SORT_OPTIONS = [
   { value: "-created_at", label: "Newest" },
   { value: "created_at", label: "Oldest" },
-  { value: "price", label: "Price: Low" },
-  { value: "-price", label: "Price: High" },
 ]
 
 interface FloatingFilterBarProps {
@@ -35,8 +33,6 @@ export function FloatingFilterBar({ onAISearchClick }: FloatingFilterBarProps) {
     activeCategory,
     activeSearch,
     searchParams.get("gender"),
-    searchParams.get("min_price"),
-    searchParams.get("max_price"),
   ].filter(Boolean).length
 
   // Show/hide based on scroll position

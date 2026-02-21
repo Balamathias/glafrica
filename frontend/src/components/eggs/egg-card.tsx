@@ -5,9 +5,8 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import { Play, MapPin, Heart, Eye, Package, Egg as EggIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { formatPrice, EGG_PACKAGING_LABELS, EGG_TYPE_LABELS } from "@/lib/types"
-import type { EggListItem, EggPackaging, EggType } from "@/lib/types"
-import { FreshnessBadge } from "./freshness-badge"
+import { EGG_PACKAGING_LABELS } from "@/lib/types"
+import type { EggListItem, EggPackaging } from "@/lib/types"
 
 interface EggCardProps {
   item: EggListItem
@@ -79,15 +78,6 @@ export function EggCard({ item, priority = false, onQuickView }: EggCardProps) {
             </button>
           </div>
 
-          {/* Freshness Badge */}
-          <div className="mb-2">
-            <FreshnessBadge
-              status={item.freshness_status}
-              daysUntilExpiry={item.days_until_expiry}
-              size="sm"
-            />
-          </div>
-
           {/* Center: Placeholder icon */}
           <div className="flex-1 flex items-center justify-center">
             <div className="w-16 h-16 rounded-full bg-muted-foreground/10 flex items-center justify-center">
@@ -110,14 +100,9 @@ export function EggCard({ item, priority = false, onQuickView }: EggCardProps) {
               <span>{item.quantity_available} available</span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-lg text-primary">
-                {formatPrice(item.price, item.currency)}
-              </span>
-              <div className="flex items-center gap-1 text-muted-foreground text-xs">
-                <MapPin size={12} />
-                <span className="truncate max-w-[80px]">{item.location}</span>
-              </div>
+            <div className="flex items-center gap-1 text-muted-foreground text-xs">
+              <MapPin size={12} />
+              <span className="truncate max-w-[120px]">{item.location}</span>
             </div>
           </div>
         </div>
@@ -191,12 +176,6 @@ export function EggCard({ item, priority = false, onQuickView }: EggCardProps) {
 
         {/* Top Actions Row */}
         <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-          {/* Freshness Badge */}
-          <FreshnessBadge
-            status={item.freshness_status}
-            size="sm"
-          />
-
           {/* Like Button */}
           <button
             onClick={handleLike}
@@ -260,15 +239,10 @@ export function EggCard({ item, priority = false, onQuickView }: EggCardProps) {
             <span>{item.quantity_available} available</span>
           </div>
 
-          {/* Price and Location Row */}
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-lg text-primary">
-              {formatPrice(item.price, item.currency)}
-            </span>
-            <div className="flex items-center gap-1 text-white/60 text-xs">
-              <MapPin size={12} />
-              <span className="truncate max-w-[80px]">{item.location}</span>
-            </div>
+          {/* Location Row */}
+          <div className="flex items-center gap-1 text-white/60 text-xs">
+            <MapPin size={12} />
+            <span className="truncate max-w-[120px]">{item.location}</span>
           </div>
         </div>
       </div>

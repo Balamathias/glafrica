@@ -11,7 +11,6 @@ import type {
   EggListItem,
   EggCategory,
   EggSearchFilters,
-  FreshnessStatus,
   SmartSearchResponse,
 } from './types'
 
@@ -48,9 +47,7 @@ export const livestockApi = {
         if (filters.is_sold !== undefined) params.append('is_sold', filters.is_sold.toString())
         if (filters.search) params.append('search', filters.search)
         if (filters.ordering) params.append('ordering', filters.ordering)
-        if (filters.min_price) params.append('price__gte', filters.min_price.toString())
-        if (filters.max_price) params.append('price__lte', filters.max_price.toString())
-      }
+}
 
       const { data } = await api.get<PaginatedResponse<LivestockListItem>>(`/livestock/?${params}`)
       return data
@@ -239,16 +236,6 @@ export const eggsApi = {
   async searchAI(query: string): Promise<EggListItem[]> {
     try {
       const { data } = await api.post<EggListItem[]>('/eggs/search_ai/', { query })
-      return data
-    } catch (error) {
-      handleApiError(error)
-    }
-  },
-
-  // Get eggs by freshness status
-  async getByFreshness(status: FreshnessStatus): Promise<EggListItem[]> {
-    try {
-      const { data } = await api.get<EggListItem[]>(`/eggs/freshness_filter/?status=${status}`)
       return data
     } catch (error) {
       handleApiError(error)

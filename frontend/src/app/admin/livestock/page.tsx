@@ -45,17 +45,6 @@ import {
 } from "@/components/ui/dialog"
 import { CreateLivestockModal, EditLivestockModal, ViewLivestockModal } from "@/components/admin/livestock"
 
-// Format currency
-function formatCurrency(amount: string | number, currency: string = "NGN") {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(num)
-}
-
 export default function AdminLivestockPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -214,26 +203,6 @@ export default function AdminLivestockPage() {
           <Badge variant="outline" className="font-normal">
             {row.original.category_name}
           </Badge>
-        ),
-      },
-      // Price
-      {
-        accessorKey: "price",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-3 h-8"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Price
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <span className="font-medium">
-            {formatCurrency(row.original.price, row.original.currency)}
-          </span>
         ),
       },
       // Status

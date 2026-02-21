@@ -45,15 +45,15 @@ class Livestock(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=200, help_text="e.g., 'Premium Boer Goat Buck'")
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='livestock')
-    breed = models.CharField(max_length=100)
-    
+    breed = models.CharField(max_length=100, blank=True)
+
     # Physical Stats
-    age = models.CharField(max_length=50, help_text="e.g., '2 years' or '6 months'")
+    age = models.CharField(max_length=50, blank=True, help_text="e.g., '2 years' or '6 months'")
     weight = models.CharField(max_length=50, blank=True, help_text="e.g., '45kg'")
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True)
     
-    # Sales Info
-    price = models.DecimalField(max_digits=12, decimal_places=2)
+    # Listing Info
+    price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=3, default='NGN')
     location = models.CharField(max_length=200)
     is_sold = models.BooleanField(default=False)
@@ -159,8 +159,8 @@ class Egg(TimeStampedModel):
     packaging = models.CharField(max_length=20, choices=PACKAGING_CHOICES, default='crate_30')
     eggs_per_unit = models.PositiveIntegerField(default=30, help_text="Number of eggs per package")
 
-    # Pricing
-    price = models.DecimalField(max_digits=12, decimal_places=2, help_text="Price per package")
+    # Pricing (optional - this is a listing platform, not ecommerce)
+    price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Price per package")
     currency = models.CharField(max_length=3, default='NGN')
 
     # Inventory

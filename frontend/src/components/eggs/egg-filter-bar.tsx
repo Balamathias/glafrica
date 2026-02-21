@@ -9,9 +9,8 @@ import {
   EGG_TYPE_LABELS,
   EGG_SIZE_LABELS,
   EGG_PACKAGING_LABELS,
-  FRESHNESS_LABELS,
 } from "@/lib/types"
-import type { EggSearchFilters, EggCategory, EggType, EggSize, EggPackaging, FreshnessStatus } from "@/lib/types"
+import type { EggSearchFilters, EggCategory, EggType, EggSize, EggPackaging } from "@/lib/types"
 import { useEggCategories } from "@/lib/hooks"
 
 interface EggFilterBarProps {
@@ -42,10 +41,6 @@ export function EggFilterBar({ filters, onFiltersChange, className }: EggFilterB
     onFiltersChange({ ...filters, packaging })
   }
 
-  const handleFreshnessChange = (freshness: FreshnessStatus | undefined) => {
-    onFiltersChange({ ...filters, freshness })
-  }
-
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onFiltersChange({ ...filters, search: searchQuery || undefined })
@@ -61,7 +56,6 @@ export function EggFilterBar({ filters, onFiltersChange, className }: EggFilterB
     filters.egg_type,
     filters.size,
     filters.packaging,
-    filters.freshness,
     filters.search,
   ].filter(Boolean).length
 
@@ -128,7 +122,7 @@ export function EggFilterBar({ filters, onFiltersChange, className }: EggFilterB
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="pt-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                 {/* Category Filter */}
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">
@@ -205,24 +199,6 @@ export function EggFilterBar({ filters, onFiltersChange, className }: EggFilterB
                   </select>
                 </div>
 
-                {/* Freshness Filter */}
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    Freshness
-                  </label>
-                  <select
-                    value={filters.freshness || ""}
-                    onChange={(e) => handleFreshnessChange((e.target.value || undefined) as FreshnessStatus | undefined)}
-                    className="w-full px-3 py-2 bg-muted/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="">All</option>
-                    {Object.entries(FRESHNESS_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
             </motion.div>
           )}

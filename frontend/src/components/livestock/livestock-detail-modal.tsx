@@ -31,7 +31,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useModalStore, useChatStore } from "@/lib/store"
 import { useLivestock } from "@/lib/hooks"
-import { formatPrice, formatDate, GENDER_LABELS } from "@/lib/types"
+import { formatDate, GENDER_LABELS } from "@/lib/types"
 import { trackLivestockView } from "@/lib/analytics"
 
 export function LivestockDetailModal() {
@@ -432,13 +432,6 @@ export function LivestockDetailModal() {
                             </div>
                           </div>
 
-                          {/* Price */}
-                          <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20">
-                            <span className="text-sm text-muted-foreground">Investment Price</span>
-                            <div className="text-3xl font-bold text-primary">
-                              {formatPrice(livestock.price, livestock.currency)}
-                            </div>
-                          </div>
                         </div>
 
                         {/* Quick Info Grid */}

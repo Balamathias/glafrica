@@ -34,9 +34,9 @@ class LivestockViewSet(viewsets.ModelViewSet):
     queryset = Livestock.objects.all().select_related('category').prefetch_related('media', 'tags')
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'category__name', 'gender', 'is_sold', 'price']
+    filterset_fields = ['category', 'category__name', 'gender', 'is_sold']
     search_fields = ['name', 'breed', 'location', 'description']
-    ordering_fields = ['price', 'created_at']
+    ordering_fields = ['created_at']
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -377,7 +377,7 @@ class EggViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category__slug', 'egg_type', 'size', 'packaging', 'is_featured']
     search_fields = ['name', 'breed', 'description', 'location']
-    ordering_fields = ['price', 'created_at', 'production_date', 'expiry_date']
+    ordering_fields = ['created_at']
     ordering = ['-created_at']
 
     def get_object(self):
@@ -417,39 +417,6 @@ class EggViewSet(viewsets.ReadOnlyModelViewSet):
         ai_service = AIService()
         results = ai_service.semantic_search_eggs(query)
         serializer = EggListSerializer(results, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['get'], url_path='freshness-filter')
-    def freshness_filter(self, request):
-        """Filter eggs by freshness status."""
-        from django.utils import timezone
-        from datetime import timedelta
-
-        freshness_status = request.query_params.get('status', 'fresh')
-        today = timezone.now().date()
-
-        if freshness_status == 'fresh':
-            # More than 7 days until expiry
-            eggs = self.queryset.filter(expiry_date__gt=today + timedelta(days=7))
-        elif freshness_status == 'use_soon':
-            # 4-7 days until expiry
-            eggs = self.queryset.filter(
-                expiry_date__gt=today + timedelta(days=3),
-                expiry_date__lte=today + timedelta(days=7)
-            )
-        elif freshness_status == 'expiring_soon':
-            # 0-3 days until expiry
-            eggs = self.queryset.filter(
-                expiry_date__gt=today,
-                expiry_date__lte=today + timedelta(days=3)
-            )
-        elif freshness_status == 'expired':
-            # Already expired
-            eggs = Egg.objects.filter(expiry_date__lt=today, is_available=True)
-        else:
-            eggs = self.queryset
-
-        serializer = EggListSerializer(eggs[:50], many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], url_path='featured')

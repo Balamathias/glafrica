@@ -20,12 +20,6 @@ export function ImmersiveGallery() {
     gender: (searchParams.get("gender") as SearchFilters["gender"]) || undefined,
     search: searchParams.get("search") || undefined,
     ordering: searchParams.get("sort") || "-created_at",
-    min_price: searchParams.get("min_price")
-      ? parseInt(searchParams.get("min_price")!)
-      : undefined,
-    max_price: searchParams.get("max_price")
-      ? parseInt(searchParams.get("max_price")!)
-      : undefined,
   }), [searchParams])
 
   const {

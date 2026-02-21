@@ -11,7 +11,6 @@ import {
   Eye,
   ArrowUpDown,
   XCircle,
-  AlertTriangle,
   Egg,
   Package,
 } from "lucide-react"
@@ -49,22 +48,9 @@ import {
 import {
   EGG_PACKAGING_LABELS,
   EGG_TYPE_LABELS,
-  FRESHNESS_LABELS,
-  FRESHNESS_COLORS,
 } from "@/lib/types"
-import type { EggPackaging, EggType, FreshnessStatus } from "@/lib/types"
+import type { EggPackaging, EggType } from "@/lib/types"
 import { CreateEggModal, ViewEditEggModal } from "@/components/admin/eggs"
-
-// Format currency
-function formatCurrency(amount: string | number, currency: string = "NGN") {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(num)
-}
 
 export default function AdminEggsPage() {
   const { selectedIds, toggleItem, selectAll, clearSelection, isSelected } = useSelectionStore()
@@ -78,7 +64,6 @@ export default function AdminEggsPage() {
     search?: string
     category?: string
     egg_type?: string
-    freshness?: string
     is_available?: boolean
   }>({})
 
@@ -88,8 +73,6 @@ export default function AdminEggsPage() {
     ids: string[]
     names: string[]
   }>({ open: false, ids: [], names: [] })
-  const [expiringDialog, setExpiringDialog] = useState(false)
-  const [expiringEggs, setExpiringEggs] = useState<AdminEgg[]>([])
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [viewEditModal, setViewEditModal] = useState<{
     open: boolean
@@ -119,17 +102,6 @@ export default function AdminEggsPage() {
   useEffect(() => {
     loadData()
   }, [loadData])
-
-  // Load expiring eggs
-  const loadExpiringEggs = async () => {
-    try {
-      const eggs = await adminEggsApi.getExpiringSoon(7)
-      setExpiringEggs(eggs)
-      setExpiringDialog(true)
-    } catch (error) {
-      console.error("Failed to load expiring eggs:", error)
-    }
-  }
 
   // Calculate selection state for header checkbox
   const allSelected = data?.results.length
@@ -237,26 +209,6 @@ export default function AdminEggsPage() {
           </div>
         ),
       },
-      // Price
-      {
-        accessorKey: "price",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-3 h-8"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Price
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <span className="font-medium">
-            {formatCurrency(row.original.price, row.original.currency)}
-          </span>
-        ),
-      },
       // Stock
       {
         accessorKey: "quantity_available",
@@ -268,41 +220,6 @@ export default function AdminEggsPage() {
             {row.original.quantity_available} units
           </span>
         ),
-      },
-      // Freshness
-      {
-        accessorKey: "freshness_status",
-        header: "Freshness",
-        cell: ({ row }) => {
-          const status = row.original.freshness_status as FreshnessStatus
-          const colors = FRESHNESS_COLORS[status]
-          return (
-            <Badge className={cn(colors.bg, colors.text, "border", colors.border)}>
-              {FRESHNESS_LABELS[status]}
-            </Badge>
-          )
-        },
-      },
-      // Days Until Expiry
-      {
-        accessorKey: "days_until_expiry",
-        header: "Expires",
-        cell: ({ row }) => {
-          const days = row.original.days_until_expiry
-          if (days === null || days === undefined) {
-            return <span className="text-sm text-muted-foreground">No date</span>
-          }
-          return (
-            <span className={cn(
-              "text-sm",
-              days < 0 && "text-red-500 font-medium",
-              days >= 0 && days <= 3 && "text-orange-500 font-medium",
-              days > 3 && days <= 7 && "text-yellow-600"
-            )}>
-              {days < 0 ? "Expired" : days === 0 ? "Today" : `${days} days`}
-            </span>
-          )
-        },
       },
       // Actions
       {
@@ -381,18 +298,6 @@ export default function AdminEggsPage() {
         description="View and manage all egg products"
         actions={
           <div className="flex items-center gap-2">
-            {/* Expiring Soon Alert */}
-            {stats?.freshness && (stats.freshness.expiring_soon > 0 || stats.freshness.expired > 0) && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-orange-500/50 text-orange-600 hover:bg-orange-500/10"
-                onClick={loadExpiringEggs}
-              >
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                {stats.freshness.expiring_soon + stats.freshness.expired} Expiring
-              </Button>
-            )}
             <Button size="sm" onClick={() => setIsCreateModalOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add New
@@ -411,14 +316,6 @@ export default function AdminEggsPage() {
           <div className="p-4 rounded-xl bg-muted/50 border">
             <p className="text-sm text-muted-foreground">Available</p>
             <p className="text-2xl font-bold text-green-600">{stats.available_eggs}</p>
-          </div>
-          <div className="p-4 rounded-xl bg-muted/50 border">
-            <p className="text-sm text-muted-foreground">Expiring Soon</p>
-            <p className="text-2xl font-bold text-orange-500">{stats.freshness?.expiring_soon ?? 0}</p>
-          </div>
-          <div className="p-4 rounded-xl bg-muted/50 border">
-            <p className="text-sm text-muted-foreground">Total Value</p>
-            <p className="text-2xl font-bold">{formatCurrency(stats.total_value)}</p>
           </div>
         </div>
       )}
@@ -489,61 +386,6 @@ export default function AdminEggsPage() {
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
               Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Expiring Eggs Dialog */}
-      <Dialog open={expiringDialog} onOpenChange={setExpiringDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-orange-500" />
-              Eggs Expiring Soon
-            </DialogTitle>
-            <DialogDescription>
-              These eggs are expiring within the next 7 days and need attention.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-96 overflow-y-auto space-y-2">
-            {expiringEggs.map((egg) => (
-              <div
-                key={egg.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                    <Egg className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{egg.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {egg.quantity_available} units - {EGG_PACKAGING_LABELS[egg.packaging as EggPackaging]}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <Badge className={cn(
-                    FRESHNESS_COLORS[egg.freshness_status as FreshnessStatus].bg,
-                    FRESHNESS_COLORS[egg.freshness_status as FreshnessStatus].text,
-                    "border",
-                    FRESHNESS_COLORS[egg.freshness_status as FreshnessStatus].border
-                  )}>
-                    {egg.days_until_expiry !== null && egg.days_until_expiry < 0 ? "Expired" : `${egg.days_until_expiry ?? 'N/A'} days left`}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-            {expiringEggs.length === 0 && (
-              <p className="text-center text-muted-foreground py-8">
-                No eggs expiring within the next 7 days.
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setExpiringDialog(false)}>
-              Close
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -303,12 +303,9 @@ export interface AdminLivestock {
   age: string
   weight: string
   gender: string
-  price: string
-  currency: string
   location: string
   is_sold: boolean
   sold_at: string | null
-  sold_price: string | null
   featured_image: {
     id: string
     file_url: string
@@ -600,8 +597,6 @@ export const adminLivestockApi = {
       is_sold?: boolean
       search?: string
       ordering?: string
-      min_price?: number
-      max_price?: number
     }
   ): Promise<PaginatedResponse<AdminLivestock>> {
     try {
@@ -613,8 +608,6 @@ export const adminLivestockApi = {
         if (filters.is_sold !== undefined) params.append('is_sold', filters.is_sold.toString())
         if (filters.search) params.append('search', filters.search)
         if (filters.ordering) params.append('ordering', filters.ordering)
-        if (filters.min_price) params.append('min_price', filters.min_price.toString())
-        if (filters.max_price) params.append('max_price', filters.max_price.toString())
       }
 
       const { data } = await adminApi.get<PaginatedResponse<AdminLivestock>>(`/livestock/?${params}`)
@@ -644,12 +637,9 @@ export const adminLivestockApi = {
         age: string
         weight: string
         gender: string
-        price: string
-        currency: string
         location: string
         is_sold: boolean
         sold_at: string | null
-        sold_price: string | null
         description: string
         health_status: string
         vaccination_history: Array<{ id: string; name: string; date: string; notes?: string }>
@@ -1189,13 +1179,7 @@ export interface AdminEgg {
   size: 'small' | 'medium' | 'large' | 'extra_large' | 'jumbo'
   packaging: 'crate_30' | 'tray_30' | 'tray_12' | 'half_crate_15' | 'custom'
   eggs_per_unit: number
-  price: string
-  currency: string
   quantity_available: number
-  production_date: string | null
-  expiry_date: string | null
-  days_until_expiry: number | null
-  freshness_status: 'fresh' | 'use_soon' | 'expiring_soon' | 'expired' | 'unknown'
   location: string
   is_available: boolean
   is_featured: boolean
@@ -1215,8 +1199,6 @@ export interface AdminEggDetail extends AdminEgg {
   category_id: string
   tag_ids: string[]
   description: string
-  shelf_life_days: number | null
-  freshness_percentage: number
   media: Array<{
     id: string
     url: string
@@ -1258,28 +1240,14 @@ export interface EggStats {
   total_eggs: number
   available_eggs: number
   featured_eggs: number
-  freshness: {
-    fresh: number
-    use_soon: number
-    expiring_soon: number
-    expired: number
-  }
-  total_value: number
   eggs_by_category: Array<{
     id: string
     name: string
     slug: string
     total: number
     available: number
-    value: number | null
   }>
   new_this_week: number
-  price_range: {
-    min: number
-    max: number
-    avg: number
-  }
-  currency: string
 }
 
 // Admin Eggs API
@@ -1291,7 +1259,6 @@ export const adminEggsApi = {
       egg_type?: string
       size?: string
       packaging?: string
-      freshness?: string
       is_available?: boolean
       is_featured?: boolean
       search?: string
@@ -1307,7 +1274,6 @@ export const adminEggsApi = {
         if (filters.egg_type) params.append('egg_type', filters.egg_type)
         if (filters.size) params.append('size', filters.size)
         if (filters.packaging) params.append('packaging', filters.packaging)
-        if (filters.freshness) params.append('freshness', filters.freshness)
         if (filters.is_available !== undefined) params.append('is_available', filters.is_available.toString())
         if (filters.is_featured !== undefined) params.append('is_featured', filters.is_featured.toString())
         if (filters.search) params.append('search', filters.search)
@@ -1343,15 +1309,7 @@ export const adminEggsApi = {
         size: AdminEgg['size']
         packaging: AdminEgg['packaging']
         eggs_per_unit: number
-        price: string
-        currency: string
         quantity_available: number
-        production_date: string | null
-        expiry_date: string | null
-        days_until_expiry: number
-        shelf_life_days: number | null
-        freshness_status: AdminEgg['freshness_status']
-        freshness_percentage: number
         location: string
         description: string
         is_available: boolean
@@ -1420,17 +1378,6 @@ export const adminEggsApi = {
       const { data } = await adminApi.post<{ detail: string; count: number }>('/eggs/bulk_update/', {
         ids,
         ...updates,
-      })
-      return data
-    } catch (error) {
-      handleApiError(error)
-    }
-  },
-
-  async getExpiringSoon(days: number = 7): Promise<AdminEgg[]> {
-    try {
-      const { data } = await adminApi.get<AdminEgg[]>('/eggs/expiring_soon/', {
-        params: { days },
       })
       return data
     } catch (error) {

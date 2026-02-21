@@ -8,30 +8,25 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
-  Calendar,
   Package,
   Tag,
-  Clock,
   Egg as EggIcon,
   Play,
   Share2,
   Heart,
-  ShoppingCart,
+  MessageCircle,
   Sparkles,
   Check,
   AlertCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
-  formatPrice,
-  formatDate,
   EGG_PACKAGING_LABELS,
   EGG_TYPE_LABELS,
   EGG_SIZE_LABELS,
 } from "@/lib/types"
 import type { EggPackaging, EggType, EggSize } from "@/lib/types"
 import { useEgg } from "@/lib/hooks"
-import { FreshnessBadge, FreshnessProgress } from "./freshness-badge"
 import { Button } from "@/components/ui/button"
 
 interface EggDetailModalProps {
@@ -314,11 +309,6 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
                       <span className="px-3 py-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400 text-sm font-semibold rounded-full border border-amber-500/30">
                         {egg.category?.name || egg.category_name}
                       </span>
-                      <FreshnessBadge
-                        status={egg.freshness_status}
-                        daysUntilExpiry={egg.days_until_expiry}
-                        showDays
-                      />
                       {egg.is_featured && (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold rounded-full">
                           <Sparkles size={14} />
@@ -335,39 +325,18 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
                       <p className="text-muted-foreground text-lg">{egg.breed}</p>
                     </div>
 
-                    {/* Price Card */}
+                    {/* Stock Info */}
                     <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border border-amber-500/20">
                       <div className="flex items-baseline justify-between">
-                        <div>
-                          <span className="text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">
-                            {formatPrice(egg.price, egg.currency)}
-                          </span>
-                          <span className="text-muted-foreground ml-2">
-                            per {EGG_PACKAGING_LABELS[egg.packaging as EggPackaging]?.toLowerCase()}
-                          </span>
-                        </div>
+                        <span className="text-muted-foreground">
+                          {EGG_PACKAGING_LABELS[egg.packaging as EggPackaging]}
+                        </span>
                         <div className="text-right">
                           <p className="text-sm text-muted-foreground">Stock</p>
                           <p className="font-semibold text-foreground">{egg.quantity_available} units</p>
                         </div>
                       </div>
                     </div>
-
-                    {/* Freshness Progress */}
-                    {egg.freshness_status !== "unknown" && (
-                      <div className="p-4 rounded-2xl bg-muted/50">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">Freshness Level</span>
-                          <span className="text-sm text-muted-foreground">
-                            {egg.freshness_percentage}% fresh
-                          </span>
-                        </div>
-                        <FreshnessProgress
-                          percentage={egg.freshness_percentage}
-                          status={egg.freshness_status}
-                        />
-                      </div>
-                    )}
 
                     {/* Specifications Grid */}
                     <div className="grid grid-cols-2 gap-3">
@@ -398,30 +367,6 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
                         className="col-span-2"
                       />
                     </div>
-
-                    {/* Dates */}
-                    {(egg.production_date || egg.expiry_date) && (
-                      <div className="grid grid-cols-2 gap-3">
-                        {egg.production_date && (
-                          <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20">
-                            <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-1">
-                              <Calendar size={16} />
-                              <span className="text-xs font-medium">Produced</span>
-                            </div>
-                            <p className="font-semibold">{formatDate(egg.production_date)}</p>
-                          </div>
-                        )}
-                        {egg.expiry_date && (
-                          <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
-                            <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 mb-1">
-                              <Clock size={16} />
-                              <span className="text-xs font-medium">Best Before</span>
-                            </div>
-                            <p className="font-semibold">{formatDate(egg.expiry_date)}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {/* Description */}
                     {egg.description && (
@@ -460,8 +405,8 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
                         className="flex-1 h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-xl"
                         size="lg"
                       >
-                        <ShoppingCart size={18} className="mr-2" />
-                        Contact for Purchase
+                        <MessageCircle size={18} className="mr-2" />
+                        Make Inquiry
                       </Button>
                       <Button
                         variant="outline"

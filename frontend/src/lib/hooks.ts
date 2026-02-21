@@ -1,6 +1,6 @@
 import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query"
 import { livestockApi, categoriesApi, chatApi, eggsApi, eggCategoriesApi, searchApi } from "./api"
-import type { SearchFilters, Livestock, LivestockListItem, Category, PaginatedResponse, EggSearchFilters, Egg, EggListItem, EggCategory, FreshnessStatus, SmartSearchResponse } from "./types"
+import type { SearchFilters, Livestock, LivestockListItem, Category, PaginatedResponse, EggSearchFilters, Egg, EggListItem, EggCategory, SmartSearchResponse } from "./types"
 
 // Query Keys factory for consistent cache management
 export const queryKeys = {
@@ -21,7 +21,6 @@ export const eggQueryKeys = {
   details: () => [...eggQueryKeys.all, "detail"] as const,
   detail: (id: string) => [...eggQueryKeys.details(), id] as const,
   search: (query: string) => [...eggQueryKeys.all, "search", query] as const,
-  freshness: (status: FreshnessStatus) => [...eggQueryKeys.all, "freshness", status] as const,
   featured: () => [...eggQueryKeys.all, "featured"] as const,
   categories: ["egg-categories"] as const,
 }
@@ -155,15 +154,6 @@ export function useEggSearch(query: string) {
     queryFn: () => eggsApi.searchAI(query),
     enabled: query.length >= 2,
     staleTime: 2 * 60 * 1000, // 2 minutes
-  })
-}
-
-// Eggs by freshness status
-export function useEggsByFreshness(status: FreshnessStatus) {
-  return useQuery({
-    queryKey: eggQueryKeys.freshness(status),
-    queryFn: () => eggsApi.getByFreshness(status),
-    staleTime: 2 * 60 * 1000, // 2 minutes - freshness can change
   })
 }
 

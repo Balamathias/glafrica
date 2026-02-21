@@ -74,7 +74,7 @@ export function StepBasicInfo() {
       {/* Breed */}
       <div className="space-y-2">
         <label className="text-sm font-medium">
-          Breed <span className="text-destructive">*</span>
+          Breed <span className="text-muted-foreground text-xs">(optional)</span>
         </label>
         <Input
           icon={<Dna className="h-4 w-4" />}
@@ -97,7 +97,7 @@ export function StepBasicInfo() {
       {/* Gender */}
       <div className="space-y-2">
         <label className="text-sm font-medium">
-          Gender <span className="text-destructive">*</span>
+          Gender <span className="text-muted-foreground text-xs">(optional)</span>
         </label>
         <div className="grid grid-cols-3 gap-3">
           {genderOptions.map((option) => {
@@ -151,7 +151,7 @@ export function StepBasicInfo() {
         {/* Age */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Age <span className="text-destructive">*</span>
+            Age <span className="text-muted-foreground text-xs">(optional)</span>
           </label>
           <Input
             icon={<Calendar className="h-4 w-4" />}

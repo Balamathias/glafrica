@@ -22,7 +22,6 @@ export function EggsImmersiveGallery() {
     egg_type: (searchParams.get("egg_type") as EggSearchFilters["egg_type"]) || undefined,
     size: (searchParams.get("size") as EggSearchFilters["size"]) || undefined,
     packaging: (searchParams.get("packaging") as EggSearchFilters["packaging"]) || undefined,
-    freshness: (searchParams.get("freshness") as EggSearchFilters["freshness"]) || undefined,
     search: searchParams.get("search") || undefined,
     ordering: searchParams.get("sort") || "-created_at",
   }), [searchParams])

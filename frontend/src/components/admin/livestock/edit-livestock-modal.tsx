@@ -42,8 +42,6 @@ interface FormState {
   gender: string
   age: string
   weight: string
-  price: string
-  currency: string
   location: string
   description: string
   health_status: string
@@ -51,13 +49,6 @@ interface FormState {
   tag_ids: string[]
   is_sold: boolean
 }
-
-const CURRENCIES = [
-  { value: "NGN", label: "₦ NGN" },
-  { value: "USD", label: "$ USD" },
-  { value: "GBP", label: "£ GBP" },
-  { value: "EUR", label: "€ EUR" },
-]
 
 export function EditLivestockModal({
   open,
@@ -77,8 +68,6 @@ export function EditLivestockModal({
     gender: "",
     age: "",
     weight: "",
-    price: "",
-    currency: "NGN",
     location: "",
     description: "",
     health_status: "",
@@ -119,8 +108,6 @@ export function EditLivestockModal({
         gender: data.gender,
         age: data.age,
         weight: data.weight || "",
-        price: data.price,
-        currency: data.currency,
         location: data.location,
         description: data.description || "",
         health_status: data.health_status || "",
@@ -240,20 +227,6 @@ export function EditLivestockModal({
     if (!formState.category_id) {
       newErrors.category_id = "Please select a category"
     }
-    if (!formState.breed || formState.breed.trim().length < 2) {
-      newErrors.breed = "Breed must be at least 2 characters"
-    }
-    if (!formState.gender) {
-      newErrors.gender = "Please select a gender"
-    }
-    if (!formState.age) {
-      newErrors.age = "Age is required"
-    }
-
-    const price = parseFloat(formState.price)
-    if (isNaN(price) || price <= 0) {
-      newErrors.price = "Price must be a positive number"
-    }
     if (!formState.location) {
       newErrors.location = "Location is required"
     }
@@ -289,8 +262,6 @@ export function EditLivestockModal({
         gender: formState.gender,
         age: formState.age,
         weight: formState.weight || undefined,
-        price: formState.price,
-        currency: formState.currency,
         location: formState.location,
         description: formState.description,
         health_status: formState.health_status,
@@ -458,7 +429,7 @@ export function EditLivestockModal({
                         {/* Breed */}
                         <div>
                           <label className="block text-sm font-medium mb-1.5">
-                            Breed <span className="text-destructive">*</span>
+                            Breed <span className="text-muted-foreground text-xs">(optional)</span>
                           </label>
                           <Input
                             value={formState.breed}
@@ -474,7 +445,7 @@ export function EditLivestockModal({
                         {/* Gender */}
                         <div>
                           <label className="block text-sm font-medium mb-1.5">
-                            Gender <span className="text-destructive">*</span>
+                            Gender <span className="text-muted-foreground text-xs">(optional)</span>
                           </label>
                           <div className="flex gap-3">
                             {[
@@ -505,7 +476,7 @@ export function EditLivestockModal({
                         {/* Age */}
                         <div>
                           <label className="block text-sm font-medium mb-1.5">
-                            Age <span className="text-destructive">*</span>
+                            Age <span className="text-muted-foreground text-xs">(optional)</span>
                           </label>
                           <Input
                             value={formState.age}
@@ -530,37 +501,10 @@ export function EditLivestockModal({
                       </div>
                     </section>
 
-                    {/* Pricing & Location */}
+                    {/* Location */}
                     <section>
-                      <h3 className="text-lg font-medium mb-4">Pricing & Location</h3>
+                      <h3 className="text-lg font-medium mb-4">Location</h3>
                       <div className="grid gap-4 sm:grid-cols-2">
-                        {/* Price */}
-                        <div>
-                          <label className="block text-sm font-medium mb-1.5">
-                            Price <span className="text-destructive">*</span>
-                          </label>
-                          <div className="flex gap-2">
-                            <select
-                              value={formState.currency}
-                              onChange={(e) => updateField("currency", e.target.value)}
-                              className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
-                            >
-                              {CURRENCIES.map((c) => (
-                                <option key={c.value} value={c.value}>
-                                  {c.label}
-                                </option>
-                              ))}
-                            </select>
-                            <Input
-                              type="number"
-                              value={formState.price}
-                              onChange={(e) => updateField("price", e.target.value)}
-                              placeholder="0"
-                              className={cn("flex-1", errors.price && "border-destructive")}
-                            />
-                          </div>
-                        </div>
-
                         {/* Location */}
                         <div>
                           <label className="block text-sm font-medium mb-1.5">

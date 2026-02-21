@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Loader2, AlertCircle, Calendar, Upload, Trash2 } from "lucide-react"
+import { X, Loader2, AlertCircle, Upload, Trash2 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -61,11 +61,7 @@ export function CreateEggModal({ open, onOpenChange, onSuccess }: CreateEggModal
     size: "medium" as EggSize,
     packaging: "crate_30" as EggPackaging,
     eggs_per_unit: 30,
-    price: "",
-    currency: "NGN",
     quantity_available: 1,
-    production_date: "",
-    expiry_date: "",
     location: "",
     description: "",
     is_available: true,
@@ -165,15 +161,13 @@ export function CreateEggModal({ open, onOpenChange, onSuccess }: CreateEggModal
 
     try {
       // Validate required fields
-      if (!formData.name || !formData.category_id || !formData.price) {
-        throw new Error("Please fill in all required fields")
+      if (!formData.name || !formData.category_id) {
+        throw new Error("Please fill in all required fields (name and bird type)")
       }
 
       // Create egg
       const eggData = {
         ...formData,
-        production_date: formData.production_date || undefined,
-        expiry_date: formData.expiry_date || undefined,
       }
 
       const created = await adminEggsApi.create(eggData)
@@ -230,11 +224,7 @@ export function CreateEggModal({ open, onOpenChange, onSuccess }: CreateEggModal
       size: "medium",
       packaging: "crate_30",
       eggs_per_unit: 30,
-      price: "",
-      currency: "NGN",
       quantity_available: 1,
-      production_date: "",
-      expiry_date: "",
       location: "",
       description: "",
       is_available: true,
@@ -431,28 +421,8 @@ export function CreateEggModal({ open, onOpenChange, onSuccess }: CreateEggModal
                     </div>
                   </div>
 
-                  {/* Pricing & Stock */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Price per Unit *</Label>
-                      <div className="flex">
-                        <span className="inline-flex items-center px-3 bg-muted border border-r-0 rounded-l-md text-sm text-muted-foreground">
-                          {formData.currency}
-                        </span>
-                        <Input
-                          id="price"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={formData.price}
-                          onChange={(e) => handleChange("price", e.target.value)}
-                          className="rounded-l-none"
-                          placeholder="0.00"
-                          required
-                        />
-                      </div>
-                    </div>
-
+                  {/* Stock & Location */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="quantity">Quantity Available</Label>
                       <Input
@@ -472,37 +442,6 @@ export function CreateEggModal({ open, onOpenChange, onSuccess }: CreateEggModal
                         onChange={(e) => handleChange("location", e.target.value)}
                         placeholder="e.g., Lagos, Nigeria"
                       />
-                    </div>
-                  </div>
-
-                  {/* Dates */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="production_date">Production Date</Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="production_date"
-                          type="date"
-                          value={formData.production_date}
-                          onChange={(e) => handleChange("production_date", e.target.value)}
-                          className="pl-10"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="expiry_date">Expiry Date</Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="expiry_date"
-                          type="date"
-                          value={formData.expiry_date}
-                          onChange={(e) => handleChange("expiry_date", e.target.value)}
-                          className="pl-10"
-                        />
-                      </div>
                     </div>
                   </div>
 

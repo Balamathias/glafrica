@@ -8,7 +8,6 @@ import {
   Calendar,
   Tag,
   Scale,
-  DollarSign,
   Heart,
   Syringe,
   ExternalLink,
@@ -127,16 +126,6 @@ export function ViewLivestockModal({
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [open, data?.media?.length])
-
-  const formatCurrency = (amount: string | number, currency: string = "NGN") => {
-    const num = typeof amount === "string" ? parseFloat(amount) : amount
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num)
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -315,18 +304,6 @@ export function ViewLivestockModal({
                             <Badge className="bg-emerald-500/10 text-emerald-500 shrink-0">
                               Available
                             </Badge>
-                          )}
-                        </div>
-
-                        {/* Price */}
-                        <div className="mt-4">
-                          <p className="text-3xl font-bold text-primary">
-                            {formatCurrency(data.price, data.currency)}
-                          </p>
-                          {data.is_sold && data.sold_price && (
-                            <p className="text-sm text-muted-foreground">
-                              Sold for {formatCurrency(data.sold_price, data.currency)}
-                            </p>
                           )}
                         </div>
                       </div>

@@ -57,8 +57,6 @@ const defaultFilters: SearchFilters = {
   category: undefined,
   gender: undefined,
   is_sold: undefined,
-  min_price: undefined,
-  max_price: undefined,
   search: undefined,
   ordering: '-created_at',
 }

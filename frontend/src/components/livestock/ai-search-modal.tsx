@@ -300,8 +300,8 @@ export function AISearchModal({ isOpen, onClose }: AISearchModalProps) {
                                 <p className="text-sm text-muted-foreground truncate">
                                   {item.breed} • {item.category_name}
                                 </p>
-                                <p className="text-sm font-medium text-primary">
-                                  ₦{item.price?.toLocaleString()}
+                                <p className="text-sm text-muted-foreground">
+                                  {item.location}
                                 </p>
                               </div>
 

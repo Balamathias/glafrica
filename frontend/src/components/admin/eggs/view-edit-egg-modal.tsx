@@ -6,7 +6,6 @@ import {
   X,
   Loader2,
   AlertCircle,
-  Calendar,
   Upload,
   Trash2,
   Edit,
@@ -41,10 +40,8 @@ import {
   EGG_TYPE_LABELS,
   EGG_SIZE_LABELS,
   EGG_PACKAGING_LABELS,
-  FRESHNESS_LABELS,
-  FRESHNESS_COLORS,
 } from "@/lib/types"
-import type { EggType, EggSize, EggPackaging, FreshnessStatus } from "@/lib/types"
+import type { EggType, EggSize, EggPackaging } from "@/lib/types"
 
 interface ViewEditEggModalProps {
   open: boolean
@@ -91,11 +88,7 @@ export function ViewEditEggModal({
     size: "medium" as EggSize,
     packaging: "crate_30" as EggPackaging,
     eggs_per_unit: 30,
-    price: "",
-    currency: "NGN",
     quantity_available: 1,
-    production_date: "",
-    expiry_date: "",
     location: "",
     description: "",
     is_available: true,
@@ -140,11 +133,7 @@ export function ViewEditEggModal({
         size: eggRes.size as EggSize,
         packaging: eggRes.packaging as EggPackaging,
         eggs_per_unit: eggRes.eggs_per_unit,
-        price: eggRes.price,
-        currency: eggRes.currency || "NGN",
         quantity_available: eggRes.quantity_available,
-        production_date: eggRes.production_date || "",
-        expiry_date: eggRes.expiry_date || "",
         location: eggRes.location || "",
         description: eggRes.description || "",
         is_available: eggRes.is_available,
@@ -246,15 +235,13 @@ export function ViewEditEggModal({
     setError(null)
 
     try {
-      if (!formData.name || !formData.category_id || !formData.price) {
-        throw new Error("Please fill in all required fields")
+      if (!formData.name || !formData.category_id) {
+        throw new Error("Please fill in all required fields (name and bird type)")
       }
 
       // Update egg
       const eggData = {
         ...formData,
-        production_date: formData.production_date || undefined,
-        expiry_date: formData.expiry_date || undefined,
       }
 
       await adminEggsApi.update(eggId, eggData)
@@ -314,17 +301,6 @@ export function ViewEditEggModal({
       document.body.style.overflow = ""
     }
   }, [open])
-
-  // Format currency
-  const formatCurrency = (amount: string | number, currency: string = "NGN") => {
-    const num = typeof amount === "string" ? parseFloat(amount) : amount
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num)
-  }
 
   return (
     <AnimatePresence>
@@ -387,7 +363,6 @@ export function ViewEditEggModal({
                 <ViewMode
                   egg={egg}
                   mediaFiles={mediaFiles}
-                  formatCurrency={formatCurrency}
                 />
               ) : (
                 <EditForm
@@ -416,16 +391,11 @@ export function ViewEditEggModal({
 function ViewMode({
   egg,
   mediaFiles,
-  formatCurrency,
 }: {
   egg: AdminEggDetail | null
   mediaFiles: MediaFile[]
-  formatCurrency: (amount: string | number, currency?: string) => string
 }) {
   if (!egg) return null
-
-  const freshnessStatus = egg.freshness_status as FreshnessStatus
-  const freshnessColors = FRESHNESS_COLORS[freshnessStatus]
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -466,17 +436,9 @@ function ViewMode({
         )}
 
         {/* Header Info */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-2xl font-semibold">{egg.name}</h3>
-            <p className="text-muted-foreground">{egg.breed}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-primary">
-              {formatCurrency(egg.price, egg.currency)}
-            </p>
-            <p className="text-sm text-muted-foreground">per unit</p>
-          </div>
+        <div>
+          <h3 className="text-2xl font-semibold">{egg.name}</h3>
+          <p className="text-muted-foreground">{egg.breed}</p>
         </div>
 
         {/* Badges */}
@@ -487,9 +449,6 @@ function ViewMode({
           </Badge>
           <Badge variant="secondary">
             {EGG_SIZE_LABELS[egg.size as EggSize]}
-          </Badge>
-          <Badge className={cn(freshnessColors.bg, freshnessColors.text, "border", freshnessColors.border)}>
-            {FRESHNESS_LABELS[freshnessStatus]}
           </Badge>
           {egg.is_featured && (
             <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/50">
@@ -539,38 +498,6 @@ function ViewMode({
             </div>
           )}
 
-          {egg.production_date && (
-            <div className="p-4 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Calendar className="h-4 w-4" />
-                <span className="text-sm">Production Date</span>
-              </div>
-              <p className="font-medium">
-                {new Date(egg.production_date).toLocaleDateString()}
-              </p>
-            </div>
-          )}
-
-          {egg.expiry_date && (
-            <div className="p-4 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Calendar className="h-4 w-4" />
-                <span className="text-sm">Expiry Date</span>
-              </div>
-              <p className={cn(
-                "font-medium",
-                egg.days_until_expiry !== null && egg.days_until_expiry < 0 && "text-red-500",
-                egg.days_until_expiry !== null && egg.days_until_expiry >= 0 && egg.days_until_expiry <= 3 && "text-orange-500"
-              )}>
-                {new Date(egg.expiry_date).toLocaleDateString()}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {egg.days_until_expiry !== null && egg.days_until_expiry < 0
-                  ? "Expired"
-                  : `${egg.days_until_expiry ?? 'N/A'} days left`}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Description */}
@@ -623,11 +550,7 @@ function EditForm({
     size: EggSize
     packaging: EggPackaging
     eggs_per_unit: number
-    price: string
-    currency: string
     quantity_available: number
-    production_date: string
-    expiry_date: string
     location: string
     description: string
     is_available: boolean
@@ -771,27 +694,8 @@ function EditForm({
             </div>
           </div>
 
-          {/* Pricing & Stock */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-price">Price per Unit *</Label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 bg-muted border border-r-0 rounded-l-md text-sm text-muted-foreground">
-                  {formData.currency}
-                </span>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => onFieldChange("price", e.target.value)}
-                  className="rounded-l-none"
-                  required
-                />
-              </div>
-            </div>
-
+          {/* Stock & Location */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-quantity">Quantity Available</Label>
               <Input
@@ -812,37 +716,6 @@ function EditForm({
                 value={formData.location}
                 onChange={(e) => onFieldChange("location", e.target.value)}
               />
-            </div>
-          </div>
-
-          {/* Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-production_date">Production Date</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="edit-production_date"
-                  type="date"
-                  value={formData.production_date}
-                  onChange={(e) => onFieldChange("production_date", e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-expiry_date">Expiry Date</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="edit-expiry_date"
-                  type="date"
-                  value={formData.expiry_date}
-                  onChange={(e) => onFieldChange("expiry_date", e.target.value)}
-                  className="pl-10"
-                />
-              </div>
             </div>
           </div>
 

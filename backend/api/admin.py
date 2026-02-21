@@ -17,7 +17,7 @@ class MediaAssetInline(admin.TabularInline):
 
 @admin.register(Livestock)
 class LivestockAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'price', 'location', 'is_sold', 'created_at')
+    list_display = ('name', 'category', 'location', 'is_sold', 'created_at')
     list_filter = ('category', 'is_sold', 'gender', 'created_at')
     search_fields = ('name', 'breed', 'location', 'description')
     inlines = [MediaAssetInline]
