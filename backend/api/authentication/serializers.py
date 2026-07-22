@@ -1,7 +1,9 @@
 """
 Authentication serializers for the admin API.
 """
+
 import logging
+
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -10,7 +12,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from ..models import UserProfile, AuditLog
+from ..models import AuditLog, UserProfile
 
 logger = logging.getLogger(__name__)
 
@@ -25,20 +27,20 @@ class AdminTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
 
         # Add custom claims
-        token['username'] = user.username
-        token['email'] = user.email
-        token['first_name'] = user.first_name
-        token['last_name'] = user.last_name
-        token['is_staff'] = user.is_staff
-        token['is_superuser'] = user.is_superuser
+        token["username"] = user.username
+        token["email"] = user.email
+        token["first_name"] = user.first_name
+        token["last_name"] = user.last_name
+        token["is_staff"] = user.is_staff
+        token["is_superuser"] = user.is_superuser
 
         # Add profile data if exists
-        if hasattr(user, 'profile'):
-            token['role'] = user.profile.role
-            token['avatar'] = user.profile.avatar.url if user.profile.avatar else None
+        if hasattr(user, "profile"):
+            token["role"] = user.profile.role
+            token["avatar"] = user.profile.avatar.url if user.profile.avatar else None
         else:
-            token['role'] = 'staff'
-            token['avatar'] = None
+            token["role"] = "staff"
+            token["avatar"] = None
 
         return token
 
@@ -54,38 +56,36 @@ class AdminTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # Check if user is active
         if not self.user.is_active:
-            raise serializers.ValidationError(
-                {"detail": "This account has been deactivated."}
-            )
+            raise serializers.ValidationError({"detail": "This account has been deactivated."})
 
         # Check profile-level lock
-        profile = getattr(self.user, 'profile', None)
+        profile = getattr(self.user, "profile", None)
         if profile:
             if profile.locked_until and timezone.now() < profile.locked_until:
                 raise serializers.ValidationError(
-                    {"detail": "Account temporarily locked due to too many failed login attempts. Please try again later."}
+                    {
+                        "detail": "Account temporarily locked due to too many failed login attempts. Please try again later."
+                    }
                 )
 
             if not profile.is_active_admin:
-                raise serializers.ValidationError(
-                    {"detail": "Your admin access has been revoked."}
-                )
+                raise serializers.ValidationError({"detail": "Your admin access has been revoked."})
 
             # Reset failed login attempts on successful login
             profile.failed_login_attempts = 0
             profile.locked_until = None
-            profile.save(update_fields=['failed_login_attempts', 'locked_until'])
+            profile.save(update_fields=["failed_login_attempts", "locked_until"])
 
         # Add user info to response
-        data['user'] = {
-            'id': self.user.id,
-            'username': self.user.username,
-            'email': self.user.email,
-            'first_name': self.user.first_name,
-            'last_name': self.user.last_name,
-            'is_superuser': self.user.is_superuser,
-            'role': profile.role if profile else 'staff',
-            'avatar': profile.avatar.url if profile and profile.avatar else None,
+        data["user"] = {
+            "id": self.user.id,
+            "username": self.user.username,
+            "email": self.user.email,
+            "first_name": self.user.first_name,
+            "last_name": self.user.last_name,
+            "is_superuser": self.user.is_superuser,
+            "role": profile.role if profile else "staff",
+            "avatar": profile.avatar.url if profile and profile.avatar else None,
         }
 
         return data
@@ -96,28 +96,40 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['role', 'avatar', 'phone', 'is_active_admin', 'last_login_ip']
-        read_only_fields = ['last_login_ip']
+        fields = ["role", "avatar", "phone", "is_active_admin", "last_login_ip"]
+        read_only_fields = ["last_login_ip"]
 
 
 class AdminUserSerializer(serializers.ModelSerializer):
     """Serializer for admin user data."""
+
     profile = UserProfileSerializer(read_only=True)
-    role = serializers.CharField(source='profile.role', read_only=True)
+    role = serializers.CharField(source="profile.role", read_only=True)
     avatar = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email', 'first_name', 'last_name',
-            'full_name', 'is_active', 'is_staff', 'is_superuser',
-            'profile', 'role', 'avatar', 'last_login', 'date_joined'
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "full_name",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+            "profile",
+            "role",
+            "avatar",
+            "last_login",
+            "date_joined",
         ]
-        read_only_fields = ['id', 'date_joined', 'last_login', 'is_staff']
+        read_only_fields = ["id", "date_joined", "last_login", "is_staff"]
 
     def get_avatar(self, obj):
-        if hasattr(obj, 'profile') and obj.profile.avatar:
+        if hasattr(obj, "profile") and obj.profile.avatar:
             return obj.profile.avatar.url
         return None
 
@@ -127,17 +139,18 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
 class AdminUserUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating admin user profile."""
+
     phone = serializers.CharField(required=False, allow_blank=True)
     avatar = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'phone', 'avatar']
+        fields = ["first_name", "last_name", "email", "phone", "avatar"]
 
     def update(self, instance, validated_data):
         # Extract profile fields
-        phone = validated_data.pop('phone', None)
-        avatar = validated_data.pop('avatar', None)
+        phone = validated_data.pop("phone", None)
+        avatar = validated_data.pop("avatar", None)
 
         # Update user fields
         for attr, value in validated_data.items():
@@ -157,12 +170,13 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
 
 class PasswordChangeSerializer(serializers.Serializer):
     """Serializer for changing password."""
+
     old_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True)
     confirm_password = serializers.CharField(required=True, write_only=True)
 
     def validate_old_password(self, value):
-        user = self.context['request'].user
+        user = self.context["request"].user
         if not user.check_password(value):
             raise serializers.ValidationError("Current password is incorrect.")
         return value
@@ -172,29 +186,27 @@ class PasswordChangeSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        if attrs['new_password'] != attrs['confirm_password']:
-            raise serializers.ValidationError(
-                {"confirm_password": "New passwords do not match."}
-            )
-        if attrs['old_password'] == attrs['new_password']:
+        if attrs["new_password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError({"confirm_password": "New passwords do not match."})
+        if attrs["old_password"] == attrs["new_password"]:
             raise serializers.ValidationError(
                 {"new_password": "New password must be different from current password."}
             )
         return attrs
 
     def save(self):
-        user = self.context['request'].user
-        user.set_password(self.validated_data['new_password'])
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
         user.save()
 
         # Log the password change
         AuditLog.log_action(
             user=user,
-            action_type='update',
-            resource_type='user',
+            action_type="update",
+            resource_type="user",
             description=f"Password changed for user: {user.username}",
             resource_id=user.id,
-            request=self.context.get('request')
+            request=self.context.get("request"),
         )
 
         return user
@@ -202,6 +214,7 @@ class PasswordChangeSerializer(serializers.Serializer):
 
 class AdminUserCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating new admin users (superadmin only)."""
+
     password = serializers.CharField(write_only=True, min_length=8)
     confirm_password = serializers.CharField(write_only=True)
     role = serializers.ChoiceField(choices=UserProfile.ROLE_CHOICES)
@@ -210,8 +223,14 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'username', 'email', 'password', 'confirm_password',
-            'first_name', 'last_name', 'role', 'phone'
+            "username",
+            "email",
+            "password",
+            "confirm_password",
+            "first_name",
+            "last_name",
+            "role",
+            "phone",
         ]
 
     def validate_email(self, value):
@@ -225,28 +244,29 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        logger.info(f"[AdminUserCreateSerializer] Validating user data. Fields: {list(attrs.keys())}")
+        logger.info(
+            f"[AdminUserCreateSerializer] Validating user data. Fields: {list(attrs.keys())}"
+        )
 
-        confirm_password = attrs.pop('confirm_password', None)
+        confirm_password = attrs.pop("confirm_password", None)
         if not confirm_password:
             logger.error("[AdminUserCreateSerializer] confirm_password field is missing")
-            raise serializers.ValidationError(
-                {"confirm_password": "This field is required."}
-            )
-        if attrs.get('password') != confirm_password:
+            raise serializers.ValidationError({"confirm_password": "This field is required."})
+        if attrs.get("password") != confirm_password:
             logger.error("[AdminUserCreateSerializer] Passwords do not match")
-            raise serializers.ValidationError(
-                {"confirm_password": "Passwords do not match."}
-            )
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
 
         # Validate password with Django's validators
         try:
-            validate_password(attrs['password'], user=User(
-                username=attrs.get('username'),
-                email=attrs.get('email'),
-                first_name=attrs.get('first_name', ''),
-                last_name=attrs.get('last_name', ''),
-            ))
+            validate_password(
+                attrs["password"],
+                user=User(
+                    username=attrs.get("username"),
+                    email=attrs.get("email"),
+                    first_name=attrs.get("first_name", ""),
+                    last_name=attrs.get("last_name", ""),
+                ),
+            )
             logger.info("[AdminUserCreateSerializer] Password validation passed")
         except DjangoValidationError as e:
             logger.error(f"[AdminUserCreateSerializer] Password validation failed: {e.messages}")
@@ -255,13 +275,17 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        logger.info(f"[AdminUserCreateSerializer] Creating user with data keys: {list(validated_data.keys())}")
+        logger.info(
+            f"[AdminUserCreateSerializer] Creating user with data keys: {list(validated_data.keys())}"
+        )
 
-        role = validated_data.pop('role')
-        phone = validated_data.pop('phone', '')
-        password = validated_data.pop('password')
+        role = validated_data.pop("role")
+        phone = validated_data.pop("phone", "")
+        password = validated_data.pop("password")
 
-        logger.info(f"[AdminUserCreateSerializer] Creating user: {validated_data.get('username')}, role: {role}")
+        logger.info(
+            f"[AdminUserCreateSerializer] Creating user: {validated_data.get('username')}, role: {role}"
+        )
 
         try:
             # Create user
@@ -269,26 +293,26 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
             user.set_password(password)
             user.is_staff = True
             user.save()
-            logger.info(f"[AdminUserCreateSerializer] User created successfully: {user.username} (ID: {user.id})")
+            logger.info(
+                f"[AdminUserCreateSerializer] User created successfully: {user.username} (ID: {user.id})"
+            )
 
             # Create profile
-            profile = UserProfile.objects.create(
-                user=user,
-                role=role,
-                phone=phone
+            profile = UserProfile.objects.create(user=user, role=role, phone=phone)
+            logger.info(
+                f"[AdminUserCreateSerializer] UserProfile created: {profile.id} with role {role}"
             )
-            logger.info(f"[AdminUserCreateSerializer] UserProfile created: {profile.id} with role {role}")
 
             # Log the action
-            request = self.context.get('request')
+            request = self.context.get("request")
             if request:
                 AuditLog.log_action(
                     user=request.user,
-                    action_type='create',
-                    resource_type='user',
+                    action_type="create",
+                    resource_type="user",
                     description=f"Created new admin user: {user.username} with role {role}",
                     resource_id=user.id,
-                    request=request
+                    request=request,
                 )
 
             return user
@@ -300,10 +324,11 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
 
 class LogoutSerializer(serializers.Serializer):
     """Serializer for logout - blacklists the refresh token."""
+
     refresh = serializers.CharField()
 
     def validate(self, attrs):
-        self.token = attrs['refresh']
+        self.token = attrs["refresh"]
         return attrs
 
     def save(self):

@@ -1,10 +1,11 @@
 """
 Email notification services for Green Livestock Africa.
 """
+
 import logging
-from django.core.mail import send_mail, EmailMultiAlternatives
-from django.template.loader import render_to_string
+
 from django.conf import settings
+from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +27,9 @@ New contact form submission received:
 
 Name: {inquiry.name}
 Email: {inquiry.email}
-Phone: {inquiry.phone or 'Not provided'}
+Phone: {inquiry.phone or "Not provided"}
 Subject: {inquiry.get_subject_display()}
-Submitted: {inquiry.created_at.strftime('%B %d, %Y at %I:%M %p')}
+Submitted: {inquiry.created_at.strftime("%B %d, %Y at %I:%M %p")}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -46,12 +47,12 @@ https://greenlivestockafrica.com
     """
 
     # Get admin email from settings, with fallback
-    admin_email = getattr(settings, 'ADMIN_EMAIL', None)
+    admin_email = getattr(settings, "ADMIN_EMAIL", None)
     if not admin_email:
         logger.warning("ADMIN_EMAIL not configured. Contact notification not sent.")
         return False
 
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@greenlivestockafrica.com')
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@greenlivestockafrica.com")
 
     try:
         send_mail(
@@ -61,7 +62,7 @@ https://greenlivestockafrica.com
             recipient_list=[admin_email],
             fail_silently=False,
             # Set reply-to as the inquiry sender's email
-            headers={'Reply-To': inquiry.email}
+            headers={"Reply-To": inquiry.email},
         )
         logger.info(f"Contact notification email sent for inquiry {inquiry.id}")
         return True
@@ -106,8 +107,8 @@ https://greenlivestockafrica.com
 Phone: +234 XXX XXX XXXX
     """
 
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@greenlivestockafrica.com')
-    admin_email = getattr(settings, 'ADMIN_EMAIL', from_email)
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@greenlivestockafrica.com")
+    admin_email = getattr(settings, "ADMIN_EMAIL", from_email)
 
     try:
         send_mail(
@@ -116,7 +117,7 @@ Phone: +234 XXX XXX XXXX
             from_email=from_email,
             recipient_list=[inquiry.email],
             fail_silently=False,
-            headers={'Reply-To': admin_email}
+            headers={"Reply-To": admin_email},
         )
         logger.info(f"Reply email sent for inquiry {inquiry.id} to {inquiry.email}")
         return True

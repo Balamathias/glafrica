@@ -17,79 +17,71 @@ Options:
     --skip-users: Skip User and UserProfile models
 """
 
-import json
-from django.core.management.base import BaseCommand, CommandError
-from django.contrib.auth.models import User
-from django.db import connections, transaction
 from django.conf import settings
-from api.models import (
-    Category, Tag, Livestock, MediaAsset,
-    UserProfile, AuditLog, ContactInquiry
-)
+from django.contrib.auth.models import User
+from django.core.management.base import BaseCommand, CommandError
+from django.db import connections
+
+from api.models import AuditLog, Category, ContactInquiry, Livestock, MediaAsset, Tag, UserProfile
 
 
 class Command(BaseCommand):
-    help = 'Migrate data from local database to hosted database'
+    help = "Migrate data from local database to hosted database"
 
     # Define migration order (respects foreign key dependencies)
     MODEL_ORDER = [
-        ('User', User),
-        ('Category', Category),
-        ('Tag', Tag),
-        ('Livestock', Livestock),
-        ('MediaAsset', MediaAsset),
-        ('UserProfile', UserProfile),
-        ('AuditLog', AuditLog),
-        ('ContactInquiry', ContactInquiry),
+        ("User", User),
+        ("Category", Category),
+        ("Tag", Tag),
+        ("Livestock", Livestock),
+        ("MediaAsset", MediaAsset),
+        ("UserProfile", UserProfile),
+        ("AuditLog", AuditLog),
+        ("ContactInquiry", ContactInquiry),
     ]
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--target',
+            "--target",
             type=str,
-            default='hosted',
-            help='Target database alias from DATABASES settings'
+            default="hosted",
+            help="Target database alias from DATABASES settings",
         )
         parser.add_argument(
-            '--database-url',
+            "--database-url",
             type=str,
-            help='Direct database connection URL (postgresql://user:pass@host:port/dbname)'
+            help="Direct database connection URL (postgresql://user:pass@host:port/dbname)",
         )
         parser.add_argument(
-            '--models',
+            "--models",
             type=str,
-            help='Comma-separated list of model names to migrate (e.g., Category,Tag,Livestock)'
+            help="Comma-separated list of model names to migrate (e.g., Category,Tag,Livestock)",
         )
         parser.add_argument(
-            '--dry-run',
-            action='store_true',
-            help='Show what would be migrated without actually doing it'
+            "--dry-run",
+            action="store_true",
+            help="Show what would be migrated without actually doing it",
         )
         parser.add_argument(
-            '--batch-size',
-            type=int,
-            default=100,
-            help='Number of records to migrate per batch'
+            "--batch-size", type=int, default=100, help="Number of records to migrate per batch"
         )
         parser.add_argument(
-            '--skip-users',
-            action='store_true',
-            help='Skip User and UserProfile models'
+            "--skip-users", action="store_true", help="Skip User and UserProfile models"
         )
         parser.add_argument(
-            '--clear-target',
-            action='store_true',
-            help='Clear existing data in target database before migration (DANGEROUS!)'
+            "--clear-target",
+            action="store_true",
+            help="Clear existing data in target database before migration (DANGEROUS!)",
         )
 
     def handle(self, *args, **options):
-        target_alias = options['target']
-        database_url = options.get('database_url')
-        dry_run = options['dry_run']
-        batch_size = options['batch_size']
-        skip_users = options['skip_users']
-        clear_target = options['clear_target']
-        models_filter = options.get('models')
+        target_alias = options["target"]
+        database_url = options.get("database_url")
+        dry_run = options["dry_run"]
+        batch_size = options["batch_size"]
+        skip_users = options["skip_users"]
+        clear_target = options["clear_target"]
+        models_filter = options.get("models")
 
         # Configure target database
         if database_url:
@@ -103,49 +95,49 @@ class Command(BaseCommand):
         # Filter models if specified
         models_to_migrate = self.MODEL_ORDER.copy()
         if models_filter:
-            model_names = [m.strip() for m in models_filter.split(',')]
+            model_names = [m.strip() for m in models_filter.split(",")]
             models_to_migrate = [
-                (name, model) for name, model in self.MODEL_ORDER
-                if name in model_names
+                (name, model) for name, model in self.MODEL_ORDER if name in model_names
             ]
 
         if skip_users:
             models_to_migrate = [
-                (name, model) for name, model in models_to_migrate
-                if name not in ('User', 'UserProfile')
+                (name, model)
+                for name, model in models_to_migrate
+                if name not in ("User", "UserProfile")
             ]
 
         # Display migration plan
-        self.stdout.write(self.style.MIGRATE_HEADING('\n=== Data Migration Plan ===\n'))
-        self.stdout.write(f"Source: default (local)")
+        self.stdout.write(self.style.MIGRATE_HEADING("\n=== Data Migration Plan ===\n"))
+        self.stdout.write("Source: default (local)")
         self.stdout.write(f"Target: {target_alias}")
         self.stdout.write(f"Batch size: {batch_size}")
         self.stdout.write(f"Dry run: {dry_run}")
-        self.stdout.write(f"\nModels to migrate:")
+        self.stdout.write("\nModels to migrate:")
 
         total_records = 0
         for name, model in models_to_migrate:
-            count = model.objects.using('default').count()
+            count = model.objects.using("default").count()
             total_records += count
             self.stdout.write(f"  - {name}: {count} records")
 
         self.stdout.write(f"\nTotal: {total_records} records\n")
 
         if dry_run:
-            self.stdout.write(self.style.WARNING('DRY RUN - No data will be migrated'))
+            self.stdout.write(self.style.WARNING("DRY RUN - No data will be migrated"))
             return
 
         # Confirm before proceeding
-        if not options.get('no_input', False):
-            confirm = input('\nProceed with migration? [y/N]: ')
-            if confirm.lower() != 'y':
-                self.stdout.write(self.style.WARNING('Migration cancelled'))
+        if not options.get("no_input", False):
+            confirm = input("\nProceed with migration? [y/N]: ")
+            if confirm.lower() != "y":
+                self.stdout.write(self.style.WARNING("Migration cancelled"))
                 return
 
         # Test target connection
         try:
             connections[target_alias].ensure_connection()
-            self.stdout.write(self.style.SUCCESS(f'Connected to target database'))
+            self.stdout.write(self.style.SUCCESS("Connected to target database"))
         except Exception as e:
             raise CommandError(f"Cannot connect to target database: {e}")
 
@@ -154,7 +146,7 @@ class Command(BaseCommand):
             self._clear_target_database(target_alias, models_to_migrate)
 
         # Perform migration
-        self.stdout.write(self.style.MIGRATE_HEADING('\n=== Starting Migration ===\n'))
+        self.stdout.write(self.style.MIGRATE_HEADING("\n=== Starting Migration ===\n"))
 
         for name, model in models_to_migrate:
             self._migrate_model(name, model, target_alias, batch_size)
@@ -162,18 +154,19 @@ class Command(BaseCommand):
         # Handle M2M relationships separately
         self._migrate_m2m_relationships(target_alias)
 
-        self.stdout.write(self.style.SUCCESS('\n=== Migration Complete ===\n'))
+        self.stdout.write(self.style.SUCCESS("\n=== Migration Complete ===\n"))
 
     def _configure_database_from_url(self, url: str, alias: str):
         """Parse database URL and add to settings."""
         import dj_database_url
+
         db_config = dj_database_url.parse(url)
         settings.DATABASES[alias] = db_config
         self.stdout.write(f"Configured database from URL: {db_config.get('HOST', 'unknown')}")
 
     def _clear_target_database(self, alias: str, models: list):
         """Clear existing data in target database (reverse order to respect FK constraints)."""
-        self.stdout.write(self.style.WARNING('\nClearing target database...'))
+        self.stdout.write(self.style.WARNING("\nClearing target database..."))
 
         # Reverse order for deletion (children first)
         for name, model in reversed(models):
@@ -187,7 +180,7 @@ class Command(BaseCommand):
 
     def _migrate_model(self, name: str, model, target_alias: str, batch_size: int):
         """Migrate a single model's data."""
-        source_qs = model.objects.using('default').all()
+        source_qs = model.objects.using("default").all()
         total = source_qs.count()
 
         if total == 0:
@@ -202,7 +195,7 @@ class Command(BaseCommand):
 
         # Process in batches
         for i in range(0, total, batch_size):
-            batch = list(source_qs[i:i + batch_size])
+            batch = list(source_qs[i : i + batch_size])
 
             for obj in batch:
                 try:
@@ -217,13 +210,11 @@ class Command(BaseCommand):
 
                 except Exception as e:
                     errors += 1
-                    self.stdout.write(
-                        self.style.ERROR(f"    Error migrating {name} {obj.pk}: {e}")
-                    )
+                    self.stdout.write(self.style.ERROR(f"    Error migrating {name} {obj.pk}: {e}"))
 
             # Progress update
             progress = min(i + batch_size, total)
-            self.stdout.write(f"    Progress: {progress}/{total}", ending='\r')
+            self.stdout.write(f"    Progress: {progress}/{total}", ending="\r")
 
         self.stdout.write(
             f"  {name}: migrated={migrated}, skipped={skipped}, errors={errors}"
@@ -240,17 +231,17 @@ class Command(BaseCommand):
         if model == User:
             # Create user without triggering signals
             user_data = {
-                'id': obj.id,
-                'username': obj.username,
-                'email': obj.email,
-                'password': obj.password,  # Already hashed
-                'first_name': obj.first_name,
-                'last_name': obj.last_name,
-                'is_active': obj.is_active,
-                'is_staff': obj.is_staff,
-                'is_superuser': obj.is_superuser,
-                'date_joined': obj.date_joined,
-                'last_login': obj.last_login,
+                "id": obj.id,
+                "username": obj.username,
+                "email": obj.email,
+                "password": obj.password,  # Already hashed
+                "first_name": obj.first_name,
+                "last_name": obj.last_name,
+                "is_active": obj.is_active,
+                "is_staff": obj.is_staff,
+                "is_superuser": obj.is_superuser,
+                "date_joined": obj.date_joined,
+                "last_login": obj.last_login,
             }
             User.objects.using(alias).create(**user_data)
             return
@@ -271,11 +262,16 @@ class Command(BaseCommand):
         self.stdout.write("\n  Migrating M2M relationships...")
 
         # Livestock.tags
-        livestock_with_tags = Livestock.objects.using('default').prefetch_related('tags').filter(tags__isnull=False).distinct()
+        livestock_with_tags = (
+            Livestock.objects.using("default")
+            .prefetch_related("tags")
+            .filter(tags__isnull=False)
+            .distinct()
+        )
 
         for livestock in livestock_with_tags:
             try:
-                tag_ids = list(livestock.tags.values_list('id', flat=True))
+                tag_ids = list(livestock.tags.values_list("id", flat=True))
                 if tag_ids:
                     # Get the livestock object from target
                     target_livestock = Livestock.objects.using(target_alias).get(pk=livestock.pk)

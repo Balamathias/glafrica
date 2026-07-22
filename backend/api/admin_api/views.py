@@ -1,43 +1,57 @@
 """
 Admin API views for full CRUD operations with bulk support.
 """
+
 import csv
 from io import StringIO
-from django.db.models import Q, Count, Sum, F
+
+from django.db.models import Count, F, Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
-from rest_framework import viewsets, status, filters
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser
 
-from ..models import Livestock, MediaAsset, Category, Tag, AuditLog, ContactInquiry, Egg, EggCategory, EggMediaAsset
+from ..models import (
+    AuditLog,
+    Category,
+    ContactInquiry,
+    Egg,
+    EggCategory,
+    EggMediaAsset,
+    Livestock,
+    MediaAsset,
+    Tag,
+)
 from ..permissions import (
-    IsAdminUser, CanManageLivestock, CanManageCategories,
-    CanManageTags, CanManageMedia, CanManageEggs
+    CanManageCategories,
+    CanManageEggs,
+    CanManageLivestock,
+    CanManageMedia,
+    CanManageTags,
+    IsAdminUser,
 )
 from .serializers import (
-    AdminLivestockListSerializer,
-    AdminLivestockDetailSerializer,
-    AdminCategorySerializer,
-    AdminTagSerializer,
-    AdminMediaAssetSerializer,
     AdminAuditLogSerializer,
-    BulkDeleteSerializer,
-    BulkUpdateSerializer,
-    BulkMarkSoldSerializer,
-    MediaUploadSerializer,
-    ExportSerializer,
-    AdminContactInquiryListSerializer,
+    AdminCategorySerializer,
     AdminContactInquiryDetailSerializer,
-    UpdateInquiryStatusSerializer,
-    AdminEggListSerializer,
-    AdminEggDetailSerializer,
+    AdminContactInquiryListSerializer,
     AdminEggCategorySerializer,
+    AdminEggDetailSerializer,
+    AdminEggListSerializer,
     AdminEggMediaAssetSerializer,
+    AdminLivestockDetailSerializer,
+    AdminLivestockListSerializer,
+    AdminMediaAssetSerializer,
+    AdminTagSerializer,
+    BulkDeleteSerializer,
+    BulkMarkSoldSerializer,
+    BulkUpdateSerializer,
     EggBulkUpdateSerializer,
+    ExportSerializer,
 )
 
 
@@ -45,41 +59,42 @@ class AdminLivestockViewSet(viewsets.ModelViewSet):
     """
     ViewSet for admin livestock management with bulk operations.
     """
+
     permission_classes = [IsAuthenticated, IsAdminUser, CanManageLivestock]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'breed', 'location', 'description']
-    ordering_fields = ['name', 'price', 'created_at', 'updated_at', 'is_sold']
-    ordering = ['-created_at']
+    search_fields = ["name", "breed", "location", "description"]
+    ordering_fields = ["name", "price", "created_at", "updated_at", "is_sold"]
+    ordering = ["-created_at"]
 
     def get_queryset(self):
-        queryset = Livestock.objects.select_related('category').prefetch_related('tags', 'media')
+        queryset = Livestock.objects.select_related("category").prefetch_related("tags", "media")
 
         # Filter by category
-        category = self.request.query_params.get('category')
+        category = self.request.query_params.get("category")
         if category:
             queryset = queryset.filter(category__slug=category)
 
         # Filter by sold status
-        is_sold = self.request.query_params.get('is_sold')
+        is_sold = self.request.query_params.get("is_sold")
         if is_sold is not None:
-            queryset = queryset.filter(is_sold=is_sold.lower() == 'true')
+            queryset = queryset.filter(is_sold=is_sold.lower() == "true")
 
         # Filter by tags
-        tags = self.request.query_params.getlist('tags')
+        tags = self.request.query_params.getlist("tags")
         if tags:
             queryset = queryset.filter(tags__slug__in=tags).distinct()
 
         # Filter by price range
-        min_price = self.request.query_params.get('min_price')
-        max_price = self.request.query_params.get('max_price')
+        min_price = self.request.query_params.get("min_price")
+        max_price = self.request.query_params.get("max_price")
         if min_price:
             queryset = queryset.filter(price__gte=min_price)
         if max_price:
             queryset = queryset.filter(price__lte=max_price)
 
         # Filter by date range
-        date_from = self.request.query_params.get('date_from')
-        date_to = self.request.query_params.get('date_to')
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
         if date_from:
             queryset = queryset.filter(created_at__date__gte=date_from)
         if date_to:
@@ -88,7 +103,7 @@ class AdminLivestockViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return AdminLivestockListSerializer
         return AdminLivestockDetailSerializer
 
@@ -96,11 +111,11 @@ class AdminLivestockViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         AuditLog.log_action(
             user=self.request.user,
-            action_type='create',
-            resource_type='livestock',
+            action_type="create",
+            resource_type="livestock",
             description=f"Created livestock: {instance.name}",
             resource_id=str(instance.id),
-            request=self.request
+            request=self.request,
         )
 
     def perform_update(self, serializer):
@@ -112,16 +127,16 @@ class AdminLivestockViewSet(viewsets.ModelViewSet):
         changes = {}
         for key in new_data:
             if key in old_data and old_data[key] != new_data[key]:
-                changes[key] = {'old': old_data[key], 'new': new_data[key]}
+                changes[key] = {"old": old_data[key], "new": new_data[key]}
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='update',
-            resource_type='livestock',
+            action_type="update",
+            resource_type="livestock",
             description=f"Updated livestock: {instance.name}",
             resource_id=str(instance.id),
             changes=changes,
-            request=self.request
+            request=self.request,
         )
 
     def perform_destroy(self, instance):
@@ -130,85 +145,82 @@ class AdminLivestockViewSet(viewsets.ModelViewSet):
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='delete',
-            resource_type='livestock',
+            action_type="delete",
+            resource_type="livestock",
             description=f"Deleted livestock: {name}",
             resource_id=livestock_id,
-            request=self.request
+            request=self.request,
         )
 
         instance.delete()
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def bulk_delete(self, request):
         """Delete multiple livestock items."""
         serializer = BulkDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ids = serializer.validated_data['ids']
+        ids = serializer.validated_data["ids"]
         livestock_items = Livestock.objects.filter(id__in=ids)
         count = livestock_items.count()
-        names = list(livestock_items.values_list('name', flat=True))
+        names = list(livestock_items.values_list("name", flat=True))
 
         livestock_items.delete()
 
         AuditLog.log_action(
             user=request.user,
-            action_type='bulk_operation',
-            resource_type='livestock',
+            action_type="bulk_operation",
+            resource_type="livestock",
             description=f"Bulk deleted {count} livestock items: {', '.join(names[:5])}{'...' if len(names) > 5 else ''}",
-            changes={'deleted_ids': [str(id) for id in ids]},
-            request=request
+            changes={"deleted_ids": [str(id) for id in ids]},
+            request=request,
         )
 
-        return Response({
-            'detail': f'Successfully deleted {count} items.',
-            'count': count
-        })
+        return Response({"detail": f"Successfully deleted {count} items.", "count": count})
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def bulk_update(self, request):
         """Update multiple livestock items with same values."""
         serializer = BulkUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ids = serializer.validated_data['ids']
-        updates = serializer.validated_data['updates']
+        ids = serializer.validated_data["ids"]
+        updates = serializer.validated_data["updates"]
 
         # Handle category update specially
-        if 'category' in updates:
+        if "category" in updates:
             try:
-                updates['category'] = Category.objects.get(slug=updates['category'])
+                updates["category"] = Category.objects.get(slug=updates["category"])
             except Category.DoesNotExist:
                 return Response(
-                    {'detail': f"Category '{updates['category']}' not found."},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {"detail": f"Category '{updates['category']}' not found."},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
         count = Livestock.objects.filter(id__in=ids).update(**updates)
 
         AuditLog.log_action(
             user=request.user,
-            action_type='bulk_operation',
-            resource_type='livestock',
+            action_type="bulk_operation",
+            resource_type="livestock",
             description=f"Bulk updated {count} livestock items",
-            changes={'updated_ids': [str(id) for id in ids], 'updates': {k: str(v) for k, v in updates.items()}},
-            request=request
+            changes={
+                "updated_ids": [str(id) for id in ids],
+                "updates": {k: str(v) for k, v in updates.items()},
+            },
+            request=request,
         )
 
-        return Response({
-            'detail': f'Successfully updated {count} items.',
-            'count': count
-        })
+        return Response({"detail": f"Successfully updated {count} items.", "count": count})
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def bulk_mark_sold(self, request):
         """Mark multiple livestock items as sold."""
         serializer = BulkMarkSoldSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ids = serializer.validated_data['ids']
-        price_percentage = serializer.validated_data.get('sold_price_percentage', 100.0)
+        ids = serializer.validated_data["ids"]
+        price_percentage = serializer.validated_data.get("sold_price_percentage", 100.0)
 
         livestock_items = Livestock.objects.filter(id__in=ids, is_sold=False)
         now = timezone.now()
@@ -223,39 +235,41 @@ class AdminLivestockViewSet(viewsets.ModelViewSet):
 
         AuditLog.log_action(
             user=request.user,
-            action_type='bulk_operation',
-            resource_type='livestock',
+            action_type="bulk_operation",
+            resource_type="livestock",
             description=f"Marked {updated_count} livestock items as sold",
-            changes={'sold_ids': [str(id) for id in ids], 'price_percentage': price_percentage},
-            request=request
+            changes={"sold_ids": [str(id) for id in ids], "price_percentage": price_percentage},
+            request=request,
         )
 
-        return Response({
-            'detail': f'Successfully marked {updated_count} items as sold.',
-            'count': updated_count
-        })
+        return Response(
+            {
+                "detail": f"Successfully marked {updated_count} items as sold.",
+                "count": updated_count,
+            }
+        )
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def export(self, request):
         """Export livestock data to CSV/Excel."""
         # Convert QueryDict to regular dict for serializer
         # Handle 'ids' specially since it can be a list
         export_data = {
-            'format': request.query_params.get('format', 'csv'),
-            'include_sold': request.query_params.get('include_sold', 'true').lower() == 'true',
+            "format": request.query_params.get("format", "csv"),
+            "include_sold": request.query_params.get("include_sold", "true").lower() == "true",
         }
 
         # Handle multiple ids parameters
-        ids = request.query_params.getlist('ids')
+        ids = request.query_params.getlist("ids")
         if ids:
-            export_data['ids'] = ids
+            export_data["ids"] = ids
 
         serializer = ExportSerializer(data=export_data)
         serializer.is_valid(raise_exception=True)
 
-        export_format = serializer.validated_data.get('format', 'csv')
-        ids = serializer.validated_data.get('ids', [])
-        include_sold = serializer.validated_data.get('include_sold', True)
+        export_format = serializer.validated_data.get("format", "csv")
+        ids = serializer.validated_data.get("ids", [])
+        include_sold = serializer.validated_data.get("include_sold", True)
 
         queryset = self.get_queryset()
         if ids:
@@ -263,15 +277,15 @@ class AdminLivestockViewSet(viewsets.ModelViewSet):
         if not include_sold:
             queryset = queryset.filter(is_sold=False)
 
-        if export_format == 'csv':
+        if export_format == "csv":
             return self._export_csv(queryset)
-        elif export_format == 'json':
+        elif export_format == "json":
             serializer = AdminLivestockDetailSerializer(queryset, many=True)
             return Response(serializer.data)
         else:
             return Response(
-                {'detail': 'Excel export not yet implemented.'},
-                status=status.HTTP_501_NOT_IMPLEMENTED
+                {"detail": "Excel export not yet implemented."},
+                status=status.HTTP_501_NOT_IMPLEMENTED,
             )
 
     def _export_csv(self, queryset):
@@ -280,62 +294,79 @@ class AdminLivestockViewSet(viewsets.ModelViewSet):
         writer = csv.writer(output)
 
         # Header row
-        writer.writerow([
-            'ID', 'Name', 'Breed', 'Category', 'Age', 'Weight', 'Gender',
-            'Price', 'Currency', 'Location', 'Is Sold', 'Sold At', 'Sold Price',
-            'Description', 'Health Status', 'Tags', 'Created At'
-        ])
+        writer.writerow(
+            [
+                "ID",
+                "Name",
+                "Breed",
+                "Category",
+                "Age",
+                "Weight",
+                "Gender",
+                "Price",
+                "Currency",
+                "Location",
+                "Is Sold",
+                "Sold At",
+                "Sold Price",
+                "Description",
+                "Health Status",
+                "Tags",
+                "Created At",
+            ]
+        )
 
         # Data rows
         for item in queryset:
-            writer.writerow([
-                str(item.id),
-                item.name,
-                item.breed,
-                item.category.name,
-                item.age,
-                item.weight,
-                item.get_gender_display(),
-                str(item.price),
-                item.currency,
-                item.location,
-                'Yes' if item.is_sold else 'No',
-                item.sold_at.isoformat() if item.sold_at else '',
-                str(item.sold_price) if item.sold_price else '',
-                item.description,
-                item.health_status,
-                ', '.join(t.name for t in item.tags.all()),
-                item.created_at.isoformat()
-            ])
+            writer.writerow(
+                [
+                    str(item.id),
+                    item.name,
+                    item.breed,
+                    item.category.name,
+                    item.age,
+                    item.weight,
+                    item.get_gender_display(),
+                    str(item.price),
+                    item.currency,
+                    item.location,
+                    "Yes" if item.is_sold else "No",
+                    item.sold_at.isoformat() if item.sold_at else "",
+                    str(item.sold_price) if item.sold_price else "",
+                    item.description,
+                    item.health_status,
+                    ", ".join(t.name for t in item.tags.all()),
+                    item.created_at.isoformat(),
+                ]
+            )
 
         # Log export action
         AuditLog.log_action(
             user=self.request.user,
-            action_type='export',
-            resource_type='livestock',
+            action_type="export",
+            resource_type="livestock",
             description=f"Exported {queryset.count()} livestock items to CSV",
-            request=self.request
+            request=self.request,
         )
 
-        response = HttpResponse(output.getvalue(), content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="livestock_export_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+        response = HttpResponse(output.getvalue(), content_type="text/csv")
+        response["Content-Disposition"] = (
+            f'attachment; filename="livestock_export_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+        )
         return response
 
-    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser, FormParser])
     def upload_media(self, request, pk=None):
         """Upload media for a specific livestock item."""
         livestock = self.get_object()
 
-        file = request.FILES.get('file')
+        file = request.FILES.get("file")
         if not file:
-            return Response(
-                {'detail': 'No file provided.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
-        media_type = request.data.get('media_type', 'image')
-        is_featured = request.data.get('is_featured', 'false').lower() == 'true'
-        aspect_ratio = float(request.data.get('aspect_ratio', 1.0))
+        media_type = request.data.get("media_type", "image")
+        is_featured = request.data.get("is_featured", "false").lower() == "true"
+        aspect_ratio = float(request.data.get("aspect_ratio", 1.0))
 
         # If this is set as featured, unset others
         if is_featured:
@@ -346,66 +377,64 @@ class AdminLivestockViewSet(viewsets.ModelViewSet):
             file=file,
             media_type=media_type,
             is_featured=is_featured,
-            aspect_ratio=aspect_ratio
+            aspect_ratio=aspect_ratio,
         )
 
         AuditLog.log_action(
             user=request.user,
-            action_type='create',
-            resource_type='media',
+            action_type="create",
+            resource_type="media",
             description=f"Uploaded {media_type} for livestock: {livestock.name}",
             resource_id=str(media.id),
-            request=request
+            request=request,
         )
 
-        return Response(
-            AdminMediaAssetSerializer(media).data,
-            status=status.HTTP_201_CREATED
-        )
+        return Response(AdminMediaAssetSerializer(media).data, status=status.HTTP_201_CREATED)
 
 
 class AdminCategoryViewSet(viewsets.ModelViewSet):
     """ViewSet for admin category management."""
+
     queryset = Category.objects.annotate(
-        livestock_count=Count('livestock'),
-        available_count=Count('livestock', filter=Q(livestock__is_sold=False)),
-        sold_count=Count('livestock', filter=Q(livestock__is_sold=True))
+        livestock_count=Count("livestock"),
+        available_count=Count("livestock", filter=Q(livestock__is_sold=False)),
+        sold_count=Count("livestock", filter=Q(livestock__is_sold=True)),
     )
     serializer_class = AdminCategorySerializer
     permission_classes = [IsAuthenticated, IsAdminUser, CanManageCategories]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'description']
-    ordering_fields = ['name', 'created_at', 'livestock_count']
-    ordering = ['name']
+    search_fields = ["name", "description"]
+    ordering_fields = ["name", "created_at", "livestock_count"]
+    ordering = ["name"]
 
     def perform_create(self, serializer):
         instance = serializer.save()
         AuditLog.log_action(
             user=self.request.user,
-            action_type='create',
-            resource_type='category',
+            action_type="create",
+            resource_type="category",
             description=f"Created category: {instance.name}",
             resource_id=str(instance.id),
-            request=self.request
+            request=self.request,
         )
 
     def perform_update(self, serializer):
         instance = serializer.save()
         AuditLog.log_action(
             user=self.request.user,
-            action_type='update',
-            resource_type='category',
+            action_type="update",
+            resource_type="category",
             description=f"Updated category: {instance.name}",
             resource_id=str(instance.id),
-            request=self.request
+            request=self.request,
         )
 
     def perform_destroy(self, instance):
         # Check if category has livestock
         if instance.livestock.exists():
             return Response(
-                {'detail': 'Cannot delete category with existing livestock.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Cannot delete category with existing livestock."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         name = instance.name
@@ -413,11 +442,11 @@ class AdminCategoryViewSet(viewsets.ModelViewSet):
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='delete',
-            resource_type='category',
+            action_type="delete",
+            resource_type="category",
             description=f"Deleted category: {name}",
             resource_id=category_id,
-            request=self.request
+            request=self.request,
         )
 
         instance.delete()
@@ -425,23 +454,24 @@ class AdminCategoryViewSet(viewsets.ModelViewSet):
 
 class AdminTagViewSet(viewsets.ModelViewSet):
     """ViewSet for admin tag management."""
-    queryset = Tag.objects.annotate(usage_count=Count('livestock'))
+
+    queryset = Tag.objects.annotate(usage_count=Count("livestock"))
     serializer_class = AdminTagSerializer
     permission_classes = [IsAuthenticated, IsAdminUser, CanManageTags]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name']
-    ordering_fields = ['name', 'created_at', 'usage_count']
-    ordering = ['name']
+    search_fields = ["name"]
+    ordering_fields = ["name", "created_at", "usage_count"]
+    ordering = ["name"]
 
     def perform_create(self, serializer):
         instance = serializer.save()
         AuditLog.log_action(
             user=self.request.user,
-            action_type='create',
-            resource_type='tag',
+            action_type="create",
+            resource_type="tag",
             description=f"Created tag: {instance.name}",
             resource_id=str(instance.id),
-            request=self.request
+            request=self.request,
         )
 
     def perform_destroy(self, instance):
@@ -450,11 +480,11 @@ class AdminTagViewSet(viewsets.ModelViewSet):
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='delete',
-            resource_type='tag',
+            action_type="delete",
+            resource_type="tag",
             description=f"Deleted tag: {name}",
             resource_id=tag_id,
-            request=self.request
+            request=self.request,
         )
 
         instance.delete()
@@ -462,44 +492,44 @@ class AdminTagViewSet(viewsets.ModelViewSet):
 
 class AdminMediaViewSet(viewsets.ModelViewSet):
     """ViewSet for admin media management."""
-    queryset = MediaAsset.objects.select_related('livestock')
+
+    queryset = MediaAsset.objects.select_related("livestock")
     serializer_class = AdminMediaAssetSerializer
     permission_classes = [IsAuthenticated, IsAdminUser, CanManageMedia]
     parser_classes = [MultiPartParser, FormParser]
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['created_at', 'is_featured']
-    ordering = ['-created_at']
+    ordering_fields = ["created_at", "is_featured"]
+    ordering = ["-created_at"]
 
     def get_queryset(self):
         queryset = super().get_queryset()
 
         # Filter by livestock
-        livestock_id = self.request.query_params.get('livestock')
+        livestock_id = self.request.query_params.get("livestock")
         if livestock_id:
             queryset = queryset.filter(livestock_id=livestock_id)
 
         # Filter by media type
-        media_type = self.request.query_params.get('type')
+        media_type = self.request.query_params.get("type")
         if media_type:
             queryset = queryset.filter(media_type=media_type)
 
         return queryset
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def set_featured(self, request, pk=None):
         """Set this media as the featured image."""
         media = self.get_object()
 
         # Unset other featured media for this livestock
-        MediaAsset.objects.filter(
-            livestock=media.livestock,
-            is_featured=True
-        ).update(is_featured=False)
+        MediaAsset.objects.filter(livestock=media.livestock, is_featured=True).update(
+            is_featured=False
+        )
 
         media.is_featured = True
         media.save()
 
-        return Response({'detail': 'Media set as featured.'})
+        return Response({"detail": "Media set as featured."})
 
     def perform_destroy(self, instance):
         livestock_name = instance.livestock.name
@@ -507,11 +537,11 @@ class AdminMediaViewSet(viewsets.ModelViewSet):
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='delete',
-            resource_type='media',
+            action_type="delete",
+            resource_type="media",
             description=f"Deleted media from livestock: {livestock_name}",
             resource_id=media_id,
-            request=self.request
+            request=self.request,
         )
 
         instance.delete()
@@ -519,33 +549,34 @@ class AdminMediaViewSet(viewsets.ModelViewSet):
 
 class AdminAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for viewing audit logs (read-only)."""
-    queryset = AuditLog.objects.select_related('user')
+
+    queryset = AuditLog.objects.select_related("user")
     serializer_class = AdminAuditLogSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     filter_backends = [filters.OrderingFilter]
-    ordering = ['-created_at']
+    ordering = ["-created_at"]
 
     def get_queryset(self):
         queryset = super().get_queryset()
 
         # Filter by user
-        user_id = self.request.query_params.get('user')
+        user_id = self.request.query_params.get("user")
         if user_id:
             queryset = queryset.filter(user_id=user_id)
 
         # Filter by action type
-        action_type = self.request.query_params.get('action_type')
+        action_type = self.request.query_params.get("action_type")
         if action_type:
             queryset = queryset.filter(action_type=action_type)
 
         # Filter by resource type
-        resource_type = self.request.query_params.get('resource_type')
+        resource_type = self.request.query_params.get("resource_type")
         if resource_type:
             queryset = queryset.filter(resource_type=resource_type)
 
         # Filter by date range
-        date_from = self.request.query_params.get('date_from')
-        date_to = self.request.query_params.get('date_to')
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
         if date_from:
             queryset = queryset.filter(created_at__date__gte=date_from)
         if date_to:
@@ -559,42 +590,50 @@ class AdminContactInquiryViewSet(viewsets.ModelViewSet):
     ViewSet for admin contact inquiry management.
     Allows viewing, updating status, and managing contact form submissions.
     """
-    queryset = ContactInquiry.objects.select_related('replied_by')
+
+    queryset = ContactInquiry.objects.select_related("replied_by")
     permission_classes = [IsAuthenticated, IsAdminUser]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'email', 'message']
-    ordering_fields = ['created_at', 'status', 'name']
-    ordering = ['-created_at']
-    http_method_names = ['get', 'post', 'patch', 'delete']  # No create (POST on list) - created via public API
+    search_fields = ["name", "email", "message"]
+    ordering_fields = ["created_at", "status", "name"]
+    ordering = ["-created_at"]
+    http_method_names = [
+        "get",
+        "post",
+        "patch",
+        "delete",
+    ]  # No create (POST on list) - created via public API
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return AdminContactInquiryListSerializer
         return AdminContactInquiryDetailSerializer
 
     def create(self, request, *args, **kwargs):
         """Disable create - inquiries are created via public contact form."""
         return Response(
-            {'detail': 'Creating inquiries via admin API is not allowed. Use the public contact form.'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
+            {
+                "detail": "Creating inquiries via admin API is not allowed. Use the public contact form."
+            },
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
     def get_queryset(self):
         queryset = super().get_queryset()
 
         # Filter by status
-        status_filter = self.request.query_params.get('status')
+        status_filter = self.request.query_params.get("status")
         if status_filter:
             queryset = queryset.filter(status=status_filter)
 
         # Filter by subject
-        subject = self.request.query_params.get('subject')
+        subject = self.request.query_params.get("subject")
         if subject:
             queryset = queryset.filter(subject=subject)
 
         # Filter by date range
-        date_from = self.request.query_params.get('date_from')
-        date_to = self.request.query_params.get('date_to')
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
         if date_from:
             queryset = queryset.filter(created_at__date__gte=date_from)
         if date_to:
@@ -606,24 +645,24 @@ class AdminContactInquiryViewSet(viewsets.ModelViewSet):
         """Track status changes and set replied_by when status changes to replied."""
         instance = serializer.instance
         old_status = instance.status
-        new_status = serializer.validated_data.get('status', old_status)
+        new_status = serializer.validated_data.get("status", old_status)
 
         # Auto-set replied_at and replied_by when marking as replied
-        if old_status != 'replied' and new_status == 'replied':
-            serializer.validated_data['replied_at'] = timezone.now()
-            serializer.validated_data['replied_by'] = self.request.user
+        if old_status != "replied" and new_status == "replied":
+            serializer.validated_data["replied_at"] = timezone.now()
+            serializer.validated_data["replied_by"] = self.request.user
 
         instance = serializer.save()
 
         # Log the action
         AuditLog.log_action(
             user=self.request.user,
-            action_type='update',
-            resource_type='inquiry',
+            action_type="update",
+            resource_type="inquiry",
             description=f"Updated inquiry from {instance.name}: status {old_status} → {new_status}",
             resource_id=str(instance.id),
-            changes={'status': {'old': old_status, 'new': new_status}},
-            request=self.request
+            changes={"status": {"old": old_status, "new": new_status}},
+            request=self.request,
         )
 
     def perform_destroy(self, instance):
@@ -632,167 +671,176 @@ class AdminContactInquiryViewSet(viewsets.ModelViewSet):
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='delete',
-            resource_type='inquiry',
+            action_type="delete",
+            resource_type="inquiry",
             description=f"Deleted inquiry from: {name}",
             resource_id=inquiry_id,
-            request=self.request
+            request=self.request,
         )
 
         instance.delete()
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def mark_read(self, request, pk=None):
         """Mark an inquiry as read."""
         inquiry = self.get_object()
-        if inquiry.status == 'new':
-            inquiry.status = 'read'
+        if inquiry.status == "new":
+            inquiry.status = "read"
             inquiry.save()
 
             AuditLog.log_action(
                 user=request.user,
-                action_type='update',
-                resource_type='inquiry',
+                action_type="update",
+                resource_type="inquiry",
                 description=f"Marked inquiry from {inquiry.name} as read",
                 resource_id=str(inquiry.id),
-                request=request
+                request=request,
             )
 
-        return Response({'detail': 'Inquiry marked as read.'})
+        return Response({"detail": "Inquiry marked as read."})
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def stats(self, request):
         """Get inquiry statistics."""
         total = ContactInquiry.objects.count()
-        new = ContactInquiry.objects.filter(status='new').count()
-        read = ContactInquiry.objects.filter(status='read').count()
-        replied = ContactInquiry.objects.filter(status='replied').count()
-        closed = ContactInquiry.objects.filter(status='closed').count()
+        new = ContactInquiry.objects.filter(status="new").count()
+        read = ContactInquiry.objects.filter(status="read").count()
+        replied = ContactInquiry.objects.filter(status="replied").count()
+        closed = ContactInquiry.objects.filter(status="closed").count()
 
         # By subject
         by_subject = list(
-            ContactInquiry.objects.values('subject')
-            .annotate(count=Count('id'))
-            .order_by('-count')
+            ContactInquiry.objects.values("subject").annotate(count=Count("id")).order_by("-count")
         )
 
-        return Response({
-            'total': total,
-            'new': new,
-            'read': read,
-            'replied': replied,
-            'closed': closed,
-            'by_subject': by_subject
-        })
+        return Response(
+            {
+                "total": total,
+                "new": new,
+                "read": read,
+                "replied": replied,
+                "closed": closed,
+                "by_subject": by_subject,
+            }
+        )
 
 
 # ============================================
 # VISITOR ANALYTICS VIEWS
 # ============================================
 
-from ..services.analytics import AnalyticsService
 from ..permissions import CanViewAnalytics
+from ..services.analytics import AnalyticsService
 
 
 class VisitorAnalyticsView(APIView):
     """
     Admin endpoints for visitor analytics data.
     """
+
     permission_classes = [IsAuthenticated, IsAdminUser, CanViewAnalytics]
 
     def get(self, request, action=None):
         """Route to appropriate analytics method based on action."""
-        days = int(request.query_params.get('days', 30))
-        limit = int(request.query_params.get('limit', 10))
+        days = int(request.query_params.get("days", 30))
+        limit = int(request.query_params.get("limit", 10))
 
-        if action == 'summary':
+        if action == "summary":
             return Response(AnalyticsService.get_visitor_summary(days))
 
-        elif action == 'visits-trend':
+        elif action == "visits-trend":
             return Response(AnalyticsService.get_visit_trend(days))
 
-        elif action == 'top-pages':
+        elif action == "top-pages":
             return Response(AnalyticsService.get_top_pages(limit, days))
 
-        elif action == 'top-livestock':
+        elif action == "top-livestock":
             return Response(AnalyticsService.get_top_livestock_views(limit, days))
 
-        elif action == 'devices':
+        elif action == "devices":
             return Response(AnalyticsService.get_device_breakdown(days))
 
-        elif action == 'referrers':
+        elif action == "referrers":
             return Response(AnalyticsService.get_traffic_sources(limit, days))
 
-        elif action == 'geographic':
+        elif action == "geographic":
             return Response(AnalyticsService.get_geographic_breakdown(limit, days))
 
         else:
-            return Response(
-                {'error': 'Invalid action'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ============================================
 # EGG ADMIN VIEWSETS
 # ============================================
 
+
 class AdminEggViewSet(viewsets.ModelViewSet):
     """
     ViewSet for admin egg management with bulk operations.
     """
+
     permission_classes = [IsAuthenticated, IsAdminUser, CanManageEggs]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'breed', 'location', 'description']
-    ordering_fields = ['name', 'price', 'created_at', 'updated_at', 'production_date', 'expiry_date']
-    ordering = ['-created_at']
+    search_fields = ["name", "breed", "location", "description"]
+    ordering_fields = [
+        "name",
+        "price",
+        "created_at",
+        "updated_at",
+        "production_date",
+        "expiry_date",
+    ]
+    ordering = ["-created_at"]
 
     def get_queryset(self):
-        queryset = Egg.objects.select_related('category', 'created_by').prefetch_related('tags', 'media')
+        queryset = Egg.objects.select_related("category", "created_by").prefetch_related(
+            "tags", "media"
+        )
 
         # Filter by category
-        category = self.request.query_params.get('category')
+        category = self.request.query_params.get("category")
         if category:
             queryset = queryset.filter(category__slug=category)
 
         # Filter by availability status
-        is_available = self.request.query_params.get('is_available')
+        is_available = self.request.query_params.get("is_available")
         if is_available is not None:
-            queryset = queryset.filter(is_available=is_available.lower() == 'true')
+            queryset = queryset.filter(is_available=is_available.lower() == "true")
 
         # Filter by egg type
-        egg_type = self.request.query_params.get('egg_type')
+        egg_type = self.request.query_params.get("egg_type")
         if egg_type:
             queryset = queryset.filter(egg_type=egg_type)
 
         # Filter by size
-        size = self.request.query_params.get('size')
+        size = self.request.query_params.get("size")
         if size:
             queryset = queryset.filter(size=size)
 
         # Filter by freshness status
-        freshness = self.request.query_params.get('freshness')
+        freshness = self.request.query_params.get("freshness")
         if freshness:
             from datetime import timedelta
+
             today = timezone.now().date()
-            if freshness == 'fresh':
+            if freshness == "fresh":
                 queryset = queryset.filter(expiry_date__gt=today + timedelta(days=7))
-            elif freshness == 'use_soon':
+            elif freshness == "use_soon":
                 queryset = queryset.filter(
                     expiry_date__gt=today + timedelta(days=3),
-                    expiry_date__lte=today + timedelta(days=7)
+                    expiry_date__lte=today + timedelta(days=7),
                 )
-            elif freshness == 'expiring_soon':
+            elif freshness == "expiring_soon":
                 queryset = queryset.filter(
-                    expiry_date__gt=today,
-                    expiry_date__lte=today + timedelta(days=3)
+                    expiry_date__gt=today, expiry_date__lte=today + timedelta(days=3)
                 )
-            elif freshness == 'expired':
+            elif freshness == "expired":
                 queryset = queryset.filter(expiry_date__lt=today)
 
         # Filter by price range
-        min_price = self.request.query_params.get('min_price')
-        max_price = self.request.query_params.get('max_price')
+        min_price = self.request.query_params.get("min_price")
+        max_price = self.request.query_params.get("max_price")
         if min_price:
             queryset = queryset.filter(price__gte=min_price)
         if max_price:
@@ -801,7 +849,7 @@ class AdminEggViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return AdminEggListSerializer
         return AdminEggDetailSerializer
 
@@ -809,11 +857,11 @@ class AdminEggViewSet(viewsets.ModelViewSet):
         instance = serializer.save(created_by=self.request.user)
         AuditLog.log_action(
             user=self.request.user,
-            action_type='create',
-            resource_type='egg',
+            action_type="create",
+            resource_type="egg",
             description=f"Created egg: {instance.name}",
             resource_id=str(instance.id),
-            request=self.request
+            request=self.request,
         )
 
     def perform_update(self, serializer):
@@ -824,16 +872,16 @@ class AdminEggViewSet(viewsets.ModelViewSet):
         changes = {}
         for key in new_data:
             if key in old_data and old_data[key] != new_data[key]:
-                changes[key] = {'old': old_data[key], 'new': new_data[key]}
+                changes[key] = {"old": old_data[key], "new": new_data[key]}
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='update',
-            resource_type='egg',
+            action_type="update",
+            resource_type="egg",
             description=f"Updated egg: {instance.name}",
             resource_id=str(instance.id),
             changes=changes,
-            request=self.request
+            request=self.request,
         )
 
     def perform_destroy(self, instance):
@@ -842,151 +890,144 @@ class AdminEggViewSet(viewsets.ModelViewSet):
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='delete',
-            resource_type='egg',
+            action_type="delete",
+            resource_type="egg",
             description=f"Deleted egg: {name}",
             resource_id=egg_id,
-            request=self.request
+            request=self.request,
         )
 
         instance.delete()
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def bulk_delete(self, request):
         """Delete multiple eggs."""
         serializer = BulkDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ids = serializer.validated_data['ids']
+        ids = serializer.validated_data["ids"]
         eggs = Egg.objects.filter(id__in=ids)
         count = eggs.count()
-        names = list(eggs.values_list('name', flat=True))
+        names = list(eggs.values_list("name", flat=True))
 
         eggs.delete()
 
         AuditLog.log_action(
             user=request.user,
-            action_type='bulk_operation',
-            resource_type='egg',
+            action_type="bulk_operation",
+            resource_type="egg",
             description=f"Bulk deleted {count} eggs: {', '.join(names[:5])}{'...' if len(names) > 5 else ''}",
-            changes={'deleted_ids': [str(id) for id in ids]},
-            request=request
+            changes={"deleted_ids": [str(id) for id in ids]},
+            request=request,
         )
 
-        return Response({
-            'detail': f'Successfully deleted {count} items.',
-            'count': count
-        })
+        return Response({"detail": f"Successfully deleted {count} items.", "count": count})
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def bulk_update(self, request):
         """Update multiple eggs with same values."""
         serializer = EggBulkUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ids = serializer.validated_data['ids']
-        updates = serializer.validated_data['updates']
+        ids = serializer.validated_data["ids"]
+        updates = serializer.validated_data["updates"]
 
-        if 'category' in updates:
+        if "category" in updates:
             try:
-                updates['category'] = EggCategory.objects.get(slug=updates['category'])
+                updates["category"] = EggCategory.objects.get(slug=updates["category"])
             except EggCategory.DoesNotExist:
                 return Response(
-                    {'detail': f"Egg category '{updates['category']}' not found."},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {"detail": f"Egg category '{updates['category']}' not found."},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
         count = Egg.objects.filter(id__in=ids).update(**updates)
 
         AuditLog.log_action(
             user=request.user,
-            action_type='bulk_operation',
-            resource_type='egg',
+            action_type="bulk_operation",
+            resource_type="egg",
             description=f"Bulk updated {count} eggs",
-            changes={'updated_ids': [str(id) for id in ids], 'updates': {k: str(v) for k, v in updates.items()}},
-            request=request
+            changes={
+                "updated_ids": [str(id) for id in ids],
+                "updates": {k: str(v) for k, v in updates.items()},
+            },
+            request=request,
         )
 
-        return Response({
-            'detail': f'Successfully updated {count} items.',
-            'count': count
-        })
+        return Response({"detail": f"Successfully updated {count} items.", "count": count})
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def expiring_soon(self, request):
         """Get eggs expiring within specified days."""
         from datetime import timedelta
-        days = int(request.query_params.get('days', 7))
+
+        days = int(request.query_params.get("days", 7))
         today = timezone.now().date()
         cutoff = today + timedelta(days=days)
 
-        eggs = self.get_queryset().filter(
-            is_available=True,
-            expiry_date__lte=cutoff,
-            expiry_date__gt=today
-        ).order_by('expiry_date')
+        eggs = (
+            self.get_queryset()
+            .filter(is_available=True, expiry_date__lte=cutoff, expiry_date__gt=today)
+            .order_by("expiry_date")
+        )
 
         serializer = AdminEggListSerializer(eggs, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def stats(self, request):
         """Get egg statistics summary."""
         from datetime import timedelta
+
         today = timezone.now().date()
 
         queryset = self.get_queryset()
         total = queryset.count()
         available = queryset.filter(is_available=True).count()
         expiring_soon = queryset.filter(
-            is_available=True,
-            expiry_date__lte=today + timedelta(days=7),
-            expiry_date__gt=today
+            is_available=True, expiry_date__lte=today + timedelta(days=7), expiry_date__gt=today
         ).count()
         expired = queryset.filter(expiry_date__lt=today).count()
 
         by_category = list(
-            queryset.values('category__name')
-            .annotate(count=Count('id'))
-            .order_by('-count')
+            queryset.values("category__name").annotate(count=Count("id")).order_by("-count")
         )
 
-        by_type = list(
-            queryset.values('egg_type')
-            .annotate(count=Count('id'))
-            .order_by('-count')
+        by_type = list(queryset.values("egg_type").annotate(count=Count("id")).order_by("-count"))
+
+        total_value = (
+            queryset.filter(is_available=True).aggregate(
+                total=Sum(F("price") * F("quantity_available"))
+            )["total"]
+            or 0
         )
 
-        total_value = queryset.filter(is_available=True).aggregate(
-            total=Sum(F('price') * F('quantity_available'))
-        )['total'] or 0
+        return Response(
+            {
+                "total": total,
+                "available": available,
+                "expiring_soon": expiring_soon,
+                "expired": expired,
+                "total_value": float(total_value),
+                "by_category": by_category,
+                "by_type": by_type,
+            }
+        )
 
-        return Response({
-            'total': total,
-            'available': available,
-            'expiring_soon': expiring_soon,
-            'expired': expired,
-            'total_value': float(total_value),
-            'by_category': by_category,
-            'by_type': by_type
-        })
-
-    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser, FormParser])
     def upload_media(self, request, pk=None):
         """Upload media for a specific egg."""
         egg = self.get_object()
 
-        file = request.FILES.get('file')
+        file = request.FILES.get("file")
         if not file:
-            return Response(
-                {'detail': 'No file provided.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
-        media_type = request.data.get('media_type', 'image')
-        is_primary = request.data.get('is_primary', 'false').lower() == 'true'
-        aspect_ratio = float(request.data.get('aspect_ratio', 1.0))
-        alt_text = request.data.get('alt_text', '')
+        media_type = request.data.get("media_type", "image")
+        is_primary = request.data.get("is_primary", "false").lower() == "true"
+        aspect_ratio = float(request.data.get("aspect_ratio", 1.0))
+        alt_text = request.data.get("alt_text", "")
 
         # If this is set as primary, unset others
         if is_primary:
@@ -998,64 +1039,61 @@ class AdminEggViewSet(viewsets.ModelViewSet):
             media_type=media_type,
             is_primary=is_primary,
             aspect_ratio=aspect_ratio,
-            alt_text=alt_text
+            alt_text=alt_text,
         )
 
         AuditLog.log_action(
             user=request.user,
-            action_type='create',
-            resource_type='egg_media',
+            action_type="create",
+            resource_type="egg_media",
             description=f"Uploaded {media_type} for egg: {egg.name}",
             resource_id=str(media.id),
-            request=request
+            request=request,
         )
 
-        return Response(
-            AdminEggMediaAssetSerializer(media).data,
-            status=status.HTTP_201_CREATED
-        )
+        return Response(AdminEggMediaAssetSerializer(media).data, status=status.HTTP_201_CREATED)
 
 
 class AdminEggCategoryViewSet(viewsets.ModelViewSet):
     """ViewSet for admin egg category management."""
+
     queryset = EggCategory.objects.annotate(
-        egg_count=Count('eggs'),
-        available_count=Count('eggs', filter=Q(eggs__is_available=True))
+        egg_count=Count("eggs"), available_count=Count("eggs", filter=Q(eggs__is_available=True))
     )
     serializer_class = AdminEggCategorySerializer
     permission_classes = [IsAuthenticated, IsAdminUser, CanManageEggs]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'description']
-    ordering_fields = ['name', 'order', 'created_at', 'egg_count']
-    ordering = ['order', 'name']
+    search_fields = ["name", "description"]
+    ordering_fields = ["name", "order", "created_at", "egg_count"]
+    ordering = ["order", "name"]
 
     def perform_create(self, serializer):
         instance = serializer.save()
         AuditLog.log_action(
             user=self.request.user,
-            action_type='create',
-            resource_type='egg_category',
+            action_type="create",
+            resource_type="egg_category",
             description=f"Created egg category: {instance.name}",
             resource_id=str(instance.id),
-            request=self.request
+            request=self.request,
         )
 
     def perform_update(self, serializer):
         instance = serializer.save()
         AuditLog.log_action(
             user=self.request.user,
-            action_type='update',
-            resource_type='egg_category',
+            action_type="update",
+            resource_type="egg_category",
             description=f"Updated egg category: {instance.name}",
             resource_id=str(instance.id),
-            request=self.request
+            request=self.request,
         )
 
     def perform_destroy(self, instance):
         if instance.eggs.exists():
             return Response(
-                {'detail': 'Cannot delete category with existing eggs.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Cannot delete category with existing eggs."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         name = instance.name
@@ -1063,11 +1101,11 @@ class AdminEggCategoryViewSet(viewsets.ModelViewSet):
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='delete',
-            resource_type='egg_category',
+            action_type="delete",
+            resource_type="egg_category",
             description=f"Deleted egg category: {name}",
             resource_id=category_id,
-            request=self.request
+            request=self.request,
         )
 
         instance.delete()
@@ -1075,41 +1113,39 @@ class AdminEggCategoryViewSet(viewsets.ModelViewSet):
 
 class AdminEggMediaViewSet(viewsets.ModelViewSet):
     """ViewSet for admin egg media management."""
-    queryset = EggMediaAsset.objects.select_related('egg')
+
+    queryset = EggMediaAsset.objects.select_related("egg")
     serializer_class = AdminEggMediaAssetSerializer
     permission_classes = [IsAuthenticated, IsAdminUser, CanManageEggs]
     parser_classes = [MultiPartParser, FormParser]
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['created_at', 'is_primary', 'order']
-    ordering = ['order', '-is_primary', '-created_at']
+    ordering_fields = ["created_at", "is_primary", "order"]
+    ordering = ["order", "-is_primary", "-created_at"]
 
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        egg_id = self.request.query_params.get('egg')
+        egg_id = self.request.query_params.get("egg")
         if egg_id:
             queryset = queryset.filter(egg_id=egg_id)
 
-        media_type = self.request.query_params.get('type')
+        media_type = self.request.query_params.get("type")
         if media_type:
             queryset = queryset.filter(media_type=media_type)
 
         return queryset
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def set_primary(self, request, pk=None):
         """Set this media as the primary image."""
         media = self.get_object()
 
-        EggMediaAsset.objects.filter(
-            egg=media.egg,
-            is_primary=True
-        ).update(is_primary=False)
+        EggMediaAsset.objects.filter(egg=media.egg, is_primary=True).update(is_primary=False)
 
         media.is_primary = True
         media.save()
 
-        return Response({'detail': 'Media set as primary.'})
+        return Response({"detail": "Media set as primary."})
 
     def perform_destroy(self, instance):
         egg_name = instance.egg.name
@@ -1117,11 +1153,11 @@ class AdminEggMediaViewSet(viewsets.ModelViewSet):
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='delete',
-            resource_type='egg_media',
+            action_type="delete",
+            resource_type="egg_media",
             description=f"Deleted media from egg: {egg_name}",
             resource_id=media_id,
-            request=self.request
+            request=self.request,
         )
 
         instance.delete()

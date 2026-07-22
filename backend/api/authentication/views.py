@@ -1,25 +1,26 @@
 """
 Authentication views for the admin API.
 """
+
 import logging
+
 from django.contrib.auth.models import User
-from django.utils import timezone
-from rest_framework import status, generics
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from ..models import AuditLog, UserProfile
+from ..models import AuditLog
 from ..permissions import IsAdminUser, IsSuperAdmin
 from .serializers import (
     AdminTokenObtainPairSerializer,
+    AdminUserCreateSerializer,
     AdminUserSerializer,
     AdminUserUpdateSerializer,
-    AdminUserCreateSerializer,
-    PasswordChangeSerializer,
     LogoutSerializer,
+    PasswordChangeSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ class AdminTokenObtainPairView(TokenObtainPairView):
     Custom login view for admin users.
     Returns JWT tokens with admin-specific claims.
     """
+
     serializer_class = AdminTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
@@ -37,34 +39,35 @@ class AdminTokenObtainPairView(TokenObtainPairView):
 
         if response.status_code == 200:
             # Log successful login
-            user = User.objects.get(username=request.data.get('username'))
+            user = User.objects.get(username=request.data.get("username"))
 
             # Update last login IP
             ip_address = self._get_client_ip(request)
-            if hasattr(user, 'profile'):
+            if hasattr(user, "profile"):
                 user.profile.last_login_ip = ip_address
-                user.profile.save(update_fields=['last_login_ip'])
+                user.profile.save(update_fields=["last_login_ip"])
 
             AuditLog.log_action(
                 user=user,
-                action_type='login',
-                resource_type='auth',
+                action_type="login",
+                resource_type="auth",
                 description=f"Admin login: {user.username}",
-                request=request
+                request=request,
             )
 
         return response
 
     def _get_client_ip(self, request):
         """Extract client IP from request."""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
-            return x_forwarded_for.split(',')[0].strip()
-        return request.META.get('REMOTE_ADDR')
+            return x_forwarded_for.split(",")[0].strip()
+        return request.META.get("REMOTE_ADDR")
 
 
 class AdminTokenRefreshView(TokenRefreshView):
     """Token refresh view for admin users."""
+
     pass
 
 
@@ -72,6 +75,7 @@ class LogoutView(APIView):
     """
     Logout view that blacklists the refresh token.
     """
+
     permission_classes = [IsAuthenticated, IsAdminUser]
     serializer_class = LogoutSerializer
 
@@ -83,22 +87,20 @@ class LogoutView(APIView):
         # Log logout
         AuditLog.log_action(
             user=request.user,
-            action_type='logout',
-            resource_type='auth',
+            action_type="logout",
+            resource_type="auth",
             description=f"Admin logout: {request.user.username}",
-            request=request
+            request=request,
         )
 
-        return Response(
-            {"detail": "Successfully logged out."},
-            status=status.HTTP_200_OK
-        )
+        return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
 
 
 class CurrentUserView(APIView):
     """
     View for getting and updating the current authenticated user's profile.
     """
+
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get(self, request):
@@ -109,10 +111,7 @@ class CurrentUserView(APIView):
     def patch(self, request):
         """Update current user profile."""
         serializer = AdminUserUpdateSerializer(
-            request.user,
-            data=request.data,
-            partial=True,
-            context={'request': request}
+            request.user, data=request.data, partial=True, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -120,12 +119,12 @@ class CurrentUserView(APIView):
         # Log profile update
         AuditLog.log_action(
             user=request.user,
-            action_type='update',
-            resource_type='user',
+            action_type="update",
+            resource_type="user",
             description=f"Profile updated: {request.user.username}",
             resource_id=str(request.user.id),
             changes=request.data,
-            request=request
+            request=request,
         )
 
         return Response(AdminUserSerializer(request.user).data)
@@ -135,20 +134,15 @@ class PasswordChangeView(APIView):
     """
     View for changing the current user's password.
     """
+
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def post(self, request):
-        serializer = PasswordChangeSerializer(
-            data=request.data,
-            context={'request': request}
-        )
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        return Response(
-            {"detail": "Password changed successfully."},
-            status=status.HTTP_200_OK
-        )
+        return Response({"detail": "Password changed successfully."}, status=status.HTTP_200_OK)
 
 
 class AdminUserViewSet(ModelViewSet):
@@ -156,13 +150,14 @@ class AdminUserViewSet(ModelViewSet):
     ViewSet for managing admin users.
     Only accessible by superadmins.
     """
+
     permission_classes = [IsAuthenticated, IsSuperAdmin]
-    queryset = User.objects.filter(is_staff=True).select_related('profile')
+    queryset = User.objects.filter(is_staff=True).select_related("profile")
 
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action == "create":
             return AdminUserCreateSerializer
-        elif self.action in ['update', 'partial_update']:
+        elif self.action in ["update", "partial_update"]:
             return AdminUserUpdateSerializer
         return AdminUserSerializer
 
@@ -170,34 +165,37 @@ class AdminUserViewSet(ModelViewSet):
         queryset = super().get_queryset()
 
         # Filter by role if provided
-        role = self.request.query_params.get('role')
+        role = self.request.query_params.get("role")
         if role:
             queryset = queryset.filter(profile__role=role)
 
         # Filter by active status
-        is_active = self.request.query_params.get('is_active')
+        is_active = self.request.query_params.get("is_active")
         if is_active is not None:
-            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+            queryset = queryset.filter(is_active=is_active.lower() == "true")
 
         # Search by username or email
-        search = self.request.query_params.get('search')
+        search = self.request.query_params.get("search")
         if search:
             from django.db.models import Q
+
             queryset = queryset.filter(
-                Q(username__icontains=search) |
-                Q(email__icontains=search) |
-                Q(first_name__icontains=search) |
-                Q(last_name__icontains=search)
+                Q(username__icontains=search)
+                | Q(email__icontains=search)
+                | Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
             )
 
-        return queryset.order_by('-date_joined')
+        return queryset.order_by("-date_joined")
 
     def create(self, request, *args, **kwargs):
         """Override to return data with AdminUserSerializer for proper role handling."""
-        logger.info(f"[AdminUserViewSet] Creating new user. Request data keys: {list(request.data.keys())}")
+        logger.info(
+            f"[AdminUserViewSet] Creating new user. Request data keys: {list(request.data.keys())}"
+        )
         logger.debug(f"[AdminUserViewSet] Request data: {request.data}")
 
-        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer = self.get_serializer(data=request.data, context={"request": request})
 
         if not serializer.is_valid():
             logger.error(f"[AdminUserViewSet] Validation errors: {serializer.errors}")
@@ -205,12 +203,14 @@ class AdminUserViewSet(ModelViewSet):
 
         try:
             user = serializer.save()
-            logger.info(f"[AdminUserViewSet] Successfully created user: {user.username} (ID: {user.id})")
+            logger.info(
+                f"[AdminUserViewSet] Successfully created user: {user.username} (ID: {user.id})"
+            )
         except Exception as e:
             logger.exception(f"[AdminUserViewSet] Error creating user: {str(e)}")
             return Response(
                 {"detail": f"Error creating user: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
         # Return response with AdminUserSerializer which handles profile/role properly
@@ -221,12 +221,12 @@ class AdminUserViewSet(ModelViewSet):
         user = serializer.save()
         AuditLog.log_action(
             user=self.request.user,
-            action_type='update',
-            resource_type='user',
+            action_type="update",
+            resource_type="user",
             description=f"Updated admin user: {user.username}",
             resource_id=str(user.id),
             changes=self.request.data,
-            request=self.request
+            request=self.request,
         )
 
     def perform_destroy(self, instance):
@@ -237,24 +237,24 @@ class AdminUserViewSet(ModelViewSet):
         if instance == self.request.user:
             return Response(
                 {"detail": "You cannot delete your own account."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Soft delete - deactivate instead of actual delete
         instance.is_active = False
         instance.save()
 
-        if hasattr(instance, 'profile'):
+        if hasattr(instance, "profile"):
             instance.profile.is_active_admin = False
             instance.profile.save()
 
         AuditLog.log_action(
             user=self.request.user,
-            action_type='delete',
-            resource_type='user',
+            action_type="delete",
+            resource_type="user",
             description=f"Deactivated admin user: {username}",
             resource_id=user_id,
-            request=self.request
+            request=self.request,
         )
 
     def destroy(self, request, *args, **kwargs):
@@ -264,14 +264,11 @@ class AdminUserViewSet(ModelViewSet):
         if instance == request.user:
             return Response(
                 {"detail": "You cannot delete your own account."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         self.perform_destroy(instance)
-        return Response(
-            {"detail": "User deactivated successfully."},
-            status=status.HTTP_200_OK
-        )
+        return Response({"detail": "User deactivated successfully."}, status=status.HTTP_200_OK)
 
 
 class ToggleUserStatusView(APIView):
@@ -279,29 +276,26 @@ class ToggleUserStatusView(APIView):
     Toggle a user's active status (activate/deactivate).
     Only accessible by superadmins.
     """
+
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
     def post(self, request, user_id):
         try:
             user = User.objects.get(pk=user_id, is_staff=True)
         except User.DoesNotExist:
-            return Response(
-                {"detail": "Admin user not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"detail": "Admin user not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # Don't allow toggling yourself
         if user == request.user:
             return Response(
-                {"detail": "You cannot change your own status."},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "You cannot change your own status."}, status=status.HTTP_400_BAD_REQUEST
             )
 
         # Toggle status
         user.is_active = not user.is_active
         user.save()
 
-        if hasattr(user, 'profile'):
+        if hasattr(user, "profile"):
             user.profile.is_active_admin = user.is_active
             user.profile.save()
 
@@ -309,14 +303,11 @@ class ToggleUserStatusView(APIView):
 
         AuditLog.log_action(
             user=request.user,
-            action_type='update',
-            resource_type='user',
+            action_type="update",
+            resource_type="user",
             description=f"Admin user {action}: {user.username}",
             resource_id=str(user.id),
-            request=request
+            request=request,
         )
 
-        return Response({
-            "detail": f"User {action} successfully.",
-            "is_active": user.is_active
-        })
+        return Response({"detail": f"User {action} successfully.", "is_active": user.is_active})

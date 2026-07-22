@@ -1,58 +1,76 @@
 import json
-from rest_framework import viewsets, filters, status
-from rest_framework.decorators import action, throttle_classes
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser, AllowAny
-from rest_framework.throttling import AnonRateThrottle
+
+from django.http import Http404, StreamingHttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
-from django.http import StreamingHttpResponse, Http404
-from .models import Livestock, Category, Tag, MediaAsset, ContactInquiry, PageView, VisitorSession, Egg, EggCategory
+from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
+from rest_framework.views import APIView
+
+from .models import (
+    Category,
+    Egg,
+    EggCategory,
+    Livestock,
+    PageView,
+    VisitorSession,
+)
 from .serializers import (
-    LivestockSerializer, LivestockListSerializer,
-    CategorySerializer, CategoryWithPreviewSerializer, TagSerializer,
+    CategorySerializer,
+    CategoryWithPreviewSerializer,
     ContactInquirySerializer,
-    EggCategorySerializer, EggCategoryListSerializer, EggListSerializer, EggDetailSerializer
+    EggCategoryListSerializer,
+    EggCategorySerializer,
+    EggDetailSerializer,
+    EggListSerializer,
+    LivestockListSerializer,
+    LivestockSerializer,
 )
 from .services.email import send_contact_notification_email
 
+
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Category.objects.all().prefetch_related('livestock', 'livestock__media')
+    queryset = Category.objects.all().prefetch_related("livestock", "livestock__media")
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    @action(detail=False, methods=['get'], url_path='with-previews')
+    @action(detail=False, methods=["get"], url_path="with-previews")
     def with_previews(self, request):
         """Get categories with livestock count and preview images."""
         categories = self.get_queryset()
         serializer = CategoryWithPreviewSerializer(categories, many=True)
         return Response(serializer.data)
 
+
 from .services.ai import AIService
 
+
 class LivestockViewSet(viewsets.ModelViewSet):
-    queryset = Livestock.objects.all().select_related('category').prefetch_related('media', 'tags')
+    queryset = Livestock.objects.all().select_related("category").prefetch_related("media", "tags")
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'category__name', 'gender', 'is_sold']
-    search_fields = ['name', 'breed', 'location', 'description']
-    ordering_fields = ['created_at']
+    filterset_fields = ["category", "category__name", "gender", "is_sold"]
+    search_fields = ["name", "breed", "location", "description"]
+    ordering_fields = ["created_at"]
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return LivestockListSerializer
         return LivestockSerializer
 
-    @action(detail=False, methods=['post'], url_path='search-ai', permission_classes=[AllowAny])
+    @action(detail=False, methods=["post"], url_path="search-ai", permission_classes=[AllowAny])
     def search_ai(self, request):
         """
         Semantic search endpoint - allows anonymous access.
         """
-        query = request.data.get('query', '')
+        query = request.data.get("query", "")
         ai_service = AIService()
         results = ai_service.semantic_search(query)
         serializer = LivestockListSerializer(results, many=True)
         return Response(serializer.data)
+
 
 class ChatView(viewsets.ViewSet):
     """
@@ -60,58 +78,58 @@ class ChatView(viewsets.ViewSet):
     Supports both regular and streaming responses.
     Uses smart search to provide context for both livestock and eggs.
     """
+
     permission_classes = [AllowAny]
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def send(self, request):
         """Non-streaming endpoint for backwards compatibility."""
-        message = request.data.get('message')
-        conversation_history = request.data.get('history', [])
+        message = request.data.get("message")
+        conversation_history = request.data.get("history", [])
 
         ai_service = AIService()
 
         # Smart search for both livestock and eggs context
         search_results = ai_service.smart_search(message)
-        context_livestock = search_results['livestock']
-        context_eggs = search_results['eggs']
+        context_livestock = search_results["livestock"]
+        context_eggs = search_results["eggs"]
 
         # Generate Response with conversation history and both contexts
         response_text = ai_service.generate_chat_response(
             message,
             context_livestock=context_livestock,
             context_eggs=context_eggs,
-            conversation_history=conversation_history
+            conversation_history=conversation_history,
         )
 
-        return Response({
-            "response": response_text,
-            "context_count": len(context_livestock) + len(context_eggs),
-            "livestock_count": len(context_livestock),
-            "eggs_count": len(context_eggs),
-        })
+        return Response(
+            {
+                "response": response_text,
+                "context_count": len(context_livestock) + len(context_eggs),
+                "livestock_count": len(context_livestock),
+                "eggs_count": len(context_eggs),
+            }
+        )
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def stream(self, request):
         """
         Streaming endpoint using Server-Sent Events (SSE).
         Accepts conversation history for context continuity.
         Uses smart search for both livestock and eggs context.
         """
-        message = request.data.get('message')
-        conversation_history = request.data.get('history', [])
+        message = request.data.get("message")
+        conversation_history = request.data.get("history", [])
 
         if not message:
-            return Response(
-                {"error": "Message is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Message is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         ai_service = AIService()
 
         # Smart search for both livestock and eggs context
         search_results = ai_service.smart_search(message)
-        context_livestock = search_results['livestock']
-        context_eggs = search_results['eggs']
+        context_livestock = search_results["livestock"]
+        context_eggs = search_results["eggs"]
 
         def event_stream():
             """Generator that yields SSE formatted chunks."""
@@ -124,7 +142,7 @@ class ChatView(viewsets.ViewSet):
                     message,
                     context_livestock=context_livestock,
                     context_eggs=context_eggs,
-                    conversation_history=conversation_history
+                    conversation_history=conversation_history,
                 ):
                     yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
 
@@ -135,12 +153,9 @@ class ChatView(viewsets.ViewSet):
                 print(f"Stream error: {e}")
                 yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
 
-        response = StreamingHttpResponse(
-            event_stream(),
-            content_type='text/event-stream'
-        )
-        response['Cache-Control'] = 'no-cache'
-        response['X-Accel-Buffering'] = 'no'  # Disable nginx buffering
+        response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"  # Disable nginx buffering
         return response
 
 
@@ -149,39 +164,41 @@ class SmartSearchView(APIView):
     Unified AI-powered search endpoint for both livestock and eggs.
     Automatically detects query intent and returns relevant results.
     """
+
     permission_classes = [AllowAny]
 
     def post(self, request):
-        query = request.data.get('query', '')
+        query = request.data.get("query", "")
         if not query:
-            return Response(
-                {'error': 'Query is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Query is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         ai_service = AIService()
         results = ai_service.smart_search(query)
 
         # Serialize results
-        livestock_serialized = LivestockListSerializer(results['livestock'], many=True).data
-        eggs_serialized = EggListSerializer(results['eggs'], many=True).data
+        livestock_serialized = LivestockListSerializer(results["livestock"], many=True).data
+        eggs_serialized = EggListSerializer(results["eggs"], many=True).data
 
-        return Response({
-            'livestock': livestock_serialized,
-            'eggs': eggs_serialized,
-            'intent': results['intent'],
-            'total_count': len(results['livestock']) + len(results['eggs']),
-        })
+        return Response(
+            {
+                "livestock": livestock_serialized,
+                "eggs": eggs_serialized,
+                "intent": results["intent"],
+                "total_count": len(results["livestock"]) + len(results["eggs"]),
+            }
+        )
 
 
 class ContactRateThrottle(AnonRateThrottle):
     """Rate limiting for contact form submissions."""
-    rate = '5/hour'  # 5 submissions per hour per IP
+
+    rate = "5/hour"  # 5 submissions per hour per IP
 
 
 class TrackingRateThrottle(AnonRateThrottle):
     """Rate limiting for analytics tracking endpoint."""
-    rate = '60/minute'  # 60 requests per minute per IP
+
+    rate = "60/minute"  # 60 requests per minute per IP
 
 
 class ContactInquiryCreateView(APIView):
@@ -189,6 +206,7 @@ class ContactInquiryCreateView(APIView):
     Public endpoint for contact form submissions.
     Rate limited to prevent spam.
     """
+
     permission_classes = [AllowAny]
     throttle_classes = [ContactRateThrottle]
 
@@ -200,11 +218,14 @@ class ContactInquiryCreateView(APIView):
         # Send email notification to admin (async would be better, but this works)
         email_sent = send_contact_notification_email(inquiry)
 
-        return Response({
-            'detail': 'Your message has been sent successfully. We will get back to you soon.',
-            'id': str(inquiry.id),
-            'email_sent': email_sent
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "detail": "Your message has been sent successfully. We will get back to you soon.",
+                "id": str(inquiry.id),
+                "email_sent": email_sent,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class TrackVisitView(APIView):
@@ -212,29 +233,27 @@ class TrackVisitView(APIView):
     Public endpoint to track page views and livestock modal views.
     Rate limited to prevent abuse.
     """
+
     permission_classes = [AllowAny]
     throttle_classes = [TrackingRateThrottle]
 
     def post(self, request):
-        session_id = request.data.get('session_id')
-        path = request.data.get('path', '/')
-        event_type = request.data.get('type', 'page_view')
-        livestock_id = request.data.get('livestock_id')
-        referrer = request.data.get('referrer', '')
+        session_id = request.data.get("session_id")
+        path = request.data.get("path", "/")
+        event_type = request.data.get("type", "page_view")
+        livestock_id = request.data.get("livestock_id")
+        referrer = request.data.get("referrer", "")
 
         if not session_id:
-            return Response(
-                {'error': 'session_id is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "session_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Get client info
-        user_agent = request.META.get('HTTP_USER_AGENT', '')
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        user_agent = request.META.get("HTTP_USER_AGENT", "")
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
-            ip_address = x_forwarded_for.split(',')[0].strip()
+            ip_address = x_forwarded_for.split(",")[0].strip()
         else:
-            ip_address = request.META.get('REMOTE_ADDR')
+            ip_address = request.META.get("REMOTE_ADDR")
 
         # Detect device type from user agent
         device_type = self._detect_device_type(user_agent)
@@ -246,41 +265,41 @@ class TrackVisitView(APIView):
         session, created = VisitorSession.objects.get_or_create(
             session_id=session_id,
             defaults={
-                'entry_page': path,
-                'exit_page': path,
-                'device_type': device_type,
-                'user_agent': user_agent[:500] if user_agent else '',  # Limit length
-                'ip_address': ip_address,
-                'country': country,
-            }
+                "entry_page": path,
+                "exit_page": path,
+                "device_type": device_type,
+                "user_agent": user_agent[:500] if user_agent else "",  # Limit length
+                "ip_address": ip_address,
+                "country": country,
+            },
         )
 
         if not created:
             # Update existing session
             session.page_count += 1
             session.exit_page = path
-            session.save(update_fields=['page_count', 'exit_page', 'last_activity'])
+            session.save(update_fields=["page_count", "exit_page", "last_activity"])
 
         # Get livestock if tracking livestock view
         livestock = None
-        if livestock_id and event_type == 'livestock_view':
+        if livestock_id and event_type == "livestock_view":
             try:
                 livestock = Livestock.objects.get(id=livestock_id)
             except (Livestock.DoesNotExist, ValueError):
                 pass
 
         # Get egg if tracking egg view
-        egg_id = request.data.get('egg_id')
+        egg_id = request.data.get("egg_id")
         egg = None
-        if egg_id and event_type == 'egg_view':
+        if egg_id and event_type == "egg_view":
             try:
                 egg = Egg.objects.get(id=egg_id)
             except (Egg.DoesNotExist, ValueError):
                 pass
 
         # Determine valid event type
-        valid_event_types = ['page_view', 'livestock_view', 'egg_view']
-        final_event_type = event_type if event_type in valid_event_types else 'page_view'
+        valid_event_types = ["page_view", "livestock_view", "egg_view"]
+        final_event_type = event_type if event_type in valid_event_types else "page_view"
 
         # Create page view record
         PageView.objects.create(
@@ -288,7 +307,7 @@ class TrackVisitView(APIView):
             path=path[:500],  # Limit length
             event_type=final_event_type,
             referrer=referrer[:1000] if referrer else None,  # Limit length
-            user_agent=user_agent[:500] if user_agent else '',
+            user_agent=user_agent[:500] if user_agent else "",
             ip_address=ip_address,
             country=country,
             device_type=device_type,
@@ -296,69 +315,80 @@ class TrackVisitView(APIView):
             egg=egg,
         )
 
-        return Response({'status': 'ok'}, status=status.HTTP_201_CREATED)
+        return Response({"status": "ok"}, status=status.HTTP_201_CREATED)
 
     def _detect_device_type(self, user_agent: str) -> str:
         """Detect device type from user agent string."""
         ua_lower = user_agent.lower()
 
         # Check for tablets first (they might contain 'mobile' too)
-        tablet_keywords = ['ipad', 'tablet', 'kindle', 'silk', 'playbook']
+        tablet_keywords = ["ipad", "tablet", "kindle", "silk", "playbook"]
         if any(keyword in ua_lower for keyword in tablet_keywords):
-            return 'tablet'
+            return "tablet"
 
         # Check for mobile devices
-        mobile_keywords = ['mobile', 'android', 'iphone', 'ipod', 'blackberry', 'windows phone', 'opera mini', 'opera mobi']
+        mobile_keywords = [
+            "mobile",
+            "android",
+            "iphone",
+            "ipod",
+            "blackberry",
+            "windows phone",
+            "opera mini",
+            "opera mobi",
+        ]
         if any(keyword in ua_lower for keyword in mobile_keywords):
             # Android tablets often have 'android' but not 'mobile'
-            if 'android' in ua_lower and 'mobile' not in ua_lower:
-                return 'tablet'
-            return 'mobile'
+            if "android" in ua_lower and "mobile" not in ua_lower:
+                return "tablet"
+            return "mobile"
 
-        return 'desktop'
+        return "desktop"
 
     def _get_country_from_ip(self, ip_address: str) -> str:
         """Get country from IP address using free ip-api.com service."""
-        if not ip_address or ip_address in ['127.0.0.1', 'localhost', '::1']:
-            return ''
+        if not ip_address or ip_address in ["127.0.0.1", "localhost", "::1"]:
+            return ""
 
         try:
-            import urllib.request
             import json as json_module
+            import urllib.request
 
             # Use ip-api.com free tier (limited to 45 req/min)
-            url = f'http://ip-api.com/json/{ip_address}?fields=status,country'
-            req = urllib.request.Request(url, headers={'User-Agent': 'GreenLivestockAfrica/1.0'})
+            url = f"http://ip-api.com/json/{ip_address}?fields=status,country"
+            req = urllib.request.Request(url, headers={"User-Agent": "GreenLivestockAfrica/1.0"})
 
             with urllib.request.urlopen(req, timeout=2) as response:
                 data = json_module.loads(response.read().decode())
-                if data.get('status') == 'success':
-                    return data.get('country', '')
+                if data.get("status") == "success":
+                    return data.get("country", "")
         except Exception:
             pass  # Silent fail - don't break tracking
 
-        return ''
+        return ""
 
 
 # ============================================
 # EGG VIEWSETS
 # ============================================
 
+
 class EggCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Public endpoint for egg categories (bird species/types).
     Read-only access for public consumption.
     """
-    queryset = EggCategory.objects.filter(is_active=True).prefetch_related('eggs')
+
+    queryset = EggCategory.objects.filter(is_active=True).prefetch_related("eggs")
     permission_classes = [AllowAny]
-    lookup_field = 'slug'
+    lookup_field = "slug"
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return EggCategoryListSerializer
         return EggCategorySerializer
 
-    @action(detail=False, methods=['get'], url_path='with-counts')
+    @action(detail=False, methods=["get"], url_path="with-counts")
     def with_counts(self, request):
         """Get categories with egg counts."""
         categories = self.get_queryset()
@@ -372,20 +402,26 @@ class EggViewSet(viewsets.ReadOnlyModelViewSet):
     Read-only access with filtering, search, and AI search capabilities.
     Supports lookup by both UUID (id) and slug.
     """
-    queryset = Egg.objects.filter(is_available=True).select_related('category').prefetch_related('media', 'tags')
+
+    queryset = (
+        Egg.objects.filter(is_available=True)
+        .select_related("category")
+        .prefetch_related("media", "tags")
+    )
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category__slug', 'egg_type', 'size', 'packaging', 'is_featured']
-    search_fields = ['name', 'breed', 'description', 'location']
-    ordering_fields = ['created_at']
-    ordering = ['-created_at']
+    filterset_fields = ["category__slug", "egg_type", "size", "packaging", "is_featured"]
+    search_fields = ["name", "breed", "description", "location"]
+    ordering_fields = ["created_at"]
+    ordering = ["-created_at"]
 
     def get_object(self):
         """
         Override to support lookup by either UUID or slug.
         """
         import uuid
-        lookup_value = self.kwargs.get('pk')
+
+        lookup_value = self.kwargs.get("pk")
         queryset = self.filter_queryset(self.get_queryset())
 
         try:
@@ -403,30 +439,30 @@ class EggViewSet(viewsets.ReadOnlyModelViewSet):
         return obj
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
+        if self.action == "retrieve":
             return EggDetailSerializer
         return EggListSerializer
 
-    @action(detail=False, methods=['post'], url_path='search-ai')
+    @action(detail=False, methods=["post"], url_path="search-ai")
     def search_ai(self, request):
         """AI-powered egg search."""
-        query = request.data.get('query', '')
+        query = request.data.get("query", "")
         if not query:
-            return Response({'error': 'Query is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Query is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         ai_service = AIService()
         results = ai_service.semantic_search_eggs(query)
         serializer = EggListSerializer(results, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='featured')
+    @action(detail=False, methods=["get"], url_path="featured")
     def featured(self, request):
         """Get featured eggs."""
         eggs = self.queryset.filter(is_featured=True)[:12]
         serializer = EggListSerializer(eggs, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='by-category/(?P<category_slug>[^/.]+)')
+    @action(detail=False, methods=["get"], url_path="by-category/(?P<category_slug>[^/.]+)")
     def by_category(self, request, category_slug=None):
         """Get eggs by category slug."""
         eggs = self.queryset.filter(category__slug=category_slug)

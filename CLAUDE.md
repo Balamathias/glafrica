@@ -6,14 +6,26 @@
 - **Vibe**: Immersive, luxurious, earthy, professional.
 
 ## Developer Commands
-- **Backend (Dijango)**:
+- **Backend (Django)**:
     - Run Server: `uv run python manage.py runserver`
     - Migrations: `uv run python manage.py migrate`
     - Shell: `uv run python manage.py shell`
+    - Sync deps: `uv sync`
+    - Lint: `uv run ruff check .` (add `--fix` to auto-fix)
+    - Format: `uv run ruff format .`
 - **Frontend (Next.js)**:
     - Dev Server: `pnpm dev`
     - Build: `pnpm run build`
     - Type Check: `pnpm tsc --noEmit`
+
+### Local Backend Environment
+- `backend/.env` (gitignored) drives local config; copy from `backend/.env.example` to bootstrap.
+- **DB toggle**: `DB_MODE` in `.env` switches the database:
+    - `local` (default in `.env`) → connects to the local Postgres instance (`glafrica` db, `DB_NAME`/`DB_USER`/etc. vars).
+    - `prod` → falls through to the original `DB_URL`/`dj_database_url` path, identical to what Vercel uses (Vercel never sets `DB_MODE`, so prod deploys are unaffected by this toggle either way).
+    - To point local dev at prod data, set `DB_MODE=prod` and paste the real `DB_URL` from the Vercel project env vars into `.env` — never commit it.
+- **Local Postgres**: Homebrew Postgres running locally; database created via `createdb glafrica` (trust auth, no password, user = local OS user).
+- `requirements.txt` / `vercel.json` / `build_files.sh` are the Vercel build path — do not need to change for local dev; `pyproject.toml`/`uv.lock` are the local `uv` path. Keep both in sync manually if you add a new dependency.
 
 ## Tech Stack
 - **Backend**: Django 5.x, Django REST Framework, PostgreSQL (pgvector support), Cloudinary.
@@ -37,34 +49,38 @@
 ## Implementation Details
 
 ### Backend Structure (`backend/`)
-- **App**: `api`
-- **Models**:
-    - `Livestock`: Core entity. Includes `embedding` (VectorField - *temporarily disabled until DB supports pgvector*), `vaccination_history` (JSON).
-    - `MediaAsset`: Handles multiple files per livestock. Supports `image` and `video` types with `aspect_ratio` for masonry layout.
-    - `Category`: Hierarchical organization.
-- **Services**: `api/services/ai.py` (AIService class) handles OpenAI interactions.
-- **Views**:
-    - `LivestockViewSet`: CRUD + `search_ai` action (currently text fallback).
-    - `ChatView`: AI Chat endpoint.
+- **Apps**: `api` (core domain + public API), `api/admin_api` (admin dashboard endpoints), `api/authentication` (JWT auth endpoints).
+- **Models** (`api/models.py`):
+    - `Livestock` / `MediaAsset` / `Category` / `Tag`: Core catalog. `Livestock.embedding` (VectorField) still commented out — *pgvector remains disabled*.
+    - `Egg` / `EggCategory` / `EggMediaAsset`: Second product vertical (poultry/eggs), fully modeled with its own gallery + admin CRUD.
+    - `UserProfile`: Extended user data.
+    - `ContactInquiry`: Inbound contact form submissions, managed via `admin/inquiries`.
+    - `PageView` / `VisitorSession`: Visitor analytics/tracking.
+    - `AuditLog`: Admin action auditing.
+- **Services**: `api/services/ai.py` (AIService, OpenAI), `api/services/analytics.py` (visitor tracking), `api/services/email.py` (transactional email).
+- **Views**: `LivestockViewSet` (CRUD + `search_ai`), `ChatView` (AI chat), plus `admin_api` dashboard views for livestock/eggs/tags/categories/users/inquiries/analytics.
 
 ### Frontend Structure (`frontend/`)
+- **Public routes** (`src/app/`): `/`, `/livestock`, `/eggs`, `/search`, `/about`, `/contact`.
+- **Admin routes** (`src/app/admin/`): `login`, `livestock`, `eggs`, `tags`, `categories`, `media`, `users`, `inquiries`, `analytics`, `visitor-analytics` — a full admin dashboard, not just a plan anymore.
 - **Layout**:
     - `Sidebar` (`components/layout/sidebar.tsx`): Collapsible, responsive navigation. Persists state via `useUIStore`.
     - `MainLayout` (`components/layout/main-layout.tsx`): Wraps page content, adjusts margins based on sidebar.
     - `ChatAssistant` (`components/ai/chat-assistant.tsx`): Global floating AI widget.
-- **Gallery**:
-    - `InfiniteGallery` (`components/gallery/infinite-gallery.tsx`): Responsive masonry grid with infinite scroll.
-    - `GalleryCard` (`components/gallery/gallery-card.tsx`): Displays Media. Hover effects, Video playback.
+- **Gallery**: `InfiniteGallery` / `GalleryCard` (livestock masonry grid), mirrored by `components/eggs/*` for the eggs vertical (immersive gallery, filter bar, detail modal).
+- **Admin components**: `components/admin/*` — dedicated CRUD UI (create/edit/view modals) for livestock, eggs, tags, categories.
 - **State**: `zustand` store in `lib/store.ts` for UI state (sidebar).
 
-## Current Status (as of 2025-12-13)
-- **Backend**: Functional. Models/API ready. Vector Search disabled (commented out in models).
-- **Frontend**: Functional. core Layout, Gallery, and Chat UI implemented.
+## Current Status (as of 2026-07-22)
+- **Backend**: Functional and deployed on Vercel (`vercel.json` + `build_files.sh`). Livestock + Eggs catalogs, admin API, JWT auth, visitor analytics, contact inquiries, and audit logging all live. Vector search still disabled — `embedding` field commented out on `Livestock`.
+- **Frontend**: Functional. Public gallery/detail experience for both Livestock and Eggs, plus a full admin dashboard (CRUD, analytics, media, users, inquiries).
+- **Local dev**: `uv run` fully wired up with a togglable local/prod Postgres (`DB_MODE` in `backend/.env`, see Developer Commands above).
+- **Note**: git history shows no commits between late Feb 2026 and now (2026-07-22) — worth confirming this clone is current before assuming that's the real last state of the project.
 - **Next Steps**:
-    1. Fix Build Errors (TypeScript/Lint).
-    2. Implement `Livestock Detail` page (`/livestock/[id]`) (Make this to open in an advanced and complex premium modal instead)
-    3. Re-enable `pgvector` when environment allows.
-    4. Implement Admin Dashboard.
+    1. Re-enable `pgvector` and wire up real embedding-based search (`search_ai` is currently a text fallback).
+    2. Reconcile `requirements.txt` (psycopg2-binary, Vercel build) vs `pyproject.toml` (psycopg3) — works today but is a latent drift to watch.
+    3. Remove/clean up the corrupted `backend/requirements.tx` file (UTF-16 artifact, distinct from `requirements.txt`).
+    4. Decide next feature priority (see brainstorm).
 
 ## Brand Asset Checklist & Design Reference
 *Reference for Future Agents & Designers*
