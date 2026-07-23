@@ -66,7 +66,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.25 }}
-            className="max-w-4xl text-balance font-display text-4xl font-medium leading-[1.05] text-white sm:text-5xl md:text-6xl lg:text-7xl"
+            className="max-w-4xl text-balance font-display text-[1.9rem] font-medium leading-[1.1] text-white min-[420px]:text-4xl sm:text-5xl sm:leading-[1.05] md:text-6xl lg:text-7xl"
           >
             Building the next generation of{" "}
             <span className="text-gradient-signature">African farmers</span>.
@@ -77,7 +77,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.35 }}
-            className="mt-6 max-w-2xl text-base leading-relaxed text-white/75 sm:text-lg"
+            className="mt-5 max-w-2xl text-[15px] leading-relaxed text-white/75 sm:mt-6 sm:text-lg"
           >
             Open training in breeding, nutrition, and disease prevention — livestock
             knowledge as the working answer to hunger and food insecurity across Africa.
@@ -114,7 +114,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.6 }}
-            className="mt-10"
+            className="mt-8 sm:mt-10"
           >
             <RecordLine
               segments={["Cohort 01", "93 Farmers Trained", "Verified"]}
@@ -130,7 +130,7 @@ export function Hero() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 1 }}
-        className="group absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2 text-white/55 transition-colors hover:text-white"
+        className="group absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-2 text-white/55 transition-colors hover:text-white sm:flex"
         aria-label="Scroll to content"
       >
         <span className="ledger text-[10px] uppercase tracking-[0.25em]">The model</span>
