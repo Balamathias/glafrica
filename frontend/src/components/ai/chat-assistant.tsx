@@ -23,9 +23,9 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 const SUGGESTED_QUESTIONS = [
-  "What breeds do you have?",
-  "Best cattle for investment?",
-  "Tell me about Boer Goats",
+  "Vaccination schedule for goats?",
+  "How do I prevent bloat in cattle?",
+  "Tell me about Boer goats",
 ]
 
 export function ChatAssistant() {
@@ -192,10 +192,10 @@ export function ChatAssistant() {
                   <div>
                     <h3 className="font-semibold text-sm flex items-center gap-1.5">
                       <Leaf size={14} className="text-primary" />
-                      Green AI Advisor
+                      Green Farming Assistant
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Your livestock investment expert
+                      Livestock knowledge, on demand
                     </p>
                   </div>
                 </div>
@@ -378,7 +378,7 @@ export function ChatAssistant() {
                       ref={inputRef}
                       name="message"
                       type="text"
-                      placeholder="Ask about livestock investments..."
+                      placeholder="Ask about breeding, feeding, health…"
                       className={cn(
                         "w-full bg-background/80 backdrop-blur-sm rounded-xl px-4 py-3 text-sm",
                         "border border-border/50 focus:border-primary/50",

@@ -106,7 +106,7 @@ const welcomeMessage: ChatMessage = {
   id: 'welcome',
   role: 'assistant',
   content:
-    "Welcome to Green Livestock Africa. I'm your AI assistant, here to help you discover premium livestock and guide your investment journey. How can I assist you today?",
+    "Welcome to Green Livestock Africa. I'm your farming assistant — ask me about breeding, feeding, disease prevention, or vaccination schedules, and I can also help you find verified livestock, eggs, and inputs. How can I help your farm today?",
   timestamp: new Date(),
 }
 
