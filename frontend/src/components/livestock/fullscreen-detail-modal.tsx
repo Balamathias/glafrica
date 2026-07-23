@@ -28,6 +28,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { InquiryDialog } from "@/components/inquiry/inquiry-dialog"
 import { useModalStore, useChatStore } from "@/lib/store"
 import { useLivestock } from "@/lib/hooks"
 import { formatDate, GENDER_LABELS } from "@/lib/types"
@@ -40,6 +41,7 @@ export function FullscreenDetailModal() {
   const [isVideoPlaying, setIsVideoPlaying] = React.useState(false)
   const [isVideoMuted, setIsVideoMuted] = React.useState(true)
   const [isLiked, setIsLiked] = React.useState(false)
+  const [isInquiryOpen, setIsInquiryOpen] = React.useState(false)
   const videoRef = React.useRef<HTMLVideoElement>(null)
   const mediaContainerRef = React.useRef<HTMLDivElement>(null)
 
@@ -554,6 +556,7 @@ export function FullscreenDetailModal() {
                       <Button
                         className="flex-1 bg-primary hover:bg-primary/90"
                         disabled={livestock.is_sold}
+                        onClick={() => setIsInquiryOpen(true)}
                       >
                         {livestock.is_sold ? "Sold Out" : "Contact Seller"}
                       </Button>
@@ -564,6 +567,17 @@ export function FullscreenDetailModal() {
             </motion.div>
           </div>
         </>
+      )}
+
+      {livestock && (
+        <InquiryDialog
+          open={isInquiryOpen}
+          onOpenChange={setIsInquiryOpen}
+          itemName={livestock.name}
+          contextLabel={`Livestock — ${livestock.name}`}
+          title="Contact us about this livestock"
+          prefill={`I'm interested in "${livestock.name}"${livestock.location ? ` (${livestock.location})` : ""}. `}
+        />
       )}
     </AnimatePresence>
   )

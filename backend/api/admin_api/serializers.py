@@ -21,6 +21,21 @@ from ..models import (
 )
 
 
+def unique_slug(model_class, name, *, instance=None, slug_field="slug"):
+    """Return a slug derived from ``name`` that is unique for ``model_class``,
+    appending -2, -3, ... on collision. Excludes ``instance`` (for updates)."""
+    base = slugify(name) or "item"
+    slug = base
+    n = 2
+    qs = model_class.objects.all()
+    if instance is not None and instance.pk is not None:
+        qs = qs.exclude(pk=instance.pk)
+    while qs.filter(**{slug_field: slug}).exists():
+        slug = f"{base}-{n}"
+        n += 1
+    return slug
+
+
 class AdminMediaAssetSerializer(serializers.ModelSerializer):
     """Media asset serializer with full details for admin."""
 
@@ -90,11 +105,9 @@ class AdminCategorySerializer(serializers.ModelSerializer):
         return None
 
     def create(self, validated_data):
-        # Auto-generate slug from name
-        from django.utils.text import slugify
-
-        if "slug" not in validated_data or not validated_data.get("slug"):
-            validated_data["slug"] = slugify(validated_data["name"])
+        # Auto-generate a unique slug from the name
+        if not validated_data.get("slug"):
+            validated_data["slug"] = unique_slug(self.Meta.model, validated_data["name"])
         return super().create(validated_data)
 
 
@@ -112,10 +125,8 @@ class AdminTagSerializer(serializers.ModelSerializer):
         return obj.livestock.count()
 
     def create(self, validated_data):
-        from django.utils.text import slugify
-
-        if "slug" not in validated_data or not validated_data.get("slug"):
-            validated_data["slug"] = slugify(validated_data["name"])
+        if not validated_data.get("slug"):
+            validated_data["slug"] = unique_slug(self.Meta.model, validated_data["name"])
         return super().create(validated_data)
 
 
@@ -469,10 +480,8 @@ class AdminEggCategorySerializer(serializers.ModelSerializer):
         return None
 
     def create(self, validated_data):
-        from django.utils.text import slugify
-
-        if "slug" not in validated_data or not validated_data.get("slug"):
-            validated_data["slug"] = slugify(validated_data["name"])
+        if not validated_data.get("slug"):
+            validated_data["slug"] = unique_slug(self.Meta.model, validated_data["name"])
         return super().create(validated_data)
 
 
@@ -594,10 +603,8 @@ class AdminEggDetailSerializer(serializers.ModelSerializer):
         return None
 
     def create(self, validated_data):
-        from django.utils.text import slugify
-
-        if "slug" not in validated_data or not validated_data.get("slug"):
-            validated_data["slug"] = slugify(validated_data["name"])
+        if not validated_data.get("slug"):
+            validated_data["slug"] = unique_slug(self.Meta.model, validated_data["name"])
         return super().create(validated_data)
 
     def validate(self, data):

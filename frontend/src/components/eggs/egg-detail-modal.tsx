@@ -28,6 +28,7 @@ import {
 import type { EggPackaging, EggType, EggSize } from "@/lib/types"
 import { useEgg } from "@/lib/hooks"
 import { Button } from "@/components/ui/button"
+import { InquiryDialog } from "@/components/inquiry/inquiry-dialog"
 
 interface EggDetailModalProps {
   eggId: string | null
@@ -39,6 +40,7 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [isInquiryOpen, setIsInquiryOpen] = useState(false)
 
   const { data: egg, isLoading, error } = useEgg(eggId)
 
@@ -404,6 +406,7 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
                       <Button
                         className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl"
                         size="lg"
+                        onClick={() => setIsInquiryOpen(true)}
                       >
                         <MessageCircle size={18} className="mr-2" />
                         Make Inquiry
@@ -443,6 +446,17 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
             )}
           </motion.div>
         </motion.div>
+      )}
+
+      {egg && (
+        <InquiryDialog
+          open={isInquiryOpen}
+          onOpenChange={setIsInquiryOpen}
+          itemName={egg.name}
+          contextLabel={`Eggs — ${egg.name}`}
+          title="Make an inquiry"
+          prefill={`I'd like to inquire about "${egg.name}". Quantity/notes: `}
+        />
       )}
     </AnimatePresence>
   )
