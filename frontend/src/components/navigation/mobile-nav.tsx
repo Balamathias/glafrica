@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
-import { Sparkles } from "lucide-react"
+import { Handshake } from "lucide-react"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 
 interface NavLink {
@@ -189,12 +189,12 @@ export function MobileNav({ isOpen, onToggle, links }: MobileNavProps) {
               >
                 {/* CTA Button */}
                 <Link
-                  href="/livestock"
+                  href="/partner"
                   onClick={onToggle}
                   className="flex items-center justify-center gap-3 w-full py-4 bg-primary text-primary-foreground rounded-2xl font-semibold text-lg shadow-lg shadow-primary/25"
                 >
-                  <Sparkles size={20} />
-                  Start Exploring
+                  <Handshake size={20} />
+                  Partner With Us
                 </Link>
 
                 {/* Contact Info */}

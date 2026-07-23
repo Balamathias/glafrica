@@ -39,6 +39,6 @@ export default function EggsPage() {
 
 function HeroSkeleton() {
   return (
-    <div className="relative h-[40vh] min-h-[400px] bg-gradient-to-br from-amber-900/20 via-background to-orange-900/10 animate-pulse" />
+    <div className="relative h-[40vh] min-h-[400px] bg-gradient-to-br from-primary/10 via-background to-secondary/5 animate-pulse" />
   )
 }

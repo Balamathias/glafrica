@@ -1,251 +1,143 @@
 "use client"
 
-import { useRef, useEffect, useState } from "react"
+import { useRef } from "react"
 import { motion, useScroll, useTransform } from "framer-motion"
-import { ArrowRight, Play, ChevronDown } from "lucide-react"
+import { ArrowRight, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { VideoRotator } from "@/components/brand"
+import { RecordLine } from "@/components/brand"
+import { VIDEOS, LOCAL_VIDEOS, POSTERS } from "@/lib/media"
 
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false)
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   })
 
-  // Parallax effects
-  const videoScale = useTransform(scrollYProgress, [0, 1], [1, 1.2])
+  const videoScale = useTransform(scrollYProgress, [0, 1], [1, 1.15])
   const contentOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
-  const contentY = useTransform(scrollYProgress, [0, 0.5], [0, -100])
-
-  // Ensure video plays
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => {
-        // Autoplay blocked - video will show poster
-      })
-    }
-  }, [])
+  const contentY = useTransform(scrollYProgress, [0, 0.5], [0, -80])
 
   const scrollToContent = () => {
-    const nextSection = document.getElementById("featured")
-    nextSection?.scrollIntoView({ behavior: "smooth" })
+    document.getElementById("model")?.scrollIntoView({ behavior: "smooth" })
   }
 
   return (
     <section
       ref={containerRef}
-      className="relative h-screen w-full overflow-hidden py-8 md:py-24 md:pb-16"
+      className="relative h-[100svh] min-h-[640px] w-full overflow-hidden"
     >
-      {/* Video Background */}
-      <motion.div
-        style={{ scale: videoScale }}
-        className="absolute inset-0 z-0"
-      >
-        {/* Fallback gradient while video loads */}
-        <div
-          className={cn(
-            "absolute inset-0 bg-gradient-to-br from-primary/20 via-background/80 to-background/80 transition-opacity duration-1000",
-            isVideoLoaded ? "opacity-0" : "opacity-100"
-          )}
+      {/* Field: cinematic video that alternates between the Sahel goats (R2) and
+          the prior grazing loop, with contrast scrims (atmospheric gradients kept). */}
+      <motion.div style={{ scale: videoScale }} className="absolute inset-0 z-0">
+        <VideoRotator
+          sources={[
+            { src: VIDEOS.goatsSahel, poster: POSTERS.hero },
+            { src: LOCAL_VIDEOS.grazingLoop, poster: POSTERS.hero },
+            { src: VIDEOS.fishesInPond, poster: POSTERS.hero },
+          ]}
+          overlayClassName="bg-gradient-to-b from-[#0b120c]/70 via-[#0b120c]/45 to-[#0b120c]"
         />
-
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          onLoadedData={() => setIsVideoLoaded(true)}
-          poster="/atmospheric/high-res-wide-shot-with-negative-text.png"
-          className="w-full h-full object-cover"
-        >
-          <source
-            src="/atmospheric/4k-cinematic-loop-livestock-grazing.mp4"
-            type="video/mp4"
-          />
-        </video>
-
-        {/* Dark overlay - dims the video for better text contrast */}
-        <div className="absolute inset-0 bg-black/40" />
-
-        {/* Gradient overlays for depth and text readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/50" />
-
-        {/* Subtle vignette effect */}
-        <div className="absolute inset-0 bg-radial-gradient" style={{
-          background: "radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.3) 80%)"
-        }} />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0b120c]/60 via-transparent to-[#0b120c]/40" />
       </motion.div>
 
       {/* Content */}
       <motion.div
         style={{ opacity: contentOpacity, y: contentY }}
-        className="relative z-10 h-full flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8"
+        className="relative z-10 flex h-full flex-col justify-center px-5 sm:px-8 lg:px-12"
       >
-        <div className="max-w-5xl mx-auto text-center">
-          {/* Badge */}
+        <div className="mx-auto w-full max-w-5xl">
+          {/* Eyebrow */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="ledger mb-6 flex items-center gap-3 text-[11px] uppercase tracking-[0.25em] text-white/70"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6 md:mb-8">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-              </span>
-              <span className="text-xs sm:text-sm font-medium text-white/90">
-                Africa&apos;s Premier Livestock Platform
-              </span>
-            </div>
+            <span className="h-px w-8 bg-[color:var(--pasture)]" />
+            Green Livestock Africa
           </motion.div>
 
-          {/* Main Heading */}
+          {/* Headline */}
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
-            className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight mb-4 md:mb-6"
+            transition={{ duration: 0.7, delay: 0.25 }}
+            className="max-w-4xl text-balance font-display text-4xl font-medium leading-[1.05] text-white sm:text-5xl md:text-6xl lg:text-7xl"
           >
-            Invest in{" "}
-            <span className="relative">
-              <span className="relative z-10 text-primary">Premium</span>
-              {/* Underline decoration */}
-              <svg
-                className="absolute -bottom-2 left-0 w-full h-3 text-primary/30"
-                viewBox="0 0 200 12"
-                fill="none"
-                preserveAspectRatio="none"
-              >
-                <path
-                  d="M2 10C50 4 100 4 198 10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </span>
-            <br />
-            <span className="text-white">African Livestock</span>
+            Building the next generation of{" "}
+            <span className="text-gradient-signature">African farmers</span>.
           </motion.h1>
 
-          {/* Subtitle */}
+          {/* Sub */}
           <motion.p
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-            className="text-base sm:text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed"
+            transition={{ duration: 0.7, delay: 0.35 }}
+            className="mt-6 max-w-2xl text-base leading-relaxed text-white/75 sm:text-lg"
           >
-            Discover verified genetics, documented health histories, and
-            exceptional breeds. Your gateway to agricultural wealth starts here.
+            Open training in breeding, nutrition, and disease prevention — livestock
+            knowledge as the working answer to hunger and food insecurity across Africa.
           </motion.p>
 
-          {/* CTA Buttons - Glassmorphic */}
+          {/* CTAs */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.5 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+            transition={{ duration: 0.7, delay: 0.45 }}
+            className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center"
           >
-            {/* Primary CTA */}
             <Link
-              href="/livestock"
+              href="/learn"
               className={cn(
-                "group relative w-full sm:w-auto inline-flex items-center justify-center gap-2",
-                "px-8 py-4 rounded-full",
-                "bg-primary text-primary-foreground font-semibold",
-                "shadow-lg shadow-primary/30",
-                "transition-all duration-300",
-                "hover:shadow-xl hover:shadow-primary/40 hover:scale-105",
-                "active:scale-95"
+                "group inline-flex w-full items-center justify-center gap-2 rounded-full px-7 py-3.5 sm:w-auto",
+                "bg-[color:var(--pasture)] font-semibold text-[color:var(--nightfield)]",
+                "transition-transform duration-300 hover:scale-[1.03] active:scale-95"
               )}
             >
-              Explore Livestock
-              <ArrowRight
-                size={18}
-                className="transition-transform duration-300 group-hover:translate-x-1"
-              />
+              Start learning
+              <ArrowRight size={18} className="transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
-
-            {/* Secondary CTA - Glassmorphic */}
             <Link
-              href="/about"
-              className={cn(
-                "group relative w-full sm:w-auto inline-flex items-center justify-center gap-2",
-                "px-8 py-4 rounded-full",
-                "bg-white/10 backdrop-blur-md text-white font-semibold",
-                "border border-white/20",
-                "transition-all duration-300",
-                "hover:bg-white/20 hover:border-white/30",
-                "active:scale-95"
-              )}
+              href="/impact"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/25 bg-white/5 px-7 py-3.5 font-semibold text-white backdrop-blur-sm transition-colors duration-300 hover:bg-white/10 sm:w-auto"
             >
-              <Play size={18} className="fill-current" />
-              See How It Works
+              See the outcomes
             </Link>
           </motion.div>
 
-          {/* Stats Row - Glassmorphic Cards */}
+          {/* Signature record line — the hero's only "widget" */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
-            className="mt-12 md:mt-16 grid grid-cols-3 gap-3 sm:gap-4 max-w-lg mx-auto"
+            transition={{ duration: 0.7, delay: 0.6 }}
+            className="mt-10"
           >
-            {[
-              { value: "500+", label: "Livestock" },
-              { value: "98%", label: "Verified" },
-              { value: "24/7", label: "Support" },
-            ].map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.8 + index * 0.1 }}
-                className={cn(
-                  "px-4 py-3 sm:px-6 sm:py-4 rounded-2xl",
-                  "bg-white/10 backdrop-blur-md border border-white/10",
-                  "text-center"
-                )}
-              >
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">
-                  {stat.value}
-                </div>
-                <div className="text-xs sm:text-sm text-white/60 mt-0.5">
-                  {stat.label}
-                </div>
-              </motion.div>
-            ))}
+            <RecordLine
+              segments={["Cohort 01", "93 Farmers Trained", "Verified"]}
+              verified
+            />
           </motion.div>
         </div>
       </motion.div>
 
-      {/* Scroll Indicator */}
-      <motion.div
+      {/* Scroll indicator */}
+      <motion.button
+        onClick={scrollToContent}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 1, delay: 1.2 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10"
+        transition={{ duration: 1, delay: 1 }}
+        className="group absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2 text-white/55 transition-colors hover:text-white"
+        aria-label="Scroll to content"
       >
-        <button
-          onClick={scrollToContent}
-          className="flex flex-col items-center gap-2 text-white/60 hover:text-white transition-colors group"
-        >
-          <span className="text-xs uppercase tracking-widest">Discover</span>
-          <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <ChevronDown size={24} className="group-hover:text-primary transition-colors" />
-          </motion.div>
-        </button>
-      </motion.div>
+        <span className="ledger text-[10px] uppercase tracking-[0.25em]">The model</span>
+        <motion.span animate={{ y: [0, 6, 0] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}>
+          <ChevronDown size={22} />
+        </motion.span>
+      </motion.button>
     </section>
   )
 }

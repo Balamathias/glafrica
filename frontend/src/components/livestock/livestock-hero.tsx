@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { Search, Sparkles } from "lucide-react"
+import { Search, ScanSearch } from "lucide-react"
 import { useCategories } from "@/lib/hooks"
 import { cn } from "@/lib/utils"
 
@@ -140,7 +140,7 @@ export function LivestockHero({ onAISearchClick }: LivestockHeroProps) {
                 "flex items-center gap-2"
               )}
             >
-              <Sparkles size={16} />
+              <ScanSearch size={16} />
               <span className="hidden sm:inline">Search</span>
             </button>
           </div>
@@ -160,7 +160,7 @@ export function LivestockHero({ onAISearchClick }: LivestockHeroProps) {
               "hover:bg-white/20 hover:border-white/30 transition-all duration-200"
             )}
           >
-            <Sparkles size={16} className="text-primary" />
+            <ScanSearch size={16} className="text-primary" />
             Or try AI-powered search
           </motion.button>
         )}

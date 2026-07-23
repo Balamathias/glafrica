@@ -30,22 +30,30 @@ The brand must prove two things: **beauty** (animals, land, cinematic video) and
   stamped verification marks. Vernacular drawn from the subject itself: herd registries,
   vaccination cards, ear tags, the farmer's almanac — typeset to investment grade.
 
-What this retires from the current site: glassmorphism on content cards (kept only on the
-fixed navbar), glow/pulse effects, pure-black ground, floating KPI stat tiles.
+What this retires from the current site: pure-black ground, floating KPI stat tiles in
+the hero, and `pulse-glow` animation loops. **Glassmorphism is NOT retired** (see §2.0).
 
-### 2.0 Gradient charter (owner amendment, 2026-07-23)
+### 2.0 Brand surface charter (owner corrections, 2026-07-23)
 
-The green→gold gradient is part of GLA's signature and is **preserved deliberately**:
+The owner confirmed the site's existing surface language IS the brand and must be kept:
 
-- **Signature text gradient** (Pasture → Ochre): exactly ONE gradient phrase per page,
-  on the emotional keyword of a headline (e.g. the hero's key phrase). Never on body
-  text, buttons, or data.
-- **Atmospheric gradients kept**: the hero video overlay stack (dark scrims for text
-  contrast), the `HeroTransition` dark→background blend, and subtle
-  background→muted section washes.
-- **Retired**: `pulse-glow` / `shadow-glow` loops, shimmer on content (kept for loading
-  skeletons), and per-card hover gradient washes (replaced by the record-card hover:
-  border emphasis + lift).
+- **Glassmorphic cards**: `bg-card/50 backdrop-blur-sm border-border/50 rounded-3xl`
+  with `hover:border-primary/30 hover:shadow-premium hover:-translate-y-1` — the
+  canonical card treatment (matches the original ValueProps cards).
+- **Background gradient glows**: large blurred orbs (`bg-primary/5`, `bg-secondary/5`,
+  `blur-3xl`) decorating section backgrounds, plus background→muted section washes.
+- **Per-card hover gradient washes**: `bg-gradient-to-br from-<color>/20 to-<color>/5`
+  revealed on hover.
+- **Smooth rounded corners**: `rounded-3xl` for cards (including the vellum record
+  cards), `rounded-2xl` for icon chips.
+- **Signature text gradient** (Pasture → Ochre `.text-gradient-signature`): one gradient
+  phrase per page headline. Never on body text, buttons, or data.
+- **Atmospheric gradients kept**: hero video scrims, `HeroTransition` blend.
+- Still retired: `pulse-glow` animation loops; shimmer only on loading skeletons.
+
+The Field & Ledger identity lives INSIDE this glass language as content structure —
+mono `.ledger` metadata, record lines, ear tags, ochre stamps, vellum record cards —
+not as a replacement for it.
 
 ### 2.1 Color tokens
 
@@ -122,7 +130,8 @@ centerpiece + homepage teaser module):
 | `/` | Rebuilt | Education-first hero → 4-pillar model → Herd Health Card teaser → impact ledger strip → marketplace reframed as proof → farmer-first testimonials → map/CTA |
 | `/learn` | New — primary nav destination | Knowledge hub: guidance by livestock type (breeding, nutrition, disease prevention, bloat), workshops/on-farm sessions, **Herd Health Card** tool |
 | `/livestock` | Kept | Marketplace; copy reframed: "livestock raised by trained, equipped farmers" |
-| `/store` | New | Farm Store: absorbs eggs vertical (`/eggs` redirects here) + exotic chickens, tilapia fingerlings, grass seed, general sourcing — "what a trained farmer needs to start or grow". **Inquiry-based, not orderable** (owner, 2026-07-23): no prices/carts; every product card leads to a prefilled inquiry ("sourcing desk" pattern) wired to the ContactInquiry pipeline |
+| `/eggs` | Kept (owner reversal, 2026-07-23) | Eggs stay a **distinct vertical** with their own full admin system — the immersive eggs gallery remains at `/eggs` and stays in the nav. NOT absorbed into the store. |
+| `/store` | New | Farm Store: exotic chickens, fertile/hatching eggs (sourcing, distinct from the eggs catalog), tilapia fingerlings, grass seed, general sourcing — "what a trained farmer needs to start or grow". **Inquiry-based, not orderable** (owner, 2026-07-23): no prices/carts; every product card leads to a prefilled inquiry ("sourcing desk" pattern) wired to the ContactInquiry pipeline |
 | `/impact` | New | Plain-stated outcomes ledger for sponsors: cohort table, what was taught, real numbers only |
 | `/partner` | New | Partner With Us: sponsor / foreign development partner / investor paths + DRF-backed inquiry form |
 | `/about` | Reframed | The people teaching and backing farmers; team stays; mission copy rewritten |

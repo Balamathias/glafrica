@@ -27,15 +27,14 @@ export interface LivestockFormData {
   age: string
   weight: string
 
-  // Step 2: Location
   location: string
 
-  // Step 3: Details & Health
+  // Step 2: Details & Health
   description: string
   health_status: string
   vaccination_history: VaccinationRecord[]
 
-  // Step 4: Media & Tags
+  // Step 3: Media & Tags
   tag_ids: string[]
 }
 
@@ -132,8 +131,6 @@ const validationRules: Record<number, Record<string, (value: unknown, state: Liv
       if (!value) return "Please select a category"
       return null
     },
-  },
-  2: {
     location: (value) => {
       if (!value || (value as string).trim().length === 0) {
         return "Location is required"
@@ -141,21 +138,15 @@ const validationRules: Record<number, Record<string, (value: unknown, state: Liv
       return null
     },
   },
-  3: {
+  2: {
     description: (value) => {
-      if (!value || (value as string).trim().length < 50) {
-        return "Description must be at least 50 characters"
-      }
-      return null
-    },
-    health_status: (value) => {
-      if (!value || (value as string).trim().length < 20) {
-        return "Health status must be at least 20 characters"
+      if (!value || (value as string).trim().length < 30) {
+        return "Description must be at least 30 characters"
       }
       return null
     },
   },
-  4: {
+  3: {
     mediaFiles: (_, state) => {
       if (state.mediaFiles.length === 0) {
         return "At least one media file is required"
@@ -215,7 +206,7 @@ export function LivestockFormProvider({ children, editData }: LivestockFormProvi
 
   // Navigation
   const goToStep = React.useCallback((step: number) => {
-    if (step >= 1 && step <= 4) {
+    if (step >= 1 && step <= 3) {
       setState((prev) => ({ ...prev, currentStep: step }))
     }
   }, [])
@@ -246,7 +237,7 @@ export function LivestockFormProvider({ children, editData }: LivestockFormProvi
 
   const nextStep = React.useCallback((): boolean => {
     const isValid = validateStep(state.currentStep)
-    if (isValid && state.currentStep < 4) {
+    if (isValid && state.currentStep < 3) {
       setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }))
       return true
     }

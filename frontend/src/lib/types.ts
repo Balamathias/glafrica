@@ -241,3 +241,41 @@ export interface EggSearchFilters {
   ordering?: string
 }
 
+
+// ============================================
+// Herd Health Card — vaccination schedule
+// ============================================
+
+export interface Species {
+  name: string
+  slug: string
+  common_breeds: string
+  description: string
+  icon: string
+}
+
+export type VaccinationCategory = 'vaccine' | 'deworm' | 'vitamin' | 'management'
+
+export interface VaccinationRow {
+  category: VaccinationCategory
+  category_display: string
+  name: string
+  protects_against: string
+  age_offset_days: number
+  age_label: string
+  repeat_interval_days: number | null
+  route: string
+  route_display: string
+  notes: string
+  is_core: boolean
+  scheduled_date?: string | null
+}
+
+export interface VaccinationSchedule {
+  species: Species
+  source_note: string
+  birth_date: string | null
+  generated_at: string
+  schedule: VaccinationRow[]
+  disclaimer: string
+}

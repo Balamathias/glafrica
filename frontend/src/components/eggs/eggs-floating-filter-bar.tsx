@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, ChevronDown, SlidersHorizontal, Sparkles, Check, Egg } from "lucide-react"
+import { X, ChevronDown, SlidersHorizontal, ScanSearch, Check, Egg } from "lucide-react"
 import { useEggCategories } from "@/lib/hooks"
 import { cn } from "@/lib/utils"
 import {
@@ -102,7 +102,7 @@ export function EggsFloatingFilterBar({ onAISearchClick }: EggsFloatingFilterBar
                     className={cn(
                       "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all flex-shrink-0",
                       !activeCategory
-                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                        ? "bg-primary text-primary-foreground"
                         : "bg-muted hover:bg-muted/80 text-foreground"
                     )}
                   >
@@ -116,7 +116,7 @@ export function EggsFloatingFilterBar({ onAISearchClick }: EggsFloatingFilterBar
                       className={cn(
                         "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all flex-shrink-0",
                         activeCategory === category.slug
-                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                          ? "bg-primary text-primary-foreground"
                           : "bg-muted hover:bg-muted/80 text-foreground"
                       )}
                     >
@@ -141,11 +141,11 @@ export function EggsFloatingFilterBar({ onAISearchClick }: EggsFloatingFilterBar
                       onClick={onAISearchClick}
                       className={cn(
                         "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium",
-                        "bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20",
+                        "bg-primary/10 text-primary hover:bg-primary/20",
                         "transition-all duration-200"
                       )}
                     >
-                      <Sparkles size={14} />
+                      <ScanSearch size={14} />
                       <span className="hidden sm:inline">AI Search</span>
                     </button>
                   )}
@@ -156,9 +156,9 @@ export function EggsFloatingFilterBar({ onAISearchClick }: EggsFloatingFilterBar
                     className={cn(
                       "flex items-center gap-1.5 p-2 rounded-full transition-colors",
                       showFilters
-                        ? "bg-amber-500 text-white"
+                        ? "bg-primary text-primary-foreground"
                         : "bg-muted hover:bg-muted/80",
-                      activeFilterCount > 0 && !showFilters && "text-amber-600 dark:text-amber-400"
+                      activeFilterCount > 0 && !showFilters && "text-primary"
                     )}
                   >
                     <SlidersHorizontal size={18} />
@@ -308,7 +308,7 @@ function GlassSelect({ value, onChange, options, placeholder, clearLabel = "All"
         className={cn(
           "flex items-center justify-between gap-2 w-full min-w-[120px] px-3 py-2 rounded-xl text-sm font-medium transition-all",
           "bg-muted/50 backdrop-blur-sm border border-border/50 hover:bg-muted hover:border-border",
-          isOpen && "ring-2 ring-amber-500/30 border-amber-500/50"
+          isOpen && "ring-2 ring-primary/30 border-primary/50"
         )}
       >
         <span className={cn(!value && "text-muted-foreground")}>
@@ -347,7 +347,7 @@ function GlassSelect({ value, onChange, options, placeholder, clearLabel = "All"
                   }}
                   className={cn(
                     "flex items-center justify-between w-full px-3 py-2 text-sm hover:bg-muted transition-colors",
-                    !value && "text-amber-600 dark:text-amber-400"
+                    !value && "text-primary"
                   )}
                 >
                   {clearLabel}
@@ -368,7 +368,7 @@ function GlassSelect({ value, onChange, options, placeholder, clearLabel = "All"
                     }}
                     className={cn(
                       "flex items-center justify-between w-full px-3 py-2 text-sm hover:bg-muted transition-colors",
-                      value === option.value && "text-amber-600 dark:text-amber-400"
+                      value === option.value && "text-primary"
                     )}
                   >
                     {option.label}
@@ -399,13 +399,13 @@ function FilterChip({
       exit={{ opacity: 0, scale: 0.9 }}
       className={cn(
         "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium",
-        "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+        "bg-primary/10 text-primary border border-primary/20"
       )}
     >
       {label}
       <button
         onClick={onRemove}
-        className="hover:bg-amber-500/20 rounded-full p-0.5 transition-colors"
+        className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"
       >
         <X size={12} />
       </button>

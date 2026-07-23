@@ -1,0 +1,3 @@
+# Local working assets — never commit media masters
+media-work/
+.DS_Store

@@ -17,7 +17,7 @@ import {
   Sun,
   Moon,
   ChevronLeft,
-  Sparkles,
+  Bot,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useUIStore, useChatStore } from "@/lib/store"
@@ -183,7 +183,7 @@ export function Sidebar() {
             )}
           >
             <span className={cn("shrink-0", isSidebarCollapsed && "mx-auto")}>
-              <Sparkles size={20} className="text-primary" />
+              <Bot size={20} className="text-primary" />
             </span>
 
             <AnimatePresence mode="wait">
@@ -330,7 +330,7 @@ export function Sidebar() {
               }}
               className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-gradient-to-r from-primary/10 to-secondary/10 text-foreground border border-primary/20 mt-4"
             >
-              <Sparkles size={20} className="text-primary" />
+              <Bot size={20} className="text-primary" />
               <div className="text-left">
                 <div className="font-medium">AI Assistant</div>
                 <div className="text-xs text-muted-foreground">Ask anything about livestock</div>

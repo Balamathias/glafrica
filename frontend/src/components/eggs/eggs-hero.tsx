@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { Search, Sparkles, Egg } from "lucide-react"
+import { Search, ScanSearch, Egg } from "lucide-react"
 import { useEggCategories } from "@/lib/hooks"
 import { cn } from "@/lib/utils"
 
@@ -68,8 +68,8 @@ export function EggsHero({ onAISearchClick }: EggsHeroProps) {
           Your browser does not support the video tag.
         </video>
 
-        {/* Warm amber/orange tinted overlay for eggs theme */}
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-black/50 to-orange-900/30" />
+        {/* Nightfield/Canopy scrim for text contrast */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0b120c]/70 via-black/45 to-[#174024]/50" />
 
         {/* Dark overlay with gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
@@ -81,21 +81,21 @@ export function EggsHero({ onAISearchClick }: EggsHeroProps) {
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
             className="absolute top-24 left-[8%] opacity-[0.07]"
           >
-            <Egg className="w-28 h-28 text-amber-300" />
+            <Egg className="w-28 h-28 text-secondary/70" />
           </motion.div>
           <motion.div
             animate={{ y: [0, 12, 0], rotate: [0, -6, 0] }}
             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
             className="absolute top-36 right-[12%] opacity-[0.07]"
           >
-            <Egg className="w-20 h-20 text-orange-300" />
+            <Egg className="w-20 h-20 text-secondary/60" />
           </motion.div>
           <motion.div
             animate={{ y: [0, -10, 0], rotate: [0, 8, 0] }}
             transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1 }}
             className="absolute bottom-36 right-[25%] opacity-[0.07]"
           >
-            <Egg className="w-24 h-24 text-amber-200" />
+            <Egg className="w-24 h-24 text-secondary/80" />
           </motion.div>
         </div>
 
@@ -112,7 +112,7 @@ export function EggsHero({ onAISearchClick }: EggsHeroProps) {
           transition={{ duration: 0.4 }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full mb-6"
         >
-          <Sparkles className="w-4 h-4 text-amber-400" />
+          <Egg className="w-4 h-4 text-secondary" />
           <span className="text-sm font-medium text-white/90">Farm Fresh & Organic</span>
         </motion.div>
 
@@ -124,7 +124,7 @@ export function EggsHero({ onAISearchClick }: EggsHeroProps) {
           className="font-serif text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4"
         >
           Premium{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
+          <span className="text-gradient-signature">
             Eggs
           </span>
         </motion.h1>
@@ -150,7 +150,7 @@ export function EggsHero({ onAISearchClick }: EggsHeroProps) {
             className={cn(
               "relative flex items-center rounded-full transition-all duration-300",
               "bg-white/10 backdrop-blur-md border border-white/20",
-              isFocused && "bg-white/20 border-white/40 shadow-lg shadow-amber-500/10"
+              isFocused && "bg-white/20 border-white/40 shadow-lg shadow-primary/10"
             )}
           >
             <Search
@@ -175,12 +175,12 @@ export function EggsHero({ onAISearchClick }: EggsHeroProps) {
               type="submit"
               className={cn(
                 "absolute right-2 px-6 py-2.5 rounded-full",
-                "bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium",
-                "hover:from-amber-600 hover:to-orange-600 transition-all",
-                "flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                "bg-primary text-primary-foreground font-medium",
+                "hover:bg-primary/90 transition-all",
+                "flex items-center gap-2 shadow-lg shadow-primary/25"
               )}
             >
-              <Sparkles size={16} />
+              <Search size={16} />
               <span className="hidden sm:inline">Search</span>
             </button>
           </div>
@@ -200,7 +200,7 @@ export function EggsHero({ onAISearchClick }: EggsHeroProps) {
               "hover:bg-white/20 hover:border-white/30 transition-all duration-200"
             )}
           >
-            <Sparkles size={16} className="text-amber-400" />
+            <ScanSearch size={16} className="text-primary" />
             Or try AI-powered search
           </motion.button>
         )}
@@ -218,7 +218,7 @@ export function EggsHero({ onAISearchClick }: EggsHeroProps) {
             className={cn(
               "px-5 py-2 rounded-full text-sm font-medium transition-all duration-200",
               !activeCategory
-                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
                 : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm border border-white/10"
             )}
           >
@@ -233,7 +233,7 @@ export function EggsHero({ onAISearchClick }: EggsHeroProps) {
               className={cn(
                 "px-5 py-2 rounded-full text-sm font-medium transition-all duration-200",
                 activeCategory === category.slug
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20"
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
                   : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm border border-white/10"
               )}
             >

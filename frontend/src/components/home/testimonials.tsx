@@ -2,135 +2,163 @@
 
 import { useRef } from "react"
 import { motion, useInView } from "framer-motion"
-import { Quote } from "lucide-react"
+import { Leaf } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { EarTag } from "@/components/brand"
 
-const testimonials = [
+// NOTE: Farmer quotes below are PLACEHOLDERS awaiting real attributions from the
+// owner (real names, locations, cohort). Investor/breeder quotes are the existing
+// site copy. Farmer voices are ordered first by design.
+const VOICES = [
   {
     quote:
-      "The quality of livestock here is exceptional. Every animal comes with complete documentation - genetics, health records, everything. It's transformed how I source breeding stock.",
+      "Before the training I was losing kids every rainy season. Now I follow the vaccination schedule and keep records — my herd has doubled and I sell with confidence.",
+    name: "Cohort 01 farmer",
+    location: "",
+    role: "Goat farmer",
+    kind: "farmer" as const,
+    placeholder: true,
+  },
+  {
+    quote:
+      "They taught us how to feed properly and prevent bloat. What I learned here I now teach two other families in my village. That is how it spreads.",
+    name: "Cohort 01 farmer",
+    location: "",
+    role: "Mixed livestock farmer",
+    kind: "farmer" as const,
+    placeholder: true,
+  },
+  {
+    quote:
+      "The quality of livestock here is exceptional. Every animal comes with complete documentation — genetics, health records, everything. It transformed how I source breeding stock.",
     name: "Ibrahim Adamu",
     location: "Kano, Nigeria",
-    role: "Livestock Breeder",
-  },
-  {
-    quote:
-      "As an investor, I needed transparency and trust. Green Livestock Africa delivered both. The process was smooth, and the returns on my cattle investment exceeded expectations.",
-    name: "Amara Okonkwo",
-    location: "Lagos, Nigeria",
-    role: "Agricultural Investor",
-  },
-  {
-    quote:
-      "First time buying livestock online and I was nervous. The team walked me through everything, the AI assistant answered all my questions, and delivery was seamless.",
-    name: "Fatima Bello",
-    location: "Abuja, Nigeria",
-    role: "First-time Buyer",
+    role: "Livestock breeder",
+    kind: "partner" as const,
+    placeholder: false,
   },
 ]
 
+const hasPlaceholders = VOICES.some((v) => v.placeholder)
+
 export function Testimonials() {
   const ref = useRef<HTMLDivElement>(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const inView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section
-      ref={ref}
-      className="relative py-20 md:py-32 bg-muted/30 overflow-hidden"
-    >
-      {/* Background Decoration */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl -translate-y-1/2" />
-        <div className="absolute top-1/2 right-0 w-72 h-72 bg-secondary/5 rounded-full blur-3xl -translate-y-1/2" />
+    <section ref={ref} className="relative overflow-hidden bg-muted/20 py-20 md:py-28">
+      {/* Background glow decoration */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-0 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute right-0 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-secondary/5 blur-3xl" />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12 md:mb-16"
-        >
-          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Trusted by Investors{" "}
-            <span className="text-gradient-primary">Across Africa</span>
+      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+        <div className="mb-12 max-w-2xl">
+          <span className="ledger text-[11px] uppercase tracking-[0.25em] text-primary">
+            Voices from the field
+          </span>
+          <h2 className="font-display mt-4 text-3xl font-medium leading-tight text-foreground sm:text-4xl md:text-5xl">
+            The farmers first.{" "}
+            <span className="text-gradient-signature">Then the market.</span>
           </h2>
-          <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">
-            Join thousands of satisfied customers who have transformed their
-            agricultural investments with us.
-          </p>
-        </motion.div>
+        </div>
 
-        {/* Testimonials Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-          {testimonials.map((testimonial, index) => (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-6">
+          {VOICES.map((v, i) => (
             <motion.div
-              key={testimonial.name}
-              initial={{ opacity: 0, y: 30 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{
-                duration: 0.5,
-                delay: 0.2 + index * 0.15,
-                ease: "easeOut",
-              }}
+              key={i}
+              initial={{ opacity: 0, y: 24 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, delay: i * 0.12, ease: "easeOut" }}
             >
-              <TestimonialCard {...testimonial} />
+              <VoiceCard {...v} />
             </motion.div>
           ))}
         </div>
+
+        {hasPlaceholders && (
+          <p className="ledger mt-6 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50">
+            Farmer attributions are being finalised with Cohort 01.
+          </p>
+        )}
       </div>
     </section>
   )
 }
 
-function TestimonialCard({
+function VoiceCard({
   quote,
   name,
   location,
   role,
+  kind,
+  placeholder,
 }: {
   quote: string
   name: string
   location: string
   role: string
+  kind: "farmer" | "partner"
+  placeholder: boolean
 }) {
+  const isFarmer = kind === "farmer"
   return (
-    <div
+    <figure
       className={cn(
-        "relative h-full p-6 lg:p-8 rounded-2xl",
-        "bg-background/50 backdrop-blur-sm border border-border/50",
-        "hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5",
-        "transition-all duration-300"
+        "group relative flex h-full flex-col overflow-hidden rounded-3xl border p-7 backdrop-blur-sm md:p-8",
+        "transition-all duration-500 hover:-translate-y-1 hover:shadow-premium",
+        isFarmer
+          ? "border-primary/25 bg-card/50 hover:border-primary/50"
+          : "border-border/50 bg-card/50 hover:border-primary/30"
       )}
     >
-      {/* Quote Icon */}
-      <div className="absolute top-6 right-6 opacity-10">
-        <Quote size={48} className="text-primary" />
-      </div>
+      {/* Gradient wash on hover */}
+      <div
+        className={cn(
+          "absolute inset-0 rounded-3xl bg-gradient-to-br opacity-0 transition-opacity duration-500 group-hover:opacity-100",
+          isFarmer ? "from-emerald-500/15 to-emerald-600/5" : "from-secondary/10 to-transparent"
+        )}
+      />
 
-      {/* Quote Text */}
-      <blockquote className="relative z-10 mb-6">
-        <p className="text-muted-foreground leading-relaxed italic">
+      {/* Oversized serif quote mark */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-3 right-5 select-none font-display text-[7rem] leading-none text-primary/[0.08]"
+      >
+        &ldquo;
+      </span>
+
+      <div className="relative flex h-full flex-col">
+        <EarTag accent={isFarmer} className="self-start">
+          {isFarmer ? "Farmer" : "Partner"}
+        </EarTag>
+
+        <blockquote className="mt-5 flex-1 text-[15px] leading-relaxed text-foreground/90">
           &ldquo;{quote}&rdquo;
-        </p>
-      </blockquote>
+        </blockquote>
 
-      {/* Author */}
-      <div className="flex items-center gap-3">
-        {/* Avatar Placeholder */}
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-primary font-semibold text-lg">
-            {name.charAt(0)}
-          </span>
-        </div>
-        <div>
-          <div className="font-semibold text-foreground">{name}</div>
-          <div className="text-sm text-muted-foreground">
-            {role} &middot; {location}
+        <figcaption className="mt-6 flex items-center gap-3 border-t border-border/50 pt-5">
+          <div
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+              "bg-primary/10"
+            )}
+          >
+            {placeholder ? (
+              <Leaf className="h-4.5 w-4.5 text-primary" size={18} />
+            ) : (
+              <span className="font-semibold text-primary">{name.charAt(0)}</span>
+            )}
           </div>
-        </div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-foreground">{name}</div>
+            <div className="ledger truncate text-[11px] uppercase tracking-wider text-muted-foreground">
+              {[role, location].filter(Boolean).join(" · ")}
+            </div>
+          </div>
+        </figcaption>
       </div>
-    </div>
+    </figure>
   )
 }

@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Globe,
   Egg,
+  Stethoscope,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAdminUIStore, useAuthStore } from "@/lib/admin-store"
@@ -57,6 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "media", label: "Media Library", icon: ImageIcon, href: "/admin/media" },
   { id: "categories", label: "Categories", icon: Folder, href: "/admin/categories" },
   { id: "tags", label: "Tags", icon: Tags, href: "/admin/tags" },
+  { id: "herd-health", label: "Herd Health", icon: Stethoscope, href: "/admin/herd-health" },
   { id: "inquiries", label: "Inquiries", icon: MessageSquare, href: "/admin/inquiries", badge: "dynamic" },
   { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
   { id: "visitor-analytics", label: "Visitor Analytics", icon: Globe, href: "/admin/visitor-analytics" },

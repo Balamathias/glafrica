@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Sparkles, Loader2 } from "lucide-react"
+import { Search, Bot, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { GalleryCard } from "@/components/gallery/gallery-card"
@@ -75,7 +75,7 @@ export default function SearchPage() {
                 onClick={handleAskAI}
                 className="flex-1 sm:flex-none"
               >
-                <Sparkles size={18} className="mr-2" />
+                <Bot size={18} className="mr-2" />
                 Ask AI
               </Button>
             </div>
@@ -145,7 +145,7 @@ export default function SearchPage() {
                 Try adjusting your search or ask our AI for help
               </p>
               <Button variant="outline" onClick={handleAskAI}>
-                <Sparkles size={16} className="mr-2" />
+                <Bot size={16} className="mr-2" />
                 Ask AI to help
               </Button>
             </motion.div>

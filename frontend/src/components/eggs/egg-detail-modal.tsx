@@ -15,7 +15,7 @@ import {
   Share2,
   Heart,
   MessageCircle,
-  Sparkles,
+  Star,
   Check,
   AlertCircle,
 } from "lucide-react"
@@ -133,8 +133,8 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
             {isLoading ? (
               <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-full border-4 border-amber-500/20 border-t-amber-500 animate-spin" />
-                  <EggIcon className="absolute inset-0 m-auto w-6 h-6 text-amber-500" />
+                  <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                  <EggIcon className="absolute inset-0 m-auto w-6 h-6 text-primary" />
                 </div>
                 <p className="text-muted-foreground">Loading egg details...</p>
               </div>
@@ -242,7 +242,7 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
                                 className={cn(
                                   "relative w-14 h-14 rounded-xl overflow-hidden border-2 transition-all",
                                   index === currentMediaIndex
-                                    ? "border-amber-500 scale-105"
+                                    ? "border-primary scale-105"
                                     : "border-transparent opacity-60 hover:opacity-100"
                                 )}
                               >
@@ -270,9 +270,9 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
                         </div>
                       </>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-900/20 to-orange-900/10">
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/5">
                         <div className="text-center">
-                          <EggIcon className="w-24 h-24 text-amber-500/30 mx-auto mb-4" />
+                          <EggIcon className="w-24 h-24 text-primary/30 mx-auto mb-4" />
                           <p className="text-muted-foreground">No images available</p>
                         </div>
                       </div>
@@ -306,12 +306,12 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
                   <div className="p-6 lg:p-8 space-y-6">
                     {/* Header Badges */}
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-3 py-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400 text-sm font-semibold rounded-full border border-amber-500/30">
+                      <span className="px-3 py-1.5 bg-gradient-to-r from-primary/20 to-secondary/20 text-primary text-sm font-semibold rounded-full border border-primary/30">
                         {egg.category?.name || egg.category_name}
                       </span>
                       {egg.is_featured && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold rounded-full">
-                          <Sparkles size={14} />
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground text-sm font-semibold rounded-full">
+                          <Star size={14} />
                           Featured
                         </span>
                       )}
@@ -326,7 +326,7 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
                     </div>
 
                     {/* Stock Info */}
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border border-amber-500/20">
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-transparent border border-primary/20">
                       <div className="flex items-baseline justify-between">
                         <span className="text-muted-foreground">
                           {EGG_PACKAGING_LABELS[egg.packaging as EggPackaging]}
@@ -402,7 +402,7 @@ export function EggDetailModal({ eggId, isOpen, onClose }: EggDetailModalProps) 
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
                       <Button
-                        className="flex-1 h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-xl"
+                        className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl"
                         size="lg"
                       >
                         <MessageCircle size={18} className="mr-2" />
@@ -467,7 +467,7 @@ function SpecCard({
         className
       )}
     >
-      <div className="text-amber-500">{icon}</div>
+      <div className="text-primary">{icon}</div>
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="font-medium truncate">{value}</p>

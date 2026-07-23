@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, ChevronDown, SlidersHorizontal, Sparkles } from "lucide-react"
+import { X, ChevronDown, SlidersHorizontal, ScanSearch } from "lucide-react"
 import { useCategories } from "@/lib/hooks"
 import { cn } from "@/lib/utils"
 
@@ -147,7 +147,7 @@ export function FloatingFilterBar({ onAISearchClick }: FloatingFilterBarProps) {
                       "transition-all duration-200"
                     )}
                   >
-                    <Sparkles size={14} />
+                    <ScanSearch size={14} />
                     <span className="hidden sm:inline">AI Search</span>
                   </button>
                 )}

@@ -12,6 +12,8 @@ import type {
   EggCategory,
   EggSearchFilters,
   SmartSearchResponse,
+  Species,
+  VaccinationSchedule,
 } from './types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
@@ -290,6 +292,60 @@ export const searchApi = {
   },
 }
 
+// Herd Health Card — vaccination schedule API
+export const herdHealthApi = {
+  // List species available in the tool
+  async getSpecies(): Promise<Species[]> {
+    try {
+      const { data } = await api.get<Species[]>('/species/')
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  // Generate a protocol for a species, optionally dated from a birth date
+  async getSchedule(speciesSlug: string, birthDate?: string): Promise<VaccinationSchedule> {
+    try {
+      const params = new URLSearchParams({ species: speciesSlug })
+      if (birthDate) params.append('birth_date', birthDate)
+      const { data } = await api.get<VaccinationSchedule>(`/vaccination-schedule/?${params}`)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
+// Public inquiry API (contact / farm-store sourcing / partner) — reuses the
+// rate-limited /contact/ endpoint with a structured subject + message.
+export type InquirySubject =
+  | 'purchase'
+  | 'investment'
+  | 'partnership'
+  | 'visit'
+  | 'support'
+  | 'other'
+
+export interface InquiryPayload {
+  name: string
+  email: string
+  phone?: string
+  subject: InquirySubject
+  message: string
+}
+
+export const inquiryApi = {
+  async submit(payload: InquiryPayload): Promise<{ detail: string; id: string }> {
+    try {
+      const { data } = await api.post<{ detail: string; id: string }>('/contact/', payload)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
 // Export default API object
 export default {
   livestock: livestockApi,
@@ -298,4 +354,6 @@ export default {
   eggs: eggsApi,
   eggCategories: eggCategoriesApi,
   search: searchApi,
+  herdHealth: herdHealthApi,
+  inquiry: inquiryApi,
 }

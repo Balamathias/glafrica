@@ -33,8 +33,8 @@ const contactMethods = [
   {
     icon: Phone,
     title: "Call Us",
-    value: "+234 XXX XXX XXXX",
-    href: "tel:+234XXXXXXXX",
+    value: "+234 915 5467 776",
+    href: "tel:+2349155467776",
     description: "Mon-Fri, 9am - 6pm WAT",
   },
   {

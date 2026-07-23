@@ -6,14 +6,14 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   X,
   Send,
-  Sparkles,
+  HelpCircle,
+  Leaf,
   Maximize2,
   Minimize2,
   Trash2,
   Bot,
   User,
   MessageCircle,
-  Leaf,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -349,7 +349,7 @@ export function ChatAssistant() {
                   className="px-4 pb-3"
                 >
                   <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <Sparkles size={12} className="text-primary" />
+                    <HelpCircle size={12} className="text-primary" />
                     Suggested questions
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -492,7 +492,7 @@ export function ChatAssistant() {
                   ease: "easeInOut",
                 }}
               >
-                <Sparkles size={14} className="text-primary-foreground/80" />
+                <Leaf size={14} className="text-primary-foreground/80" />
               </motion.div>
             </motion.button>
 

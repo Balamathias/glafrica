@@ -5,22 +5,32 @@ import Image from "next/image"
 import { Mail, Phone, MapPin, Instagram, Facebook } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+// Canonical profile URLs only (no share/tracking links). If a LinkedIn company
+// page is confirmed with Edward, add it here — worth having for the
+// sponsor/investor audience this repositioning targets.
 const socialLinks = [
   {
     icon: Instagram,
     label: "Instagram",
-    href: "https://www.instagram.com/greenlivestockafricaa?igsh=aXJvNG83Y3g4Z3Q5&utm_source=qr",
+    href: "https://www.instagram.com/greenlivestockafricaa/",
   },
   {
     icon: Facebook,
     label: "Facebook",
-    href: "https://www.facebook.com/share/17bzfVWKzF/?mibextid=wwXIfr",
+    href: "https://www.facebook.com/Greenlivestockafricaa/",
   },
 ]
 
-const quickLinks = [
-  { label: "Home", href: "/" },
+const exploreLinks = [
+  { label: "Learn", href: "/learn" },
   { label: "Livestock", href: "/livestock" },
+  { label: "Eggs", href: "/eggs" },
+  { label: "Farm Store", href: "/store" },
+]
+
+const organisationLinks = [
+  { label: "Impact", href: "/impact" },
+  { label: "Partner With Us", href: "/partner" },
   { label: "About Us", href: "/about" },
   { label: "Contact", href: "/contact" },
 ]
@@ -33,8 +43,8 @@ const contactInfo = [
   },
   {
     icon: Phone,
-    value: "+234 XXX XXX XXXX",
-    href: "tel:+234XXXXXXXX",
+    value: "+234 915 5467 776",
+    href: "tel:+2349155467776",
   },
   {
     icon: MapPin,
@@ -43,17 +53,31 @@ const contactInfo = [
   },
 ]
 
+function FooterHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="ledger mb-5 text-[11px] uppercase tracking-[0.25em] text-primary">
+      {children}
+    </h3>
+  )
+}
+
 export function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-background border-t border-border/50">
+    <footer className="relative overflow-hidden border-t border-border/40 bg-gradient-to-b from-background to-muted/30">
+      {/* Background glow decoration */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-1/4 bottom-0 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -right-1/4 top-0 h-72 w-72 rounded-full bg-secondary/5 blur-3xl" />
+      </div>
+
       {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-16">
+      <div className="relative mx-auto max-w-7xl px-5 py-14 sm:px-8 md:py-20 lg:px-12">
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1.4fr] lg:gap-14">
           {/* Brand Column */}
-          <div className="lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
+          <div>
+            <Link href="/" className="mb-5 flex items-center gap-3">
               <Image
                 src="/logo/logo.svg"
                 alt="Green Livestock Africa"
@@ -61,12 +85,24 @@ export function Footer() {
                 height={40}
                 className="h-10 w-auto"
               />
-              <h2 className="text-xl font-bold hidden md:block">Green Livestock Africa</h2>
+              <span className="font-display text-lg text-foreground">
+                Green Livestock Africa
+              </span>
             </Link>
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mb-5">
-              Your gateway to premium African livestock investments. Verified
-              genetics, documented health, transparent transactions.
+            <p className="mb-5 max-w-xs text-sm leading-relaxed text-muted-foreground">
+              Training, equipping, and backing livestock farmers across Africa — open
+              knowledge as a working answer to hunger and food insecurity.
             </p>
+
+            {/* Delivered record line */}
+            <p className="ledger mb-6 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: "var(--ochre)" }}
+              />
+              Cohort 01 · 93 farmers trained
+            </p>
+
             {/* Social Links */}
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => {
@@ -79,31 +115,44 @@ export function Footer() {
                     rel="noopener noreferrer"
                     aria-label={social.label}
                     className={cn(
-                      "flex items-center justify-center w-9 h-9 rounded-full",
-                      "bg-muted/50 text-muted-foreground",
-                      "hover:bg-primary hover:text-primary-foreground",
-                      "transition-all duration-200"
+                      "flex h-9 w-9 items-center justify-center rounded-full",
+                      "border border-border/50 bg-card/50 text-muted-foreground backdrop-blur-sm",
+                      "transition-all duration-300 hover:border-primary/40 hover:bg-primary hover:text-primary-foreground"
                     )}
                   >
-                    <Icon size={18} />
+                    <Icon size={17} />
                   </a>
                 )
               })}
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Explore */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Quick Links</h3>
+            <FooterHeading>Explore</FooterHeading>
             <ul className="space-y-3">
-              {quickLinks.map((link) => (
+              {exploreLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className={cn(
-                      "text-muted-foreground text-sm",
-                      "hover:text-primary transition-colors"
-                    )}
+                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Organisation */}
+          <div>
+            <FooterHeading>Organisation</FooterHeading>
+            <ul className="space-y-3">
+              {organisationLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
                   >
                     {link.label}
                   </Link>
@@ -114,60 +163,59 @@ export function Footer() {
 
           {/* Contact Info */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Contact Us</h3>
-            <ul className="space-y-3">
+            <FooterHeading>Reach Us</FooterHeading>
+            <ul className="space-y-4">
               {contactInfo.map((item, index) => {
                 const Icon = item.icon
-                const content = (
-                  <div className="flex items-center gap-3 text-muted-foreground text-sm group">
-                    <Icon
-                      size={16}
-                      className="text-primary/70 group-hover:text-primary transition-colors flex-shrink-0"
-                    />
-                    <span
-                      className={cn(
-                        item.href && "group-hover:text-primary transition-colors"
-                      )}
+                return (
+                  <li key={index}>
+                    <a
+                      href={item.href}
+                      target={item.href.startsWith("http") ? "_blank" : undefined}
+                      rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                      className="group flex items-start gap-3 text-sm text-muted-foreground"
                     >
-                      {item.value}
-                    </span>
-                  </div>
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-primary">
+                        <Icon size={14} />
+                      </span>
+                      <span className="leading-relaxed transition-colors group-hover:text-primary">
+                        {item.value}
+                      </span>
+                    </a>
+                  </li>
                 )
-
-                if (item.href) {
-                  return (
-                    <li key={index}>
-                      <a href={item.href} className="inline-block">
-                        {content}
-                      </a>
-                    </li>
-                  )
-                }
-
-                return <li key={index}>{content}</li>
               })}
             </ul>
+            <p className="ledger mt-5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
+              We reply within two working days.
+            </p>
           </div>
         </div>
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-muted-foreground text-sm text-center sm:text-left">
+      <div className="relative border-t border-border/40">
+        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-12">
+          <div className="flex flex-col items-center justify-between gap-4 lg:flex-row">
+            <p className="text-center text-sm text-muted-foreground lg:text-left">
               &copy; {currentYear} Green Livestock Africa. All rights reserved.
             </p>
+
+            {/* The model, as the footer's quiet signature */}
+            <p className="ledger hidden text-[10px] uppercase tracking-[0.25em] text-muted-foreground/50 md:block">
+              01 Enlighten · 02 Equip · 03 Verify · 04 Grow
+            </p>
+
             <div className="flex items-center gap-6">
               <Link
                 href="/privacy"
-                className="text-muted-foreground text-sm hover:text-primary transition-colors"
+                className="text-sm text-muted-foreground transition-colors hover:text-primary"
               >
                 Privacy Policy
               </Link>
               <Link
                 href="/terms"
-                className="text-muted-foreground text-sm hover:text-primary transition-colors"
+                className="text-sm text-muted-foreground transition-colors hover:text-primary"
               >
                 Terms of Service
               </Link>

@@ -9,11 +9,12 @@ import { MobileNav } from "./mobile-nav"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 
 const NAV_LINKS = [
-  { href: "/", label: "Home" },
+  { href: "/learn", label: "Learn" },
   { href: "/livestock", label: "Livestock" },
   { href: "/eggs", label: "Eggs" },
+  { href: "/store", label: "Farm Store" },
+  { href: "/impact", label: "Impact" },
   { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
 ]
 
 export function Navbar() {
@@ -94,7 +95,7 @@ export function Navbar() {
                 size="sm"
               />
               <Link
-                href="/livestock"
+                href="/partner"
                 className={cn(
                   "relative px-6 py-2.5 text-sm font-semibold rounded-full overflow-hidden transition-all duration-300",
                   "bg-primary text-primary-foreground",
@@ -102,7 +103,7 @@ export function Navbar() {
                   "active:scale-95"
                 )}
               >
-                <span className="relative z-10">Explore Now</span>
+                <span className="relative z-10">Partner With Us</span>
                 {/* Shine effect */}
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700" />
               </Link>

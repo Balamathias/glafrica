@@ -27,21 +27,22 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: {
-    default: "Green Livestock Africa | Premium Livestock Investment",
+    default: "Green Livestock Africa | Raising the next generation of African farmers",
     template: "%s | Green Livestock Africa",
   },
   description:
-    "Discover and invest in Africa's finest livestock. Premium breeds, verified genetics, documented health histories. Your gateway to agricultural wealth.",
+    "Open livestock training for farmers across Africa — breeding, nutrition, and disease prevention as a direct answer to hunger and food insecurity. Enlighten, equip, verify, grow.",
   keywords: [
-    "livestock investment",
+    "livestock training",
+    "farmer education",
+    "food security Africa",
+    "vaccination schedule",
     "cattle",
     "goats",
     "sheep",
-    "Africa",
+    "poultry",
     "agriculture",
     "farming",
-    "Boer goats",
-    "premium livestock",
   ],
   authors: [{ name: "Green Livestock Africa" }],
   creator: "Green Livestock Africa",
@@ -49,9 +50,9 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "Green Livestock Africa",
-    title: "Green Livestock Africa | Premium Livestock Investment",
+    title: "Green Livestock Africa | Raising the next generation of African farmers",
     description:
-      "Discover and invest in Africa's finest livestock. Premium breeds, verified genetics.",
+      "Open livestock training as a working answer to hunger in Africa. Enlighten, equip, verify, grow.",
     images: [
       {
         url: "/og-image.jpg",
@@ -65,7 +66,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Green Livestock Africa",
     description:
-      "Discover and invest in Africa's finest livestock. Premium breeds, verified genetics.",
+      "Open livestock training for farmers across Africa — knowledge as an answer to hunger.",
   },
   robots: {
     index: true,

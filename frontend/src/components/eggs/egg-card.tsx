@@ -109,7 +109,7 @@ export function EggCard({ item, priority = false, onQuickView }: EggCardProps) {
 
         {/* Featured Badge */}
         {item.is_featured && (
-          <div className="absolute top-3 left-3 px-2 py-0.5 bg-amber-500 text-white text-xs font-semibold rounded-full">
+          <div className="absolute top-3 left-3 px-2 py-0.5 bg-secondary text-secondary-foreground text-xs font-semibold rounded-full">
             Featured
           </div>
         )}
@@ -192,7 +192,7 @@ export function EggCard({ item, priority = false, onQuickView }: EggCardProps) {
 
         {/* Featured Badge */}
         {item.is_featured && (
-          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
+          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-secondary text-secondary-foreground text-xs font-semibold rounded-full">
             Featured
           </div>
         )}

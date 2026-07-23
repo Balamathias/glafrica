@@ -4,30 +4,31 @@ import { Footer } from "@/components/layout"
 import {
   Hero,
   HeroTransition,
-  ValueProps,
-  CategoriesShowcase,
+  ModelPillars,
+  HerdHealthTeaser,
+  DualPath,
+  ImpactStrip,
   FeaturedPreview,
   EggsShowcase,
   Testimonials,
-  AITeaser,
   CTASection,
   LocationMap,
 } from "@/components/home"
 
 export const metadata: Metadata = {
-  title: "Green Livestock Africa | Premium Livestock Investment",
+  title: "Green Livestock Africa | Raising the next generation of African farmers",
   description:
-    "Discover and invest in Africa's finest livestock. Premium breeds, verified genetics, documented health histories. Your gateway to agricultural wealth.",
+    "Open training in breeding, nutrition, and disease prevention for livestock farmers across Africa — knowledge as a direct answer to hunger and food insecurity. 93 farmers trained in our first cohort.",
   openGraph: {
-    title: "Green Livestock Africa | Premium Livestock Investment",
+    title: "Green Livestock Africa | Raising the next generation of African farmers",
     description:
-      "Discover and invest in Africa's finest livestock. Premium breeds, verified genetics.",
+      "Open livestock training as a working answer to hunger in Africa. Enlighten, equip, verify, grow.",
     images: [
       {
         url: "/atmospheric/high-res-wide-shot-with-negative-text.png",
         width: 1200,
         height: 630,
-        alt: "Green Livestock Africa - Premium African Livestock",
+        alt: "Green Livestock Africa — training farmers across Africa",
       },
     ],
   },
@@ -38,34 +39,31 @@ export default function HomePage() {
     <>
       <Navbar />
       <main>
-        {/* Hero Section - Full viewport immersive video */}
+        {/* Education-first hero — mission leads, marketplace follows */}
         <Hero />
-
-        {/* Smooth gradient transition from dark hero to content */}
         <HeroTransition />
 
-        {/* Value Propositions - Trust & credibility */}
-        <ValueProps />
+        {/* The model: Enlighten → Equip → Verify → Grow */}
+        <ModelPillars />
 
-        {/* Categories Showcase - Browse by category */}
-        <CategoriesShowcase />
+        {/* Signature: the Herd Health Card, live on the homepage */}
+        <HerdHealthTeaser />
 
-        {/* Featured Livestock Preview */}
+        {/* Tiered entry: new to farming vs already farming */}
+        <DualPath />
+
+        {/* Delivered outcomes, plainly stated */}
+        <ImpactStrip />
+
+        {/* Marketplace reframed as proof of outcomes */}
         <FeaturedPreview />
-
-        {/* Premium Eggs Showcase */}
         <EggsShowcase />
 
-        {/* Testimonials - Social proof */}
+        {/* Farmer voices first, then partners */}
         <Testimonials />
 
-        {/* AI Assistant Teaser */}
-        <AITeaser />
-
-        {/* Location Map */}
+        {/* Where we work + closing call */}
         <LocationMap />
-
-        {/* Call to Action */}
         <CTASection />
       </main>
       <Footer />

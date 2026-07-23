@@ -2,7 +2,7 @@
 
 import { useRef } from "react"
 import { motion, useInView } from "framer-motion"
-import { Sparkles, Bot, User } from "lucide-react"
+import { Bot, MessageCircle, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useChatStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
@@ -41,7 +41,7 @@ export function AITeaser() {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
             >
-              <Sparkles size={16} />
+              <Bot size={16} />
               AI-Powered
             </motion.div>
 
@@ -61,7 +61,7 @@ export function AITeaser() {
               size="lg"
               className="rounded-full px-8 hover:shadow-lg hover:shadow-primary/25 transition-all duration-300"
             >
-              <Sparkles size={18} className="mr-2" />
+              <MessageCircle size={18} className="mr-2" />
               Try It Now
             </Button>
           </motion.div>

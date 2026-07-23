@@ -112,8 +112,8 @@ export function EggsImmersiveGallery() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md mx-auto"
         >
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-500/10 mb-4">
-            <EggIcon className="w-10 h-10 text-amber-500" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
+            <EggIcon className="w-10 h-10 text-primary" />
           </div>
           <h3 className="font-serif text-2xl font-semibold mb-2">
             No eggs found
@@ -168,7 +168,7 @@ export function EggsImmersiveGallery() {
         <div ref={ref} className="h-24 flex items-center justify-center w-full mt-8">
           {isFetchingNextPage && (
             <div className="flex items-center gap-3 text-muted-foreground">
-              <Loader2 className="animate-spin text-amber-500" size={24} />
+              <Loader2 className="animate-spin text-primary" size={24} />
               <span>Loading more eggs...</span>
             </div>
           )}
@@ -178,8 +178,8 @@ export function EggsImmersiveGallery() {
               animate={{ opacity: 1 }}
               className="text-center"
             >
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-500/10 mb-3">
-                <EggIcon className="w-6 h-6 text-amber-500" />
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+                <EggIcon className="w-6 h-6 text-primary" />
               </div>
               <p className="text-muted-foreground text-sm">
                 You&apos;ve seen all {totalCount} egg products

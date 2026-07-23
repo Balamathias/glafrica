@@ -3,7 +3,7 @@
 import { useRef } from "react"
 import Link from "next/link"
 import { motion, useInView } from "framer-motion"
-import { ArrowRight, Sparkles } from "lucide-react"
+import { ArrowRight, BadgeCheck } from "lucide-react"
 import { useLivestockInfinite } from "@/lib/hooks"
 import { GalleryCard } from "@/components/gallery/gallery-card"
 import { cn } from "@/lib/utils"
@@ -38,24 +38,23 @@ export function FeaturedPreview() {
           className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16"
         >
           <div>
-            <motion.div
+            <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4"
+              className="ledger mb-4 inline-block text-[11px] uppercase tracking-[0.25em] text-primary"
             >
-              <Sparkles size={16} />
-              Featured Collection
-            </motion.div>
+              Proof of outcomes
+            </motion.span>
 
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-foreground"
+              className="font-display text-3xl sm:text-4xl md:text-5xl font-medium text-foreground"
             >
-              Premium{" "}
-              <span className="text-gradient-primary">Livestock</span>
+              Raised by trained farmers.{" "}
+              <span className="text-gradient-signature">Verified.</span>
             </motion.h2>
 
             <motion.p
@@ -64,8 +63,8 @@ export function FeaturedPreview() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-muted-foreground text-base md:text-lg mt-4 max-w-xl"
             >
-              Hand-picked selections from our verified breeders,
-              ready for your investment portfolio
+              The marketplace is the evidence, not the pitch — livestock with documented
+              genetics and health records, raised by the farmers we train and equip.
             </motion.p>
           </div>
 
@@ -160,24 +159,37 @@ function FeaturedSkeleton() {
 
 function EmptyFeatured() {
   return (
-    <div className="text-center py-16 px-4">
-      <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
-        <Sparkles className="w-10 h-10 text-primary" />
-      </div>
-      <h3 className="font-serif text-2xl font-semibold text-foreground mb-3">
-        Coming Soon
-      </h3>
-      <p className="text-muted-foreground max-w-md mx-auto">
-        Our curated livestock collection is being prepared.
-        Check back soon for premium listings from verified breeders.
-      </p>
-      <Link
-        href="/contact"
-        className="inline-flex items-center gap-2 mt-6 text-primary font-medium hover:underline"
+    <div className="mx-auto max-w-lg px-4 py-10">
+      <div
+        className={cn(
+          "relative rounded-3xl p-8 text-center md:p-10",
+          "bg-card/50 backdrop-blur-sm border border-border/50"
+        )}
       >
-        Get Notified
-        <ArrowRight size={16} />
-      </Link>
+        <div className="ledger mb-6 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
+          <span className="h-px w-6 bg-primary/50" />
+          Listings in verification
+          <span className="h-px w-6 bg-primary/50" />
+        </div>
+        <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50">
+          <BadgeCheck className="h-7 w-7 text-primary" />
+        </div>
+        <h3 className="font-display text-2xl font-medium text-foreground">
+          The first listings are being verified
+        </h3>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+          Livestock raised by our trained farmers is being documented — genetics,
+          health records, photographs — before it appears here. Nothing is listed
+          until it clears verification.
+        </p>
+        <Link
+          href="/contact"
+          className="ledger mt-6 inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary transition-colors hover:text-primary/80"
+        >
+          Ask to be notified
+          <ArrowRight size={14} />
+        </Link>
+      </div>
     </div>
   )
 }

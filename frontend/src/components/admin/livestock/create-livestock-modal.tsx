@@ -12,7 +12,6 @@ import {
   type LivestockFormData,
 } from "./livestock-form-context"
 import { StepBasicInfo } from "./steps/step-basic-info"
-import { StepPricingLocation } from "./steps/step-pricing-location"
 import { StepDetailsHealth } from "./steps/step-details-health"
 import { StepMediaTags } from "./steps/step-media-tags"
 import { adminLivestockApi, categoriesApi, tagsApi } from "@/lib/admin-api"
@@ -25,10 +24,9 @@ interface CreateLivestockModalProps {
 }
 
 const STEPS = [
-  { id: 1, title: "Basic Info", description: "Name, breed, category" },
-  { id: 2, title: "Location", description: "Location details" },
-  { id: 3, title: "Details", description: "Description and health" },
-  { id: 4, title: "Media", description: "Photos, videos, tags" },
+  { id: 1, title: "Essentials", description: "Name, category, location" },
+  { id: 2, title: "Details", description: "Description and health" },
+  { id: 3, title: "Media", description: "Photos, videos, tags" },
 ]
 
 // Step Indicator Component
@@ -153,7 +151,7 @@ function ModalContent({
 
   const handleSubmit = async () => {
     // Validate final step
-    if (!validateStep(4)) return
+    if (!validateStep(3)) return
 
     setSubmitting(true)
     setSubmitError(null)
@@ -208,10 +206,8 @@ function ModalContent({
       case 1:
         return <StepBasicInfo />
       case 2:
-        return <StepPricingLocation />
-      case 3:
         return <StepDetailsHealth />
-      case 4:
+      case 3:
         return <StepMediaTags />
       default:
         return null
@@ -322,7 +318,7 @@ function ModalContent({
               Cancel
             </Button>
 
-            {state.currentStep < 4 ? (
+            {state.currentStep < 3 ? (
               <Button onClick={nextStep}>
                 Next
               </Button>

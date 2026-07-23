@@ -2,7 +2,7 @@
 
 import { motion, useInView } from "framer-motion"
 import { useRef } from "react"
-import { ShieldCheck, HeartPulse, Sparkles, Lock } from "lucide-react"
+import { ShieldCheck, HeartPulse, Bot, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const VALUE_CARDS = [
@@ -21,7 +21,7 @@ const VALUE_CARDS = [
     iconColor: "text-rose-500",
   },
   {
-    icon: Sparkles,
+    icon: Bot,
     title: "AI-Powered",
     description: "Intelligent search that understands exactly what you're looking for",
     gradient: "from-amber-500/20 to-amber-600/5",

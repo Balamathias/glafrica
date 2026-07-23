@@ -44,10 +44,28 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Field & Ledger brand palette (named tokens) */
+  --color-nightfield: var(--nightfield);
+  --color-canopy: var(--canopy);
+  --color-pasture: var(--pasture);
+  --color-vellum: var(--vellum);
+  --color-vellum-ink: var(--vellum-ink);
+  --color-ochre: var(--ochre);
+  --font-serif: var(--font-playfair), Georgia, serif;
 }
 
 :root {
   --radius: 0.625rem;
+
+  /* Field & Ledger brand palette */
+  --nightfield: #0b120c; /* dark ground — near-black with green cast */
+  --canopy: #174024;     /* deep forest — surfaces, footer */
+  --pasture: #76b041;    /* brand primary — the single live accent */
+  --vellum: #f4f1e8;     /* warm record paper — card material only */
+  --vellum-ink: #2b2a24; /* text on vellum */
+  --ochre: #d9a441;      /* verification stamps + impact numerals only */
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -82,7 +100,7 @@
 }
 
 .dark {
-  --background: oklch(0 0 0);
+  --background: #0b120c; /* Nightfield — green-cast near-black, replaces pure #000 */
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
@@ -141,9 +159,11 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Premium serif headings */
-  h1, h2, h3 {
+  /* Display serif reserved for page headlines and pull-statements only.
+     h3 and below use Geist Sans (see Field & Ledger type system). */
+  h1, h2, .font-display {
     font-family: var(--font-playfair), Georgia, serif;
+    font-weight: 500;
   }
 
   /* Smooth scrollbar */
@@ -186,6 +206,27 @@
 
   .text-gradient-gold {
     @apply bg-gradient-to-r from-secondary via-yellow-500 to-secondary bg-clip-text text-transparent;
+  }
+
+  /* Signature gradient — Pasture → Ochre. One phrase per page (gradient charter). */
+  .text-gradient-signature {
+    background-image: linear-gradient(100deg, var(--pasture) 0%, #a9c14f 45%, var(--ochre) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Ledger voice — mono metadata / record lines */
+  .ledger {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  /* Vellum record surface */
+  .surface-vellum {
+    background-color: var(--vellum);
+    color: var(--vellum-ink);
   }
 
   /* Premium shadows */

@@ -1546,6 +1546,140 @@ export const adminEggMediaApi = {
   },
 }
 
+
+// ============================================
+// Herd Health Protocol (Species + Vaccination Events)
+// ============================================
+
+export interface AdminSpecies {
+  id: string
+  name: string
+  slug: string
+  common_breeds: string
+  description: string
+  icon: string
+  source_note: string
+  sort_order: number
+  is_published: boolean
+  event_count: number
+  created_at: string
+  updated_at: string
+}
+
+export type VaccinationCategory = 'vaccine' | 'deworm' | 'vitamin' | 'management'
+export type VaccinationRoute =
+  | 'sc'
+  | 'im'
+  | 'oral'
+  | 'eye'
+  | 'spray'
+  | 'wing'
+  | 'topical'
+  | 'other'
+
+export interface AdminVaccinationEvent {
+  id: string
+  species_slug: string
+  category: VaccinationCategory
+  category_display: string
+  name: string
+  protects_against: string
+  age_offset_days: number
+  age_label: string
+  repeat_interval_days: number | null
+  route: VaccinationRoute
+  route_display: string
+  notes: string
+  is_core: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type SpeciesPayload = Partial<
+  Omit<AdminSpecies, 'id' | 'event_count' | 'created_at' | 'updated_at'>
+>
+export type VaccinationEventPayload = Partial<
+  Omit<AdminVaccinationEvent, 'id' | 'species_slug' | 'category_display' | 'route_display' | 'created_at' | 'updated_at'>
+> & { species_id?: string }
+
+export const herdHealthApi = {
+  async getSpecies(): Promise<AdminSpecies[]> {
+    try {
+      const { data } = await adminApi.get<AdminSpecies[]>('/species/')
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async createSpecies(payload: SpeciesPayload): Promise<AdminSpecies> {
+    try {
+      const { data } = await adminApi.post<AdminSpecies>('/species/', payload)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async updateSpecies(id: string, payload: SpeciesPayload): Promise<AdminSpecies> {
+    try {
+      const { data } = await adminApi.patch<AdminSpecies>(`/species/${id}/`, payload)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async deleteSpecies(id: string): Promise<void> {
+    try {
+      await adminApi.delete(`/species/${id}/`)
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async getEvents(speciesId: string): Promise<AdminVaccinationEvent[]> {
+    try {
+      const { data } = await adminApi.get<AdminVaccinationEvent[]>(
+        `/vaccination-events/?species=${speciesId}`
+      )
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async createEvent(payload: VaccinationEventPayload): Promise<AdminVaccinationEvent> {
+    try {
+      const { data } = await adminApi.post<AdminVaccinationEvent>('/vaccination-events/', payload)
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async updateEvent(id: string, payload: VaccinationEventPayload): Promise<AdminVaccinationEvent> {
+    try {
+      const { data } = await adminApi.patch<AdminVaccinationEvent>(
+        `/vaccination-events/${id}/`,
+        payload
+      )
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async deleteEvent(id: string): Promise<void> {
+    try {
+      await adminApi.delete(`/vaccination-events/${id}/`)
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
 // Export default admin API object
 export default {
   auth: authApi,
@@ -1560,4 +1694,5 @@ export default {
   eggs: adminEggsApi,
   eggCategories: adminEggCategoriesApi,
   eggMedia: adminEggMediaApi,
+  herdHealth: herdHealthApi,
 }

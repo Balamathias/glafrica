@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Sparkles,
+  Bot,
   X,
   Search,
   Loader2,
@@ -151,7 +151,7 @@ export function AISearchModal({ isOpen, onClose }: AISearchModalProps) {
                         : "border-transparent"
                     )}
                   >
-                    <Sparkles
+                    <Bot
                       size={20}
                       className="absolute left-4 text-primary"
                     />

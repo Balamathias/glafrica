@@ -3,7 +3,7 @@
 import { useRef } from "react"
 import Link from "next/link"
 import { motion, useInView } from "framer-motion"
-import { ArrowRight, Egg, Sparkles } from "lucide-react"
+import { ArrowRight, Egg } from "lucide-react"
 import { useEggsInfinite } from "@/lib/hooks"
 import { EggCard } from "@/components/eggs/egg-card"
 import { cn } from "@/lib/utils"
@@ -24,8 +24,8 @@ export function EggsShowcase() {
     >
       {/* Background Decoration */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-secondary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -37,26 +37,22 @@ export function EggsShowcase() {
           className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16"
         >
           <div>
-            <motion.div
+            <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-sm font-medium mb-4"
+              className="ledger mb-4 inline-block text-[11px] uppercase tracking-[0.25em] text-primary"
             >
-              <Sparkles size={16} />
-              Farm Fresh Collection
-            </motion.div>
+              Farm fresh collection
+            </motion.span>
 
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-foreground"
+              className="font-display text-3xl sm:text-4xl md:text-5xl font-medium text-foreground"
             >
-              Premium{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">
-                Eggs
-              </span>
+              Premium <span className="text-gradient-signature">Eggs</span>
             </motion.h2>
 
             <motion.p
@@ -79,8 +75,8 @@ export function EggsShowcase() {
               href="/eggs"
               className={cn(
                 "hidden md:inline-flex items-center gap-2 px-6 py-3",
-                "bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-full",
-                "hover:shadow-lg hover:shadow-amber-500/25 hover:scale-105",
+                "bg-primary text-primary-foreground font-medium rounded-full",
+                "hover:shadow-lg hover:shadow-primary/25 hover:scale-105",
                 "transition-all duration-300"
               )}
             >
@@ -130,8 +126,8 @@ export function EggsShowcase() {
             href="/eggs"
             className={cn(
               "inline-flex items-center gap-2 px-8 py-4 w-full justify-center",
-              "bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-full",
-              "hover:shadow-lg hover:shadow-amber-500/25",
+              "bg-primary text-primary-foreground font-semibold rounded-full",
+              "hover:shadow-lg hover:shadow-primary/25",
               "transition-all duration-300"
             )}
           >
@@ -160,24 +156,26 @@ function EggsSkeleton() {
 
 function EmptyEggs() {
   return (
-    <div className="text-center py-16 px-4">
-      <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-500/10 mb-6">
-        <Egg className="w-10 h-10 text-amber-500" />
+    <div className="mx-auto max-w-lg px-4 py-10">
+      <div className="relative rounded-3xl border border-border/50 bg-card/50 p-8 text-center backdrop-blur-sm md:p-10">
+        <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50">
+          <Egg className="h-7 w-7 text-primary" />
+        </div>
+        <h3 className="font-display text-2xl font-medium text-foreground">
+          The collection is being prepared
+        </h3>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+          Fresh eggs from our partner farms — chicken, duck, quail, turkey — are on
+          their way to the catalogue.
+        </p>
+        <Link
+          href="/eggs"
+          className="ledger mt-6 inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary transition-colors hover:text-primary/80"
+        >
+          Browse eggs
+          <ArrowRight size={14} />
+        </Link>
       </div>
-      <h3 className="font-serif text-2xl font-semibold text-foreground mb-3">
-        Coming Soon
-      </h3>
-      <p className="text-muted-foreground max-w-md mx-auto">
-        Our premium eggs collection is being prepared.
-        Check back soon for fresh eggs from local farms.
-      </p>
-      <Link
-        href="/eggs"
-        className="inline-flex items-center gap-2 mt-6 text-amber-600 dark:text-amber-400 font-medium hover:underline"
-      >
-        Browse Eggs
-        <ArrowRight size={16} />
-      </Link>
     </div>
   )
 }
