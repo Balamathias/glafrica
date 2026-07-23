@@ -706,11 +706,16 @@ class AIService:
                     if stock.tags.exists()
                     else "N/A"
                 )
+                price_str = (
+                    f"₦{stock.price:,.0f} {stock.currency}"
+                    if stock.price is not None
+                    else "Contact for price"
+                )
                 base_prompt += f"""
 {i}. **{stock.name}**
    - Breed: {stock.breed}
    - Category: {stock.category.name}
-   - Price: ₦{stock.price:,.0f} {stock.currency}
+   - Price: {price_str}
    - Age: {stock.age} | Weight: {stock.weight or "N/A"} | Gender: {stock.get_gender_display()}
    - Location: {stock.location}
    - Health: {stock.health_status[:100]}{"..." if len(stock.health_status) > 100 else ""}
@@ -768,13 +773,18 @@ class AIService:
                     ", ".join([t.name for t in egg.tags.all()[:3]]) if egg.tags.exists() else "N/A"
                 )
 
+                egg_price_str = (
+                    f"₦{egg.price:,.0f} per package"
+                    if egg.price is not None
+                    else "Contact for price"
+                )
                 base_prompt += f"""
 {i}. **{egg.name}**
    - Bird Type: {egg.category.name}
    - Breed: {egg.breed or "Various"}
    - Egg Type: {egg_type_str}
    - Size: {size_str} | Packaging: {packaging_str} ({egg.eggs_per_unit} eggs/pack)
-   - Price: ₦{egg.price:,.0f} per package
+   - Price: {egg_price_str}
    - Stock: {egg.quantity_available} packages available
    - Freshness: {freshness_str}
    - Location: {egg.location}
