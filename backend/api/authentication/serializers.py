@@ -270,7 +270,7 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
             logger.info("[AdminUserCreateSerializer] Password validation passed")
         except DjangoValidationError as e:
             logger.error(f"[AdminUserCreateSerializer] Password validation failed: {e.messages}")
-            raise serializers.ValidationError({"password": list(e.messages)})
+            raise serializers.ValidationError({"password": list(e.messages)}) from e
 
         return attrs
 
@@ -334,5 +334,5 @@ class LogoutSerializer(serializers.Serializer):
     def save(self):
         try:
             RefreshToken(self.token).blacklist()
-        except Exception:
-            raise serializers.ValidationError({"refresh": "Invalid or expired token."})
+        except Exception as e:
+            raise serializers.ValidationError({"refresh": "Invalid or expired token."}) from e

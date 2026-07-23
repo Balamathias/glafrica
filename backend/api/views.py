@@ -1,6 +1,9 @@
 import json
+from datetime import timedelta
 
 from django.http import Http404, StreamingHttpResponse
+from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -15,6 +18,7 @@ from .models import (
     EggCategory,
     Livestock,
     PageView,
+    Species,
     VisitorSession,
 )
 from .serializers import (
@@ -27,7 +31,10 @@ from .serializers import (
     EggListSerializer,
     LivestockListSerializer,
     LivestockSerializer,
+    SpeciesSerializer,
+    VaccinationEventSerializer,
 )
+from .services.ai import AIService
 from .services.email import send_contact_notification_email
 
 
@@ -42,9 +49,6 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         categories = self.get_queryset()
         serializer = CategoryWithPreviewSerializer(categories, many=True)
         return Response(serializer.data)
-
-
-from .services.ai import AIService
 
 
 class LivestockViewSet(viewsets.ModelViewSet):
@@ -306,7 +310,7 @@ class TrackVisitView(APIView):
             session_id=session_id,
             path=path[:500],  # Limit length
             event_type=final_event_type,
-            referrer=referrer[:1000] if referrer else None,  # Limit length
+            referrer=referrer[:1000] if referrer else "",  # Limit length
             user_agent=user_agent[:500] if user_agent else "",
             ip_address=ip_address,
             country=country,
@@ -366,6 +370,122 @@ class TrackVisitView(APIView):
             pass  # Silent fail - don't break tracking
 
         return ""
+
+
+# ============================================
+# HERD HEALTH — VACCINATION SCHEDULE
+# ============================================
+
+
+class SpeciesViewSet(viewsets.ReadOnlyModelViewSet):
+    """Species available in the Herd Health Card tool."""
+
+    queryset = Species.objects.filter(is_published=True)
+    serializer_class = SpeciesSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    lookup_field = "slug"
+
+
+class VaccinationScheduleView(APIView):
+    """Generate a vaccination / health protocol for a species.
+
+    ``GET /vaccination-schedule/?species=<slug>&birth_date=<YYYY-MM-DD>``
+
+    Returns the ordered protocol. When ``birth_date`` is supplied, each row also
+    carries a concrete ``scheduled_date`` (birth date + age offset). Recurring
+    doses are expanded up to one year of age so the farmer sees every booster.
+    """
+
+    permission_classes = [AllowAny]
+
+    # Cap recurring-dose expansion at one year of age.
+    _RECUR_HORIZON_DAYS = 365
+
+    def get(self, request):
+        slug = request.query_params.get("species")
+        if not slug:
+            return Response(
+                {"detail": "A 'species' query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        species = Species.objects.filter(slug=slug, is_published=True).first()
+        if species is None:
+            return Response(
+                {"detail": f"No published species found for '{slug}'."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        birth_date = self._parse_birth_date(request.query_params.get("birth_date"))
+        if birth_date == "invalid":
+            return Response(
+                {"detail": "birth_date must be an ISO date (YYYY-MM-DD)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        rows = self._build_rows(species, birth_date)
+
+        return Response(
+            {
+                "species": SpeciesSerializer(species).data,
+                "source_note": species.source_note,
+                "birth_date": birth_date.isoformat() if birth_date else None,
+                "generated_at": timezone.now().date().isoformat(),
+                "schedule": rows,
+                "disclaimer": (
+                    "This schedule is a general guide compiled from standard "
+                    "veterinary references and should be confirmed with a "
+                    "licensed veterinarian for your herd and region."
+                ),
+            }
+        )
+
+    def _parse_birth_date(self, raw):
+        if not raw:
+            return None
+        parsed = parse_date(raw)
+        return parsed if parsed else "invalid"
+
+    def _build_rows(self, species, birth_date):
+        rows = []
+        for event in species.events.all():
+            occurrences = self._occurrences(event)
+            for offset in occurrences:
+                data = VaccinationEventSerializer(event).data
+                # Overwrite age fields for expanded booster occurrences.
+                data["age_offset_days"] = offset
+                if offset != event.age_offset_days:
+                    data["age_label"] = self._humanize_age(offset)
+                    data["notes"] = (data["notes"] + " (booster)").strip()
+                if birth_date:
+                    data["scheduled_date"] = (
+                        birth_date + timedelta(days=offset)
+                    ).isoformat()
+                rows.append((offset, data))
+
+        rows.sort(key=lambda pair: pair[0])
+        return [data for _, data in rows]
+
+    def _occurrences(self, event):
+        offsets = [event.age_offset_days]
+        if event.repeat_interval_days:
+            nxt = event.age_offset_days + event.repeat_interval_days
+            while nxt <= self._RECUR_HORIZON_DAYS:
+                offsets.append(nxt)
+                nxt += event.repeat_interval_days
+        return offsets
+
+    def _humanize_age(self, days):
+        if days <= 0:
+            return "Day 1"
+        if days < 14:
+            return f"Day {days}"
+        if days < 60:
+            weeks = round(days / 7)
+            return f"{weeks} weeks"
+        months = round(days / 30)
+        return f"{months} months"
 
 
 # ============================================
@@ -433,7 +553,7 @@ class EggViewSet(viewsets.ReadOnlyModelViewSet):
                 # Not a valid UUID, try slug lookup
                 obj = queryset.get(slug=lookup_value)
         except Egg.DoesNotExist:
-            raise Http404("Egg not found")
+            raise Http404("Egg not found") from None
 
         self.check_object_permissions(self.request, obj)
         return obj

@@ -514,7 +514,7 @@ class PageView(TimeStampedModel):
     )
     path = models.CharField(max_length=500, db_index=True)
     event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES, default="page_view")
-    referrer = models.URLField(blank=True, null=True, max_length=1000)
+    referrer = models.URLField(blank=True, default="", max_length=1000)
     user_agent = models.TextField(blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     country = models.CharField(max_length=100, blank=True)
@@ -589,3 +589,92 @@ class VisitorSession(TimeStampedModel):
     def is_bounce(self):
         """A bounce is a single-page session."""
         return self.page_count == 1
+
+
+# ============================================
+# HERD HEALTH — VACCINATION SCHEDULE
+# ============================================
+
+
+class Species(TimeStampedModel):
+    """A livestock species the Herd Health Card can generate a protocol for."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=80, unique=True)
+    slug = models.SlugField(max_length=80, unique=True)
+    # Short line shown under the species name on the tool, e.g. "Boer, Kalahari, WAD"
+    common_breeds = models.CharField(max_length=200, blank=True)
+    description = models.TextField(blank=True)
+    icon = models.CharField(
+        max_length=40, blank=True, help_text="lucide-react icon name for the frontend"
+    )
+    # Source note for the protocol (kept honest — we cite where the schedule comes from)
+    source_note = models.CharField(max_length=300, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_published = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name_plural = "Species"
+        ordering = ["sort_order", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class VaccinationEvent(TimeStampedModel):
+    """A single dated entry in a species' vaccination / health protocol.
+
+    Timing is stored as an age offset (days from birth/hatch) so a concrete
+    calendar can be computed once the farmer supplies a birth date. A boosted
+    or recurring vaccine sets ``repeat_interval_days``.
+    """
+
+    ROUTE_CHOICES = [
+        ("sc", "Subcutaneous"),
+        ("im", "Intramuscular"),
+        ("oral", "Oral / Drinking water"),
+        ("eye", "Eye drop / Intranasal"),
+        ("spray", "Spray"),
+        ("wing", "Wing web"),
+        ("topical", "Topical / Pour-on"),
+        ("other", "Other"),
+    ]
+    CATEGORY_CHOICES = [
+        ("vaccine", "Vaccine"),
+        ("deworm", "Deworming"),
+        ("vitamin", "Vitamin / Supplement"),
+        ("management", "Management"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    species = models.ForeignKey(
+        Species, on_delete=models.CASCADE, related_name="events"
+    )
+    category = models.CharField(
+        max_length=20, choices=CATEGORY_CHOICES, default="vaccine"
+    )
+    # What is administered, e.g. "PPR vaccine", "Newcastle (Lasota)"
+    name = models.CharField(max_length=160)
+    # What it protects against, e.g. "Peste des Petits Ruminants"
+    protects_against = models.CharField(max_length=200, blank=True)
+    age_offset_days = models.IntegerField(
+        help_text="Age at administration, in days from birth/hatch (0 = day-old)"
+    )
+    # Human-friendly age label, e.g. "Day 1", "3 weeks", "3 months" — display only
+    age_label = models.CharField(max_length=60)
+    repeat_interval_days = models.PositiveIntegerField(
+        null=True, blank=True, help_text="If the dose recurs, days between doses"
+    )
+    route = models.CharField(max_length=20, choices=ROUTE_CHOICES, default="sc")
+    notes = models.TextField(blank=True)
+    is_core = models.BooleanField(
+        default=True, help_text="Core (strongly recommended) vs optional/regional"
+    )
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["species", "age_offset_days", "sort_order"]
+        indexes = [models.Index(fields=["species", "age_offset_days"])]
+
+    def __str__(self):
+        return f"{self.species.name}: {self.name} @ {self.age_label}"

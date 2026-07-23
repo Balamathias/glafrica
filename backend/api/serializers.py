@@ -8,7 +8,9 @@ from .models import (
     EggMediaAsset,
     Livestock,
     MediaAsset,
+    Species,
     Tag,
+    VaccinationEvent,
 )
 
 
@@ -178,6 +180,47 @@ class ContactInquirySerializer(serializers.ModelSerializer):
                 f"Invalid subject. Choose from: {', '.join(valid_subjects)}"
             )
         return value
+
+
+# ============================================
+# HERD HEALTH / VACCINATION SERIALIZERS
+# ============================================
+
+
+class SpeciesSerializer(serializers.ModelSerializer):
+    """Species list for the Herd Health Card picker."""
+
+    class Meta:
+        model = Species
+        fields = ["name", "slug", "common_breeds", "description", "icon"]
+
+
+class VaccinationEventSerializer(serializers.ModelSerializer):
+    """A single protocol row. ``scheduled_date`` is filled in by the view when
+    a birth date is supplied; it is not stored on the model."""
+
+    route_display = serializers.CharField(source="get_route_display", read_only=True)
+    category_display = serializers.CharField(
+        source="get_category_display", read_only=True
+    )
+    scheduled_date = serializers.DateField(read_only=True, required=False)
+
+    class Meta:
+        model = VaccinationEvent
+        fields = [
+            "category",
+            "category_display",
+            "name",
+            "protects_against",
+            "age_offset_days",
+            "age_label",
+            "repeat_interval_days",
+            "route",
+            "route_display",
+            "notes",
+            "is_core",
+            "scheduled_date",
+        ]
 
 
 # ============================================

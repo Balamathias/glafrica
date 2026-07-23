@@ -139,7 +139,7 @@ class Command(BaseCommand):
             connections[target_alias].ensure_connection()
             self.stdout.write(self.style.SUCCESS("Connected to target database"))
         except Exception as e:
-            raise CommandError(f"Cannot connect to target database: {e}")
+            raise CommandError(f"Cannot connect to target database: {e}") from e
 
         # Clear target if requested
         if clear_target:

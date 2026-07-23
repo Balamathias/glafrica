@@ -26,7 +26,9 @@ from .views import (
     AdminEggViewSet,
     AdminLivestockViewSet,
     AdminMediaViewSet,
+    AdminSpeciesViewSet,
     AdminTagViewSet,
+    AdminVaccinationEventViewSet,
     VisitorAnalyticsView,
 )
 
@@ -43,6 +45,10 @@ router.register(r"inquiries", AdminContactInquiryViewSet, basename="admin-inquir
 router.register(r"eggs", AdminEggViewSet, basename="admin-eggs")
 router.register(r"egg-categories", AdminEggCategoryViewSet, basename="admin-egg-categories")
 router.register(r"egg-media", AdminEggMediaViewSet, basename="admin-egg-media")
+router.register(r"species", AdminSpeciesViewSet, basename="admin-species")
+router.register(
+    r"vaccination-events", AdminVaccinationEventViewSet, basename="admin-vaccination-events"
+)
 
 urlpatterns = [
     # Authentication endpoints

@@ -9,7 +9,9 @@ from .views import (
     EggViewSet,
     LivestockViewSet,
     SmartSearchView,
+    SpeciesViewSet,
     TrackVisitView,
+    VaccinationScheduleView,
 )
 
 router = DefaultRouter()
@@ -18,10 +20,17 @@ router.register(r"categories", CategoryViewSet)
 router.register(r"chat", ChatView, basename="chat")
 router.register(r"eggs", EggViewSet, basename="eggs")
 router.register(r"egg-categories", EggCategoryViewSet, basename="egg-categories")
+router.register(r"species", SpeciesViewSet, basename="species")
 
 urlpatterns = [
     # Public API endpoints
     path("", include(router.urls)),
+    # Herd Health Card — vaccination schedule generator (public)
+    path(
+        "vaccination-schedule/",
+        VaccinationScheduleView.as_view(),
+        name="vaccination-schedule",
+    ),
     # Unified AI-powered search for both livestock and eggs
     path("search/", SmartSearchView.as_view(), name="smart-search"),
     # Contact form endpoint (public, rate-limited)

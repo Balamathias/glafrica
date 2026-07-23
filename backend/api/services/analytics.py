@@ -29,7 +29,6 @@ class AnalyticsService:
         """Get quick stats for the dashboard."""
         now = timezone.now()
         week_ago = now - timedelta(days=7)
-        month_ago = now - timedelta(days=30)
 
         # Current counts
         total_livestock = Livestock.objects.count()
@@ -164,10 +163,6 @@ class AnalyticsService:
     @staticmethod
     def get_inventory_metrics():
         """Get detailed inventory metrics."""
-        now = timezone.now()
-        week_ago = now - timedelta(days=7)
-        month_ago = now - timedelta(days=30)
-
         # Price statistics
         price_stats = Livestock.objects.filter(is_sold=False).aggregate(
             avg_price=Avg("price"),
@@ -484,7 +479,7 @@ class AnalyticsService:
                 domain = parsed.netloc or "Direct"
                 if domain:
                     domain_counts[domain] = domain_counts.get(domain, 0) + 1
-            except:
+            except ValueError:
                 pass
 
         # Add direct traffic (no referrer)
@@ -578,7 +573,6 @@ class AnalyticsService:
     def get_egg_dashboard_summary():
         """Get egg-specific dashboard summary metrics."""
         now = timezone.now()
-        today = now.date()
         week_ago = now - timedelta(days=7)
 
         # Current counts

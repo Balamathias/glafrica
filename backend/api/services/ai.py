@@ -205,18 +205,6 @@ class AIService:
             "organic",
         ]
 
-        # Price keywords
-        price_keywords = [
-            "cheap",
-            "affordable",
-            "budget",
-            "expensive",
-            "premium",
-            "under",
-            "below",
-            "above",
-        ]
-
         extracted = {
             "categories": [],
             "breeds": [],

@@ -24,7 +24,9 @@ from ..models import (
     EggMediaAsset,
     Livestock,
     MediaAsset,
+    Species,
     Tag,
+    VaccinationEvent,
 )
 from ..permissions import (
     CanManageCategories,
@@ -32,8 +34,10 @@ from ..permissions import (
     CanManageLivestock,
     CanManageMedia,
     CanManageTags,
+    CanViewAnalytics,
     IsAdminUser,
 )
+from ..services.analytics import AnalyticsService
 from .serializers import (
     AdminAuditLogSerializer,
     AdminCategorySerializer,
@@ -46,7 +50,9 @@ from .serializers import (
     AdminLivestockDetailSerializer,
     AdminLivestockListSerializer,
     AdminMediaAssetSerializer,
+    AdminSpeciesSerializer,
     AdminTagSerializer,
+    AdminVaccinationEventSerializer,
     BulkDeleteSerializer,
     BulkMarkSoldSerializer,
     BulkUpdateSerializer,
@@ -729,9 +735,6 @@ class AdminContactInquiryViewSet(viewsets.ModelViewSet):
 # VISITOR ANALYTICS VIEWS
 # ============================================
 
-from ..permissions import CanViewAnalytics
-from ..services.analytics import AnalyticsService
-
 
 class VisitorAnalyticsView(APIView):
     """
@@ -1160,4 +1163,118 @@ class AdminEggMediaViewSet(viewsets.ModelViewSet):
             request=self.request,
         )
 
+        instance.delete()
+
+
+# ============================================
+# HERD HEALTH PROTOCOL MANAGEMENT
+# ============================================
+
+
+class AdminSpeciesViewSet(viewsets.ModelViewSet):
+    """Manage Herd Health Card species (goats, cattle, poultry, ...)."""
+
+    queryset = Species.objects.annotate(event_count=Count("events")).order_by(
+        "sort_order", "name"
+    )
+    serializer_class = AdminSpeciesSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser, CanManageLivestock]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "slug", "common_breeds"]
+    ordering_fields = ["name", "sort_order", "created_at"]
+    ordering = ["sort_order", "name"]
+    pagination_class = None
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="create",
+            resource_type="species",
+            description=f"Created herd-health species: {instance.name}",
+            resource_id=str(instance.id),
+            request=self.request,
+        )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="update",
+            resource_type="species",
+            description=f"Updated herd-health species: {instance.name}",
+            resource_id=str(instance.id),
+            request=self.request,
+        )
+
+    def perform_destroy(self, instance):
+        name = instance.name
+        species_id = str(instance.id)
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="delete",
+            resource_type="species",
+            description=f"Deleted herd-health species: {name} (and its protocol)",
+            resource_id=species_id,
+            request=self.request,
+        )
+        instance.delete()
+
+
+class AdminVaccinationEventViewSet(viewsets.ModelViewSet):
+    """Manage the protocol entries of a species. Filter with ?species=<id>."""
+
+    queryset = VaccinationEvent.objects.select_related("species").all()
+    serializer_class = AdminVaccinationEventSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser, CanManageLivestock]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "protects_against"]
+    ordering_fields = ["age_offset_days", "sort_order", "created_at"]
+    ordering = ["age_offset_days", "sort_order"]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        species_id = self.request.query_params.get("species")
+        if species_id:
+            qs = qs.filter(species_id=species_id)
+        return qs
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="create",
+            resource_type="vaccination_event",
+            description=(
+                f"Added protocol entry '{instance.name}' to {instance.species.name}"
+            ),
+            resource_id=str(instance.id),
+            request=self.request,
+        )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="update",
+            resource_type="vaccination_event",
+            description=(
+                f"Updated protocol entry '{instance.name}' of {instance.species.name}"
+            ),
+            resource_id=str(instance.id),
+            request=self.request,
+        )
+
+    def perform_destroy(self, instance):
+        desc = f"Deleted protocol entry '{instance.name}' from {instance.species.name}"
+        event_id = str(instance.id)
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="delete",
+            resource_type="vaccination_event",
+            description=desc,
+            resource_id=event_id,
+            request=self.request,
+        )
         instance.delete()

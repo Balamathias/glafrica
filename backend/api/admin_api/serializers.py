@@ -3,6 +3,7 @@ Admin API serializers for full CRUD operations.
 """
 
 from django.utils import timezone
+from django.utils.text import slugify
 from rest_framework import serializers
 
 from ..models import (
@@ -14,7 +15,9 @@ from ..models import (
     EggMediaAsset,
     Livestock,
     MediaAsset,
+    Species,
     Tag,
+    VaccinationEvent,
 )
 
 
@@ -623,3 +626,75 @@ class EggBulkUpdateSerializer(serializers.Serializer):
                     f"Allowed fields: {', '.join(allowed_fields)}"
                 )
         return value
+
+
+# ============================================
+# HERD HEALTH PROTOCOL SERIALIZERS
+# ============================================
+
+
+class AdminVaccinationEventSerializer(serializers.ModelSerializer):
+    """Full CRUD serializer for a protocol entry."""
+
+    species_id = serializers.PrimaryKeyRelatedField(
+        queryset=Species.objects.all(), source="species", write_only=True
+    )
+    species_slug = serializers.CharField(source="species.slug", read_only=True)
+    route_display = serializers.CharField(source="get_route_display", read_only=True)
+    category_display = serializers.CharField(
+        source="get_category_display", read_only=True
+    )
+
+    class Meta:
+        model = VaccinationEvent
+        fields = [
+            "id",
+            "species_id",
+            "species_slug",
+            "category",
+            "category_display",
+            "name",
+            "protects_against",
+            "age_offset_days",
+            "age_label",
+            "repeat_interval_days",
+            "route",
+            "route_display",
+            "notes",
+            "is_core",
+            "sort_order",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class AdminSpeciesSerializer(serializers.ModelSerializer):
+    """Full CRUD serializer for a Herd Health species. Slug auto-derives from
+    the name when not supplied."""
+
+    slug = serializers.SlugField(required=False, allow_blank=True)
+    event_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Species
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "common_breeds",
+            "description",
+            "icon",
+            "source_note",
+            "sort_order",
+            "is_published",
+            "event_count",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        if not attrs.get("slug") and attrs.get("name"):
+            attrs["slug"] = slugify(attrs["name"])
+        return attrs

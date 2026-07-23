@@ -104,7 +104,7 @@ Best regards,
 ---
 Green Livestock Africa
 https://greenlivestockafrica.com
-Phone: +234 XXX XXX XXXX
+Phone: +234 915 5467 776
     """
 
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@greenlivestockafrica.com")
