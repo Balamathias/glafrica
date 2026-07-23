@@ -18,6 +18,7 @@ from .dashboard_views import (
     TopItemsView,
 )
 from .views import (
+    AdminAIClassifyView,
     AdminAuditLogViewSet,
     AdminCategoryViewSet,
     AdminContactInquiryViewSet,
@@ -55,6 +56,8 @@ urlpatterns = [
     path("auth/", include("api.authentication.urls")),
     # Resource endpoints from router
     path("", include(router.urls)),
+    # AI quick-fill (image classification for admin forms)
+    path("ai/classify/", AdminAIClassifyView.as_view(), name="ai-classify"),
     # Dashboard endpoints
     path("dashboard/", FullDashboardView.as_view(), name="dashboard"),
     path("dashboard/summary/", DashboardSummaryView.as_view(), name="dashboard-summary"),

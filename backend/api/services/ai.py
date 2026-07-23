@@ -1030,3 +1030,128 @@ class AIService:
             results["eggs"] = self.semantic_search_eggs(query, limit=limit)
 
         return results
+
+    # ============================================
+    # ADMIN — IMAGE CLASSIFICATION (AI quick-fill)
+    # ============================================
+
+    def _vision_json(self, system_prompt: str, image_data_url: str) -> dict[str, Any]:
+        """Send one image + instructions, get strict JSON back."""
+        import json as _json
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Identify the animal(s) or eggs in this photo and fill the JSON schema.",
+                        },
+                        {"type": "image_url", "image_url": {"url": image_data_url}},
+                    ],
+                },
+            ],
+            temperature=0.2,
+        )
+        return _json.loads(response.choices[0].message.content or "{}")
+
+    def classify_livestock_image(self, image_data_url: str) -> dict[str, Any]:
+        """Suggest livestock form fields from a photo. Category and tag ids are
+        validated against the database; unknowns come back blank, never guessed
+        as facts (health status is deliberately left to the admin)."""
+        from ..models import Tag
+
+        categories = list(Category.objects.values("id", "name"))
+        tags = list(Tag.objects.values("id", "name"))
+        cat_lines = "\n".join(f"- {c['id']}: {c['name']}" for c in categories)
+        tag_lines = "\n".join(f"- {t['id']}: {t['name']}" for t in tags) or "(none)"
+
+        system = f"""You are a livestock intake assistant for Green Livestock Africa,
+a Nigerian livestock platform. From ONE photo, draft an honest listing record.
+
+Return ONLY a JSON object with exactly these keys:
+- "name": short listing title in the style "<Breed> <Role/Sex>", e.g. "Kalahari Red Buck". No hype words.
+- "category_id": the id (uuid string) of the best-matching category from the list below, or "" if none fits.
+- "breed": most likely breed (common West African / commercial breeds), or "" if unclear.
+- "gender": "M", "F", "mixed" (multiple animals of mixed sex), or "" if not visible.
+- "age": rough visual estimate like "~6 months" or "~2 years", or "" if you cannot tell.
+- "weight": rough estimate like "~30kg", or "" if you cannot tell.
+- "description": 2-3 factual sentences describing what is visible — build, coat, condition, setting. No invented history, no health claims.
+- "tag_ids": array of ids from the tag list that clearly apply (may be empty).
+- "confidence": 0-1 number for the species/breed identification.
+- "notes": one sentence telling the admin what you were unsure about and should be checked.
+
+CATEGORIES (id: name):
+{cat_lines}
+
+TAGS (id: name):
+{tag_lines}
+
+Rules: never fabricate; prefer "" over a guess you are not confident in; the admin
+reviews everything before submitting."""
+
+        data = self._vision_json(system, image_data_url)
+
+        # Server-side validation: only ids that actually exist survive.
+        valid_cat_ids = {str(c["id"]) for c in categories}
+        valid_tag_ids = {str(t["id"]) for t in tags}
+        if str(data.get("category_id", "")) not in valid_cat_ids:
+            data["category_id"] = ""
+        data["tag_ids"] = [t for t in data.get("tag_ids", []) if str(t) in valid_tag_ids]
+        for key in ["name", "breed", "gender", "age", "weight", "description", "notes"]:
+            data[key] = str(data.get(key, "") or "")
+        if data.get("gender") not in ("M", "F", "mixed"):
+            data["gender"] = ""
+        try:
+            data["confidence"] = max(0.0, min(1.0, float(data.get("confidence", 0))))
+        except (TypeError, ValueError):
+            data["confidence"] = 0.0
+        return data
+
+    def classify_egg_image(self, image_data_url: str) -> dict[str, Any]:
+        """Suggest egg form fields from a photo, constrained to the Egg schema
+        choices and existing egg categories."""
+        categories = list(EggCategory.objects.values("id", "name"))
+        cat_lines = "\n".join(f"- {c['id']}: {c['name']}" for c in categories)
+        type_choices = [c[0] for c in Egg.EGG_TYPE_CHOICES]
+        size_choices = [c[0] for c in Egg.SIZE_CHOICES]
+
+        system = f"""You are an egg-catalog intake assistant for a Nigerian farm platform.
+From ONE photo of eggs, draft an honest catalog record.
+
+Return ONLY a JSON object with exactly these keys:
+- "name": short listing title, e.g. "Brown Chicken Eggs" or "Quail Eggs".
+- "category_id": id of the best-matching bird type from the list below, or "".
+- "egg_type": one of {type_choices}, or "" if unclear.
+- "size": one of {size_choices}, or "" if unclear.
+- "description": 2-3 factual sentences about what is visible — shell colour, size impression, presentation. No invented claims.
+- "confidence": 0-1 number for the bird-type identification.
+- "notes": one sentence on what the admin should verify.
+
+BIRD TYPES (id: name):
+{cat_lines}
+
+Rules: never fabricate; prefer "" over an unconfident guess; the admin reviews
+everything before submitting."""
+
+        data = self._vision_json(system, image_data_url)
+
+        valid_cat_ids = {str(c["id"]) for c in categories}
+        if str(data.get("category_id", "")) not in valid_cat_ids:
+            data["category_id"] = ""
+        if data.get("egg_type") not in type_choices:
+            data["egg_type"] = ""
+        if data.get("size") not in size_choices:
+            data["size"] = ""
+        for key in ["name", "description", "notes"]:
+            data[key] = str(data.get(key, "") or "")
+        try:
+            data["confidence"] = max(0.0, min(1.0, float(data.get("confidence", 0))))
+        except (TypeError, ValueError):
+            data["confidence"] = 0.0
+        return data
+

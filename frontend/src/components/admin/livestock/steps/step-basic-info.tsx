@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { useLivestockForm } from "../livestock-form-context"
 import { CategorySelect } from "../form-fields/category-select"
+import { AIQuickfill } from "@/components/admin/ai-quickfill"
+import type { LivestockSuggestion, EggSuggestion } from "@/lib/admin-api"
 
 const genderOptions = [
   { value: "M", label: "Male", icon: "♂" },
@@ -26,8 +28,25 @@ const popularLocations = [
 ]
 
 export function StepBasicInfo() {
-  const { state, updateField } = useLivestockForm()
+  const { state, updateField, updateFields, addMedia } = useLivestockForm()
   const { errors } = state
+
+  const handleQuickfill = (s: LivestockSuggestion | EggSuggestion, file: File) => {
+    const sug = s as LivestockSuggestion
+    // Only overwrite with non-empty suggestions; the admin reviews every step.
+    updateFields({
+      ...(sug.name && { name: sug.name }),
+      ...(sug.category_id && { category_id: sug.category_id }),
+      ...(sug.breed && { breed: sug.breed }),
+      ...(sug.gender && { gender: sug.gender }),
+      ...(sug.age && { age: sug.age }),
+      ...(sug.weight && { weight: sug.weight }),
+      ...(sug.description && { description: sug.description }),
+      ...(sug.tag_ids.length > 0 && { tag_ids: sug.tag_ids }),
+    })
+    // Queue the photo as this record's media so it isn't uploaded twice.
+    addMedia([file])
+  }
 
   const [showLocationSuggestions, setShowLocationSuggestions] = React.useState(false)
   const locationRef = React.useRef<HTMLDivElement>(null)
@@ -54,6 +73,9 @@ export function StepBasicInfo() {
           Start by providing the essential details about this livestock.
         </p>
       </div>
+
+      {/* AI quick-fill — drafts the whole record from one photo */}
+      <AIQuickfill kind="livestock" onResult={handleQuickfill} />
 
       {/* Name */}
       <div className="space-y-2">

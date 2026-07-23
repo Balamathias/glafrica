@@ -37,6 +37,7 @@ from ..permissions import (
     CanViewAnalytics,
     IsAdminUser,
 )
+from ..services.ai import AIService
 from ..services.analytics import AnalyticsService
 from .serializers import (
     AdminAuditLogSerializer,
@@ -1278,3 +1279,65 @@ class AdminVaccinationEventViewSet(viewsets.ModelViewSet):
             request=self.request,
         )
         instance.delete()
+
+
+# ============================================
+# AI QUICK-FILL — IMAGE CLASSIFICATION
+# ============================================
+
+
+class AdminAIClassifyView(APIView):
+    """Draft livestock/egg form fields from one uploaded photo.
+
+    ``POST /admin/ai/classify/`` with ``{"kind": "livestock"|"egg",
+    "image": "data:image/jpeg;base64,..."}``. The frontend downscales the
+    image before sending, so payloads stay far below Vercel's body cap.
+    Suggestions are validated against real category/tag ids server-side; the
+    admin always reviews before submitting.
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    # ~4MB of base64 ≈ 3MB image — hard stop well under the platform cap.
+    _MAX_IMAGE_CHARS = 4_000_000
+
+    def post(self, request):
+        kind = request.data.get("kind")
+        image = request.data.get("image", "")
+
+        if kind not in ("livestock", "egg"):
+            return Response(
+                {"detail": "kind must be 'livestock' or 'egg'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(image, str) or not image.startswith("data:image/"):
+            return Response(
+                {"detail": "image must be a data URL (data:image/...)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(image) > self._MAX_IMAGE_CHARS:
+            return Response(
+                {"detail": "Image too large — please retry (it should be auto-compressed)."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        try:
+            ai = AIService()
+            if kind == "livestock":
+                suggestion = ai.classify_livestock_image(image)
+            else:
+                suggestion = ai.classify_egg_image(image)
+        except Exception:
+            return Response(
+                {"detail": "Could not analyse the image. Please fill the form manually."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        AuditLog.log_action(
+            user=request.user,
+            action_type="create",
+            resource_type=f"ai_classify_{kind}",
+            description=f"AI quick-fill drafted a {kind} record from an image",
+            request=request,
+        )
+        return Response({"kind": kind, "suggestion": suggestion})

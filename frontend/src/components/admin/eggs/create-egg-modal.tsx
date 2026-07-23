@@ -29,6 +29,8 @@ import {
   EGG_PACKAGING_LABELS,
 } from "@/lib/types"
 import type { EggType, EggSize, EggPackaging } from "@/lib/types"
+import { AIQuickfill } from "@/components/admin/ai-quickfill"
+import type { LivestockSuggestion, EggSuggestion } from "@/lib/admin-api"
 
 interface CreateEggModalProps {
   open: boolean
@@ -114,6 +116,28 @@ export function CreateEggModal({ open, onOpenChange, onSuccess }: CreateEggModal
       }
       setFormData((prev) => ({ ...prev, eggs_per_unit: packagingMap[value as string] || 30 }))
     }
+  }
+
+  // AI quick-fill: merge non-empty suggestions and queue the photo as media
+  const handleQuickfill = (sug: LivestockSuggestion | EggSuggestion, file: File) => {
+    const s = sug as EggSuggestion
+    setFormData((prev) => ({
+      ...prev,
+      ...(s.name && { name: s.name }),
+      ...(s.category_id && { category_id: s.category_id }),
+      ...(s.egg_type && { egg_type: s.egg_type as EggType }),
+      ...(s.size && { size: s.size as EggSize }),
+      ...(s.description && { description: s.description }),
+    }))
+    const preview = URL.createObjectURL(file)
+    const img = document.createElement("img")
+    img.onload = () => {
+      setMediaFiles((prev) => [
+        ...prev,
+        { file, preview, type: "image", aspectRatio: img.width / img.height },
+      ])
+    }
+    img.src = preview
   }
 
   // Handle file upload
@@ -293,6 +317,9 @@ export function CreateEggModal({ open, onOpenChange, onSuccess }: CreateEggModal
               ) : (
               <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
                 <div className="space-y-6">
+                  {/* AI quick-fill — drafts the record from one photo */}
+                  <AIQuickfill kind="egg" onResult={handleQuickfill} />
+
                   {/* Basic Info */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">

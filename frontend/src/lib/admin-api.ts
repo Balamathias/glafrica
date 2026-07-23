@@ -1680,6 +1680,60 @@ export const herdHealthApi = {
   },
 }
 
+
+// ============================================
+// AI Quick-fill (image -> draft form fields)
+// ============================================
+
+export interface LivestockSuggestion {
+  name: string
+  category_id: string
+  breed: string
+  gender: 'M' | 'F' | 'mixed' | ''
+  age: string
+  weight: string
+  description: string
+  tag_ids: string[]
+  confidence: number
+  notes: string
+}
+
+export interface EggSuggestion {
+  name: string
+  category_id: string
+  egg_type: string
+  size: string
+  description: string
+  confidence: number
+  notes: string
+}
+
+export const aiQuickfillApi = {
+  async classifyLivestock(imageDataUrl: string): Promise<LivestockSuggestion> {
+    try {
+      const { data } = await adminApi.post<{ suggestion: LivestockSuggestion }>('/ai/classify/', {
+        kind: 'livestock',
+        image: imageDataUrl,
+      })
+      return data.suggestion
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async classifyEgg(imageDataUrl: string): Promise<EggSuggestion> {
+    try {
+      const { data } = await adminApi.post<{ suggestion: EggSuggestion }>('/ai/classify/', {
+        kind: 'egg',
+        image: imageDataUrl,
+      })
+      return data.suggestion
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
 // Export default admin API object
 export default {
   auth: authApi,
@@ -1695,4 +1749,5 @@ export default {
   eggCategories: adminEggCategoriesApi,
   eggMedia: adminEggMediaApi,
   herdHealth: herdHealthApi,
+  aiQuickfill: aiQuickfillApi,
 }
