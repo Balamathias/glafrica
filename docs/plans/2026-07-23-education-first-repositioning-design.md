@@ -31,7 +31,21 @@ The brand must prove two things: **beauty** (animals, land, cinematic video) and
   vaccination cards, ear tags, the farmer's almanac — typeset to investment grade.
 
 What this retires from the current site: glassmorphism on content cards (kept only on the
-fixed navbar), gradient text, glow/pulse effects, pure-black ground, floating KPI stat tiles.
+fixed navbar), glow/pulse effects, pure-black ground, floating KPI stat tiles.
+
+### 2.0 Gradient charter (owner amendment, 2026-07-23)
+
+The green→gold gradient is part of GLA's signature and is **preserved deliberately**:
+
+- **Signature text gradient** (Pasture → Ochre): exactly ONE gradient phrase per page,
+  on the emotional keyword of a headline (e.g. the hero's key phrase). Never on body
+  text, buttons, or data.
+- **Atmospheric gradients kept**: the hero video overlay stack (dark scrims for text
+  contrast), the `HeroTransition` dark→background blend, and subtle
+  background→muted section washes.
+- **Retired**: `pulse-glow` / `shadow-glow` loops, shimmer on content (kept for loading
+  skeletons), and per-card hover gradient washes (replaced by the record-card hover:
+  border emphasis + lift).
 
 ### 2.1 Color tokens
 
@@ -53,7 +67,8 @@ using Vellum-family surfaces.
   - h1/h2 page headlines and pull-statements only; h3 and below use Geist Sans semibold
     (this changes the current global `h1,h2,h3 { serif }` rule).
   - Weights 400/500/600 only (stop loading 700–900).
-  - No gradient text, no decorative SVG underlines, tighter leading at large sizes.
+  - Gradient text only per the gradient charter (§2.0: one signature phrase per page);
+    no decorative SVG underlines; tighter leading at large sizes.
 - **Body/UI: Geist Sans** — kept; coherent with admin.
 - **Records: Geist Mono, promoted to first-class voice** — every tag ID, schedule row,
   date, stat, cohort number is mono. Data on this site reads as *entries in a ledger*.
@@ -107,7 +122,7 @@ centerpiece + homepage teaser module):
 | `/` | Rebuilt | Education-first hero → 4-pillar model → Herd Health Card teaser → impact ledger strip → marketplace reframed as proof → farmer-first testimonials → map/CTA |
 | `/learn` | New — primary nav destination | Knowledge hub: guidance by livestock type (breeding, nutrition, disease prevention, bloat), workshops/on-farm sessions, **Herd Health Card** tool |
 | `/livestock` | Kept | Marketplace; copy reframed: "livestock raised by trained, equipped farmers" |
-| `/store` | New | Farm Store: absorbs eggs vertical (`/eggs` redirects here) + exotic chickens, tilapia fingerlings, grass seed, general sourcing — "what a trained farmer needs to start or grow" |
+| `/store` | New | Farm Store: absorbs eggs vertical (`/eggs` redirects here) + exotic chickens, tilapia fingerlings, grass seed, general sourcing — "what a trained farmer needs to start or grow". **Inquiry-based, not orderable** (owner, 2026-07-23): no prices/carts; every product card leads to a prefilled inquiry ("sourcing desk" pattern) wired to the ContactInquiry pipeline |
 | `/impact` | New | Plain-stated outcomes ledger for sponsors: cohort table, what was taught, real numbers only |
 | `/partner` | New | Partner With Us: sponsor / foreign development partner / investor paths + DRF-backed inquiry form |
 | `/about` | Reframed | The people teaching and backing farmers; team stays; mission copy rewritten |
@@ -146,16 +161,31 @@ rather than one generic pitch. SDG alignment referenced where it fits, not overs
 ## 6. Asset rules
 
 - **Video:** Cloudflare R2 direct URLs in `<video>` sources — never proxied through DRF
-  (Vercel 4.5MB body cap). Poster images local. Owner to paste actual R2 URLs.
+  (Vercel 4.5MB body cap). Poster images local (webp frames in `/public`).
 - **Images:** compressed/resized into `frontend/public/`, referenced via `next/image`
   with static imports (width/height inferred).
 
+### 6.1 R2 video inventory & casting (verified live 2026-07-23)
+
+Base: `https://pub-ae60aabd58e04ea3b36fa57df124c761.r2.dev/compressed/`
+
+| File | Size | Cast |
+|---|---|---|
+| `goats_sahel.mp4` | 1.3 MB | Homepage hero (light enough to `preload="auto"`) |
+| `feeding_cattle.mp4` | 16 MB | `/learn` hero / Enlighten field section — lazy, `preload="none"`, play on intersection |
+| `little_chicks.mp4` | 5.7 MB | Farm Store hero (fertile eggs / exotic chickens) — lazy |
+| `fishes_in_pond.mp4` | 30 MB | Tilapia section field-break — lazy; **candidate for recompression** (30 MB is heavy even lazy) |
+
+Loading discipline: only the in-viewport video plays (IntersectionObserver play/pause);
+below-fold videos `preload="none"` with local poster; `prefers-reduced-motion` shows
+poster only; never more than one video decoding per viewport.
+
 ## 7. Open inputs needed from owner
 
-1. Cloudflare R2 video URLs (hero + section backgrounds).
+1. ~~Cloudflare R2 video URLs~~ — received, see §6.1.
 2. Real cohort facts for `/impact` and record lines: dates, location(s), topics taught,
    any metrics beyond "93 farmers trained".
-3. Farm Store product realities: which items are orderable today vs "inquire".
+3. ~~Farm Store product realities~~ — inquiry-based, not orderable (see IA table).
 4. Farmer testimonial quotes (real names/photos, or how to attribute).
 5. Vaccination protocol source data per species (or approve drafting from standard
    veterinary references for owner review before publish).
