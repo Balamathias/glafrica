@@ -1,6 +1,15 @@
 import { Metadata } from "next"
 import Link from "next/link"
-import { BookOpen, Stethoscope, Wheat, ShieldAlert, Baby, ClipboardCheck } from "lucide-react"
+import {
+  BookOpen,
+  Stethoscope,
+  Wheat,
+  ShieldAlert,
+  Baby,
+  ClipboardCheck,
+  GraduationCap,
+  ArrowRight,
+} from "lucide-react"
 import { Navbar } from "@/components/navigation"
 import { Footer } from "@/components/layout"
 import { VideoField, RecordLine, EarTag, HerdHealthCard } from "@/components/brand"
@@ -128,6 +137,41 @@ export default function LearnPage() {
               </p>
             </div>
             <HerdHealthCard />
+          </div>
+        </section>
+
+        {/* Future Farmers Academy teaser */}
+        <section className="relative overflow-hidden py-16 md:py-20">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -right-1/4 top-0 h-80 w-80 rounded-full bg-secondary/5 blur-3xl" />
+          </div>
+          <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+            <div className="group relative overflow-hidden rounded-3xl border border-primary/25 bg-card/50 p-8 backdrop-blur-sm md:p-12">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-secondary/5 opacity-60" />
+              <div className="relative flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
+                <div className="max-w-xl">
+                  <span className="ledger inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-primary">
+                    <GraduationCap className="h-4 w-4" />
+                    New · Launching 2026
+                  </span>
+                  <h2 className="font-display mt-3 text-2xl font-medium text-foreground sm:text-3xl md:text-4xl">
+                    Future Farmers Academy
+                  </h2>
+                  <p className="mt-3 text-muted-foreground">
+                    Open knowledge isn&apos;t only for today&apos;s farmers. We&apos;re
+                    teaching children and teenagers to raise animals, keep records, and
+                    think like agricultural entrepreneurs — from age 5 to 18.
+                  </p>
+                </div>
+                <Link
+                  href="/academy"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full bg-primary px-7 py-3.5 font-semibold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95"
+                >
+                  Explore the Academy
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 

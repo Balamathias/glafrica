@@ -393,6 +393,7 @@ export default function ContactPage() {
                       <option value="purchase">Livestock Purchase</option>
                       <option value="investment">Investment Inquiry</option>
                       <option value="partnership">Partnership Opportunity</option>
+                      <option value="academy">Future Farmers Academy</option>
                       <option value="visit">Schedule a Visit</option>
                       <option value="support">General Support</option>
                       <option value="other">Other</option>

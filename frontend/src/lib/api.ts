@@ -323,6 +323,7 @@ export type InquirySubject =
   | 'purchase'
   | 'investment'
   | 'partnership'
+  | 'academy'
   | 'visit'
   | 'support'
   | 'other'
