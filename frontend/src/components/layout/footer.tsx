@@ -2,12 +2,26 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Mail, Phone, MapPin, Instagram, Facebook } from "lucide-react"
+import { Mail, Phone, MapPin, Instagram, Facebook, Linkedin } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-// Canonical profile URLs only (no share/tracking links). If a LinkedIn company
-// page is confirmed with Edward, add it here — worth having for the
-// sponsor/investor audience this repositioning targets.
+// lucide-react has no TikTok glyph, so provide one matching the icon interface
+// (accepts a `size` prop like the others).
+function TikTok({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M16.5 3c.3 2.1 1.5 3.4 3.5 3.6v2.4c-1.2.1-2.3-.3-3.5-.9v5.6c0 3.5-2.5 5.9-5.7 5.3-2.6-.5-4-2.4-3.8-4.9.2-2.4 2.3-4 4.9-3.7v2.5c-.4-.1-.8-.2-1.2-.1-1 .1-1.7.9-1.6 2 .1 1 .9 1.7 1.9 1.6 1.1-.1 1.7-.9 1.7-2.1V3h3.4z" />
+    </svg>
+  )
+}
+
+// Canonical profile URLs only (no share/tracking links).
 const socialLinks = [
   {
     icon: Instagram,
@@ -18,6 +32,16 @@ const socialLinks = [
     icon: Facebook,
     label: "Facebook",
     href: "https://www.facebook.com/Greenlivestockafricaa/",
+  },
+  {
+    icon: TikTok,
+    label: "TikTok",
+    href: "https://www.tiktok.com/@greenlivestockafrica",
+  },
+  {
+    icon: Linkedin,
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/company/green-livestock-africa-limited/",
   },
 ]
 
