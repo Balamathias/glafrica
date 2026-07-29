@@ -6,6 +6,7 @@ import {
   HeroTransition,
   ModelPillars,
   HerdHealthTeaser,
+  BreedingGenetics,
   DualPath,
   ImpactStrip,
   FeaturedPreview,
@@ -48,6 +49,9 @@ export default function HomePage() {
 
         {/* Signature: the Herd Health Card, live on the homepage */}
         <HerdHealthTeaser />
+
+        {/* Equip, continued: artificial insemination as a service + training */}
+        <BreedingGenetics />
 
         {/* Tiered entry: new to farming vs already farming */}
         <DualPath />
