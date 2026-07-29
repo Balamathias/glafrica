@@ -122,13 +122,21 @@ export function BreedingGenetics() {
                 sizes="(max-width: 1024px) 100vw, 45vw"
                 className="h-[380px] w-full object-cover sm:h-[460px] lg:h-[520px]"
               />
-              {/* Scrim so the overlay type stays legible in both themes */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
+              {/* Scrims: the photo is bright at both ends, so darken both */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent" />
 
               <div className="absolute left-5 top-5 flex flex-wrap gap-2">
-                <EarTag accent>Goats</EarTag>
+                <EarTag accent className="bg-[color:var(--pasture)]/20 backdrop-blur-sm">
+                  Goats
+                </EarTag>
                 {BREEDS.map((breed) => (
-                  <EarTag key={breed}>{breed}</EarTag>
+                  <EarTag
+                    key={breed}
+                    className="border-white/30 bg-black/40 text-white backdrop-blur-sm"
+                  >
+                    {breed}
+                  </EarTag>
                 ))}
               </div>
 

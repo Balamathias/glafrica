@@ -7,6 +7,7 @@ import {
   ModelPillars,
   HerdHealthTeaser,
   BreedingGenetics,
+  Hatchery,
   DualPath,
   ImpactStrip,
   FeaturedPreview,
@@ -52,6 +53,9 @@ export default function HomePage() {
 
         {/* Equip, continued: artificial insemination as a service + training */}
         <BreedingGenetics />
+
+        {/* Equip, poultry side: incubation + day-old chicks */}
+        <Hatchery />
 
         {/* Tiered entry: new to farming vs already farming */}
         <DualPath />
