@@ -9,17 +9,20 @@ import { Button } from "@/components/ui/button"
 import { EarTag } from "@/components/brand"
 import { InquiryDialog } from "@/components/inquiry/inquiry-dialog"
 
+/** The three breeds we hold semen for. */
+const BREEDS = ["Kalahari", "Boer", "Sahel"]
+
 /**
  * The synchronisation-to-confirmation timeline, kept deliberately close to the
- * standard progestagen + prostaglandin protocol used for does and cows. Day
- * markers rather than 01–04 numerals: numbered markers belong to the
+ * standard progestagen + prostaglandin protocol used in does. Day markers
+ * rather than 01–04 numerals: numbered markers belong to the
  * Enlighten → Equip → Verify → Grow pipeline alone.
  */
 const PROTOCOL = [
   {
     day: "Day 0",
     title: "Synchronise",
-    body: "A progesterone device goes in, and the doe or cow is opened on the breeding record.",
+    body: "A progesterone device goes in, and the doe is opened on the breeding record.",
   },
   {
     day: "Day 9–11",
@@ -29,19 +32,19 @@ const PROTOCOL = [
   {
     day: "Day 11–13",
     title: "Insemination",
-    body: "A straw thawed at the crush and placed about twelve hours after standing heat — the morning/evening rule.",
+    body: "A straw thawed at the pen and placed on standing heat — roughly 43 to 48 hours after the device comes out.",
   },
   {
     day: "Day 30+",
     title: "Confirmation",
-    body: "Pregnancy checked and the result written onto the herd record, so you know months before kidding or calving — not after.",
+    body: "Pregnancy checked and the result written onto the herd record. You know at one month, not at five.",
   },
 ]
 
 const WHY = [
-  "Proven sires, without a bull to feed, fence, or fear",
+  "Kalahari, Boer, and Sahel genetics — without a buck to feed, fence, or fear",
   "No venereal disease walked in on a borrowed buck",
-  "Kids and calves born in a tight window — even-sized, easier to sell",
+  "Kids born in a tight window — even-sized, easier to sell",
   "Semen held in liquid nitrogen at −196 °C until the moment it is used",
 ]
 
@@ -49,7 +52,7 @@ const INCLUDED = [
   {
     icon: Syringe,
     title: "Insemination on your farm",
-    body: "Trained technicians travel to you with the flask and the straws. No moving your animals, no borrowing someone else's sire.",
+    body: "Book a date and trained technicians travel to you with the flask and the straws. No moving your animals, no borrowing someone else's buck.",
   },
   {
     icon: Eye,
@@ -92,13 +95,14 @@ export function BreedingGenetics() {
           </span>
           <h2 className="font-display mt-4 text-3xl font-medium leading-tight text-foreground sm:text-4xl md:text-5xl">
             Better genetics, without{" "}
-            <span className="text-gradient-signature">owning the bull</span>.
+            <span className="text-gradient-signature">owning the buck</span>.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-muted-foreground">
-            Artificial insemination puts proven sires into your herd — bulls and
-            bucks you could never house, feed, or afford. Our technicians come to
-            the farm. And we teach you the part that actually decides whether it
-            works: reading heat, and keeping the record.
+            Artificial insemination puts proven Kalahari, Boer, and Sahel sires
+            into your herd — bucks you could never house, feed, or afford. Our
+            technicians come to the farm on a booked date. And we teach you the
+            part that actually decides whether it works: reading heat, and
+            keeping the record.
           </p>
         </motion.div>
 
@@ -123,7 +127,9 @@ export function BreedingGenetics() {
 
               <div className="absolute left-5 top-5 flex flex-wrap gap-2">
                 <EarTag accent>Goats</EarTag>
-                <EarTag accent>Cattle</EarTag>
+                {BREEDS.map((breed) => (
+                  <EarTag key={breed}>{breed}</EarTag>
+                ))}
               </div>
 
               <div className="absolute inset-x-5 bottom-5">
@@ -155,7 +161,7 @@ export function BreedingGenetics() {
           >
             <div className="rounded-3xl border border-border/50 bg-card/50 backdrop-blur-sm">
               <div className="ledger border-b border-border/50 px-6 py-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
-                Breeding protocol · Does &amp; cows
+                Breeding protocol · Does
               </div>
 
               <ol className="divide-y divide-border/40">
@@ -179,7 +185,7 @@ export function BreedingGenetics() {
 
               <p className="ledger border-t border-border/50 px-6 py-3 text-[10px] uppercase leading-relaxed tracking-[0.15em] text-muted-foreground/60">
                 Timings follow standard veterinary protocol · Adjusted per animal
-                on the day
+                on the day · Visits by booking only
               </p>
             </div>
 
@@ -189,7 +195,7 @@ export function BreedingGenetics() {
                 onClick={() => setInquiryOpen(true)}
                 className="w-full rounded-full px-8 transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 sm:w-auto"
               >
-                Request a breeding visit
+                Book a breeding visit
                 <ArrowRight size={18} className="ml-2" />
               </Button>
               <Button
@@ -234,11 +240,11 @@ export function BreedingGenetics() {
         open={inquiryOpen}
         onOpenChange={setInquiryOpen}
         itemName="Artificial insemination"
-        contextLabel="Breeding & Genetics — Artificial insemination"
+        contextLabel="Breeding & Genetics — Artificial insemination (goats)"
         subject="visit"
-        title="Request a breeding visit"
-        description="Tell us your species, how many animals, and where the farm is. Our team will follow up to arrange a visit and talk through timing."
-        prefill="I'd like to arrange artificial insemination for my animals. "
+        title="Book a breeding visit"
+        description="Tell us how many does, which breed you're after, and where the farm is. We visit by booking only, so our team will follow up to agree a date and talk through timing."
+        prefill="I'd like to book artificial insemination for my does. "
       />
     </section>
   )
