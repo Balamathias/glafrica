@@ -12,6 +12,112 @@ from ..models import Category, Egg, EggCategory, Livestock
 ConversationMessage = dict[str, str]  # {"role": "user" | "assistant", "content": str}
 
 
+# Words that signal a species. Grouped by species so a query can be constrained
+# to the categories that actually hold that species — category names in the DB
+# are singular and inconsistent ("Goat", "Chicken", "Fowl", "Fishes"), so these
+# are resolved against real Category rows at query time rather than matched by
+# name. Purpose words ("dairy", "meat") are deliberately NOT here: a dairy goat
+# is not a cow, and treating "dairy" as a cattle signal cross-contaminates
+# every small-ruminant query.
+SPECIES_SYNONYMS: dict[str, set[str]] = {
+    "goat": {"goat", "buck", "doe", "kid", "caprine", "boer", "kalahari", "sahel"},
+    "cattle": {"cattle", "cow", "bull", "calf", "calves", "beef", "heifer", "bovine", "steer"},
+    "sheep": {"sheep", "ram", "ewe", "lamb", "mutton", "ovine"},
+    "poultry": {
+        "poultry",
+        "chicken",
+        "hen",
+        "rooster",
+        "cockerel",
+        "broiler",
+        "layer",
+        "fowl",
+        "chick",
+        "noiler",
+        "kuroiler",
+        "pullet",
+    },
+    "fish": {"fish", "tilapia", "catfish", "fingerling", "aquaculture"},
+    "pig": {"pig", "swine", "hog", "sow", "boar", "piglet", "porcine"},
+}
+
+# Purpose / use-case words. These rank results but never restrict species.
+PURPOSE_KEYWORDS = {"dairy", "milk", "milking", "meat", "breeding", "stud", "pet", "show"}
+
+# Generic words that must never drive a match on their own. Without this,
+# "high-yield dairy goats" matches any listing whose description contains
+# "high" — which is how a tilapia ended up under a dairy goat search.
+SEARCH_STOPWORDS = {
+    "high",
+    "low",
+    "good",
+    "best",
+    "great",
+    "nice",
+    "big",
+    "small",
+    "large",
+    "yield",
+    "yielding",
+    "quality",
+    "want",
+    "need",
+    "looking",
+    "find",
+    "show",
+    "get",
+    "buy",
+    "sale",
+    "sell",
+    "available",
+    "any",
+    "some",
+    "very",
+    "more",
+    "most",
+    "new",
+    "old",
+    "and",
+    "the",
+    "for",
+    "with",
+    "from",
+    "that",
+    "this",
+    "you",
+    "your",
+    "are",
+    "how",
+    "much",
+    "many",
+    "what",
+    "which",
+    "where",
+}
+
+
+def _normalise_token(word: str) -> str:
+    """
+    Reduce a word to a comparable stem so query words line up with DB category
+    names: goats -> goat, fishes -> fish, chickens -> chicken.
+    """
+    w = re.sub(r"[^a-z]", "", word.lower())
+    if len(w) > 4 and w.endswith("es"):
+        return w[:-2]
+    if len(w) > 3 and w.endswith("s") and not w.endswith("ss"):
+        return w[:-1]
+    return w
+
+
+def _tokenise(text: str) -> list[str]:
+    """
+    Word-boundary tokens. Substring matching is not safe here — "hen" occurs
+    inside "when", "ram" inside "program", "doe" inside "does" — and previously
+    caused phantom gender and species matches.
+    """
+    return re.findall(r"[a-z]+", text.lower())
+
+
 class AIService:
     def __init__(self):
         self.client = OpenAI(
@@ -139,24 +245,8 @@ class AIService:
         Returns a dict with extracted criteria.
         """
         query_lower = query.lower()
-
-        # Category keywords mapping
-        category_keywords = {
-            "cattle": ["cattle", "cow", "cows", "bull", "bulls", "calf", "calves", "beef", "dairy"],
-            "goats": ["goat", "goats", "buck", "doe", "kid", "boer", "kalahari"],
-            "sheep": ["sheep", "ram", "ewe", "lamb", "lambs", "wool"],
-            "poultry": [
-                "chicken",
-                "chickens",
-                "poultry",
-                "rooster",
-                "hen",
-                "chicks",
-                "broiler",
-                "layer",
-            ],
-            "pigs": ["pig", "pigs", "swine", "hog", "sow", "boar", "piglet"],
-        }
+        tokens = _tokenise(query_lower)
+        stems = {_normalise_token(t) for t in tokens}
 
         # Breed keywords (common breeds)
         breed_keywords = [
@@ -206,35 +296,51 @@ class AIService:
         ]
 
         extracted = {
-            "categories": [],
+            "species": [],
+            "category_ids": [],
             "breeds": [],
             "gender": None,
             "quality_terms": [],
+            "purpose_terms": [],
             "price_range": None,
             "location_terms": [],
             "general_terms": [],
         }
 
-        # Extract categories
-        for category, keywords in category_keywords.items():
-            if any(kw in query_lower for kw in keywords):
-                extracted["categories"].append(category)
+        # Detect species from whole words, then resolve to the Category rows
+        # that actually exist. Matching keyword text against category names
+        # directly does not work: "goats" never icontains-matches "Goat".
+        for species, synonyms in SPECIES_SYNONYMS.items():
+            synonym_stems = {_normalise_token(s) for s in synonyms}
+            if stems & synonym_stems:
+                extracted["species"].append(species)
 
-        # Extract breeds
+        if extracted["species"]:
+            extracted["category_ids"] = self._categories_for_species(extracted["species"])
+
+        # Extract breeds (multi-word breeds still need a substring test)
         for breed in breed_keywords:
-            if breed in query_lower:
+            if " " in breed:
+                if breed in query_lower:
+                    extracted["breeds"].append(breed)
+            elif _normalise_token(breed) in stems:
                 extracted["breeds"].append(breed)
 
         # Extract gender
         for gender, keywords in gender_map.items():
-            if any(kw in query_lower for kw in keywords):
+            if stems & {_normalise_token(k) for k in keywords}:
                 extracted["gender"] = "M" if gender == "male" else "F"
                 break
 
         # Extract quality terms
         for term in quality_keywords:
-            if term in query_lower:
+            if _normalise_token(term) in stems:
                 extracted["quality_terms"].append(term)
+
+        # Extract purpose terms — these rank, they never restrict
+        for term in PURPOSE_KEYWORDS:
+            if _normalise_token(term) in stems:
+                extracted["purpose_terms"].append(term)
 
         # Extract price range hints
         price_match = re.search(r"under\s*(\d+[k,]?\d*)", query_lower)
@@ -390,25 +496,68 @@ class AIService:
             "like",
             "please",
         }
-        words = re.findall(r"\b\w+\b", query_lower)
-        for word in words:
-            if word not in stopwords and len(word) > 2:
-                if word not in extracted["breeds"] and word not in extracted["quality_terms"]:
-                    # Check if it's not already captured
-                    already_captured = False
-                    for cat_keywords in category_keywords.values():
-                        if word in cat_keywords:
-                            already_captured = True
-                            break
-                    if not already_captured:
-                        extracted["general_terms"].append(word)
+        # Anything already understood as species, breed, quality or purpose is
+        # not a leftover term. Generic filler ("high", "yield", "best") is
+        # dropped too — on its own it matches half the catalogue.
+        consumed = set()
+        for synonyms in SPECIES_SYNONYMS.values():
+            consumed |= {_normalise_token(s) for s in synonyms}
+        consumed |= {_normalise_token(b) for b in extracted["breeds"]}
+        consumed |= {_normalise_token(q) for q in extracted["quality_terms"]}
+        consumed |= {_normalise_token(p) for p in extracted["purpose_terms"]}
+        consumed |= {_normalise_token(loc) for loc in extracted["location_terms"]}
+        consumed |= {_normalise_token(s) for s in SEARCH_STOPWORDS}
+
+        for word in tokens:
+            if len(word) <= 2 or word in stopwords:
+                continue
+            stem = _normalise_token(word)
+            if stem in consumed or stem in extracted["general_terms"]:
+                continue
+            extracted["general_terms"].append(stem)
 
         return extracted
 
+    def _categories_for_species(self, species_keys: list[str]) -> list[Any]:
+        """
+        Map species keys onto the Category rows that actually exist. Category
+        names are singular and irregular ("Goat", "Fowl", "Fishes"), so match on
+        normalised stems against both the species key and its synonyms.
+        """
+        matched = []
+        for category in Category.objects.all():
+            name_stem = _normalise_token(category.name)
+            for species in species_keys:
+                synonym_stems = {_normalise_token(s) for s in SPECIES_SYNONYMS.get(species, set())}
+                synonym_stems.add(_normalise_token(species))
+                if name_stem in synonym_stems:
+                    matched.append(category.pk)
+                    break
+        return matched
+
+    # Field weights for relevance scoring. A hit on the breed or name says far
+    # more about relevance than a stray word in a description paragraph.
+    FIELD_WEIGHTS = {
+        "name": 6,
+        "breed": 6,
+        "tags": 4,
+        "category": 3,
+        "location": 3,
+        "description": 1,
+        "health_status": 1,
+    }
+    # Below this, a row is noise rather than a match.
+    MIN_RELEVANCE = 3
+
     def semantic_search(self, query: str, limit: int = 10) -> list[Livestock]:
         """
-        Search for livestock using intelligent text matching.
-        Falls back to broader search if specific criteria yield no results.
+        Rank livestock against a natural-language query.
+
+        Species is a hard constraint when the query names one: a search for
+        dairy goats must never return a tilapia, however many adjectives the
+        two listings happen to share. Everything else contributes to a
+        relevance score, and rows scoring below MIN_RELEVANCE are dropped
+        rather than padded out with unrelated recent listings.
 
         TODO: Uncomment vector search when pgvector is ready:
         # vector = self.get_embedding(query)
@@ -417,98 +566,97 @@ class AIService:
         #         Livestock.embedding.cosine_distance(vector)
         #     )[:limit]
         """
+        if not query or not query.strip():
+            return []
 
-        # Extract search terms from query
         terms = self._extract_search_terms(query)
 
-        # Build the query
         queryset = (
             Livestock.objects.filter(is_sold=False)
             .select_related("category")
             .prefetch_related("media", "tags")
         )
 
-        # Start with category filter if detected
-        if terms["categories"]:
-            category_q = Q()
-            for cat in terms["categories"]:
-                category_q |= Q(category__name__icontains=cat)
-            queryset = queryset.filter(category_q)
+        # Hard constraints — these express what the farmer actually asked for.
+        if terms["species"]:
+            if not terms["category_ids"]:
+                # A species was named but nothing in the catalogue holds it.
+                return []
+            queryset = queryset.filter(category_id__in=terms["category_ids"])
 
-        # Apply breed filter
-        if terms["breeds"]:
-            breed_q = Q()
-            for breed in terms["breeds"]:
-                breed_q |= Q(breed__icontains=breed)
-            queryset = queryset.filter(breed_q)
-
-        # Apply gender filter
         if terms["gender"]:
-            queryset = queryset.filter(gender=terms["gender"])
+            queryset = queryset.filter(Q(gender=terms["gender"]) | Q(gender="mixed"))
 
-        # Apply price filter
         if terms["price_range"]:
             range_type, amount = terms["price_range"]
             if range_type == "max":
-                queryset = queryset.filter(price__lte=amount)
+                queryset = queryset.filter(Q(price__lte=amount) | Q(price__isnull=True))
             else:
-                queryset = queryset.filter(price__gte=amount)
+                queryset = queryset.filter(Q(price__gte=amount) | Q(price__isnull=True))
 
-        # Apply location filter
-        if terms["location_terms"]:
-            loc_q = Q()
-            for loc in terms["location_terms"]:
-                loc_q |= Q(location__icontains=loc)
-            queryset = queryset.filter(loc_q)
+        candidates = list(queryset[:200])
+        scored = [
+            (score, item)
+            for score, item in ((self._relevance(item, terms), item) for item in candidates)
+            if score >= self.MIN_RELEVANCE
+        ]
 
-        # Apply quality/general term search across multiple fields
-        search_terms = terms["quality_terms"] + terms["general_terms"]
-        if search_terms:
-            text_q = Q()
-            for term in search_terms:
-                text_q |= (
-                    Q(name__icontains=term)
-                    | Q(description__icontains=term)
-                    | Q(breed__icontains=term)
-                    | Q(health_status__icontains=term)
-                    | Q(tags__name__icontains=term)
-                )
-            queryset = queryset.filter(text_q).distinct()
+        # If the query only named a species ("goats"), the species filter has
+        # already done the work and every remaining row is a legitimate answer.
+        if not scored and terms["category_ids"] and not self._has_discriminating_terms(terms):
+            return candidates[:limit]
 
-        results = list(queryset[:limit])
+        scored.sort(key=lambda pair: (-pair[0], -pair[1].created_at.timestamp()))
+        return [item for _, item in scored[:limit]]
 
-        # If no results with strict criteria, do a broader search
-        if not results and query.strip():
-            # Try searching across all text fields with any word from query
-            words = re.findall(r"\b\w{3,}\b", query.lower())
-            if words:
-                broad_q = Q()
-                for word in words[:5]:  # Limit to first 5 meaningful words
-                    broad_q |= (
-                        Q(name__icontains=word)
-                        | Q(breed__icontains=word)
-                        | Q(description__icontains=word)
-                        | Q(category__name__icontains=word)
-                        | Q(location__icontains=word)
-                    )
-                results = list(
-                    Livestock.objects.filter(is_sold=False)
-                    .filter(broad_q)
-                    .select_related("category")
-                    .prefetch_related("media", "tags")
-                    .distinct()[:limit]
-                )
+    @staticmethod
+    def _has_discriminating_terms(terms: dict[str, Any]) -> bool:
+        """Whether the query said anything beyond naming a species."""
+        return bool(
+            terms["breeds"]
+            or terms["quality_terms"]
+            or terms["purpose_terms"]
+            or terms["general_terms"]
+            or terms["location_terms"]
+        )
 
-        # If still no results, return some featured/recent items
-        if not results:
-            results = list(
-                Livestock.objects.filter(is_sold=False)
-                .select_related("category")
-                .prefetch_related("media", "tags")
-                .order_by("-created_at")[:limit]
-            )
+    def _relevance(self, item: Livestock, terms: dict[str, Any]) -> int:
+        """
+        Score one listing against the extracted query terms. Each term scores
+        once per field at that field's weight, so matching several distinct
+        terms beats matching one term repeatedly.
+        """
+        fields = {
+            "name": (item.name or "").lower(),
+            "breed": (item.breed or "").lower(),
+            "category": (item.category.name if item.category else "").lower(),
+            "location": (item.location or "").lower(),
+            "description": (item.description or "").lower(),
+            "health_status": (item.health_status or "").lower(),
+            "tags": " ".join(tag.name for tag in item.tags.all()).lower(),
+        }
 
-        return results
+        score = 0
+
+        # Species already matched as a hard filter — credit it so that a
+        # species-only query still ranks above an incidental keyword hit.
+        if terms["category_ids"]:
+            score += self.FIELD_WEIGHTS["category"]
+
+        weighted_terms = (
+            [(b, 2) for b in terms["breeds"]]
+            + [(t, 1) for t in terms["quality_terms"]]
+            + [(t, 1) for t in terms["purpose_terms"]]
+            + [(t, 1) for t in terms["location_terms"]]
+            + [(t, 1) for t in terms["general_terms"]]
+        )
+
+        for term, multiplier in weighted_terms:
+            for field, text in fields.items():
+                if term and term in text:
+                    score += self.FIELD_WEIGHTS[field] * multiplier
+
+        return score
 
     def generate_chat_response(
         self,
@@ -1010,18 +1158,9 @@ Green Livestock Africa is an education-first platform: we exist to raise the kno
                 )
             queryset = queryset.filter(text_q).distinct()
 
-        results = list(queryset[:limit])
-
-        # If no results, return recent/featured eggs
-        if not results:
-            results = list(
-                Egg.objects.filter(is_available=True)
-                .select_related("category")
-                .prefetch_related("media", "tags")
-                .order_by("-is_featured", "-created_at")[:limit]
-            )
-
-        return results
+        # No padding with recent/featured eggs: an empty result is the honest
+        # answer, both for the search UI and for the chat context this feeds.
+        return list(queryset[:limit])
 
     def smart_search(self, query: str, limit: int = 10) -> dict[str, Any]:
         """
@@ -1167,4 +1306,3 @@ everything before submitting."""
         except (TypeError, ValueError):
             data["confidence"] = 0.0
         return data
-
