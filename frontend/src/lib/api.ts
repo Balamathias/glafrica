@@ -324,6 +324,7 @@ export type InquirySubject =
   | 'investment'
   | 'partnership'
   | 'academy'
+  | 'training'
   | 'visit'
   | 'support'
   | 'other'

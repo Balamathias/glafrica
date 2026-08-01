@@ -453,6 +453,7 @@ class ContactInquiry(TimeStampedModel):
         ("investment", "Investment Inquiry"),
         ("partnership", "Partnership Opportunity"),
         ("academy", "Future Farmers Academy"),
+        ("training", "Training & Workshops"),
         ("visit", "Schedule a Visit"),
         ("support", "General Support"),
         ("other", "Other"),

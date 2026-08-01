@@ -80,7 +80,7 @@ export default function AcademyPage() {
               thinking, responsibility, and innovation from an early age.
             </p>
             <div className="mt-8">
-              <RecordLine segments={["Launching 2026", "Ages 5–18", "Register interest"]} />
+              <RecordLine segments={["Launching 2026", "Ages 8–18", "Register interest"]} />
             </div>
           </div>
         </section>

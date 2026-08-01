@@ -16,7 +16,7 @@ interface Tier {
 
 const TIERS: Tier[] = [
   {
-    band: "Ages 5–8",
+    band: "Ages 8–11",
     program: "Introduction to Farming",
     icon: Sprout,
     blurb: "The first seeds of curiosity — where food comes from, and why farms matter.",
@@ -29,7 +29,7 @@ const TIERS: Tier[] = [
     leaves: "Leaves knowing that food is grown, cared for, and worth respecting.",
   },
   {
-    band: "Ages 9–12",
+    band: "Ages 12–14",
     program: "Farm Basics",
     icon: Wheat,
     blurb: "Hands in the soil — real animals, real hygiene, real record-keeping.",
@@ -43,7 +43,7 @@ const TIERS: Tier[] = [
     leaves: "Leaves able to care for small animals and keep an honest record of a project.",
   },
   {
-    band: "Ages 13–18",
+    band: "Ages 15–18",
     program: "Future Farmer Program",
     icon: GraduationCap,
     blurb: "From producer to entrepreneur — the full craft and business of farming.",

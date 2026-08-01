@@ -13,6 +13,7 @@ import {
 import { Navbar } from "@/components/navigation"
 import { Footer } from "@/components/layout"
 import { VideoField, RecordLine, EarTag, HerdHealthCard } from "@/components/brand"
+import { InquiryForm } from "@/components/inquiry/inquiry-form"
 import { VIDEOS, POSTERS } from "@/lib/media"
 
 export const metadata: Metadata = {
@@ -160,7 +161,7 @@ export default function LearnPage() {
                   <p className="mt-3 text-muted-foreground">
                     Open knowledge isn&apos;t only for today&apos;s farmers. We&apos;re
                     teaching children and teenagers to raise animals, keep records, and
-                    think like agricultural entrepreneurs — from age 5 to 18.
+                    think like agricultural entrepreneurs — from age 8 to 18.
                   </p>
                 </div>
                 <Link
@@ -170,6 +171,57 @@ export default function LearnPage() {
                   Explore the Academy
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Get in touch — the way in for anyone who wants to be taught */}
+        <section
+          id="get-in-touch"
+          className="relative overflow-hidden bg-gradient-to-b from-background via-muted/20 to-background py-20 md:py-28"
+        >
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-1/4 top-1/4 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+            <div className="absolute -right-1/4 bottom-1/4 h-80 w-80 rounded-full bg-secondary/5 blur-3xl" />
+          </div>
+
+          <div className="relative mx-auto max-w-5xl px-5 sm:px-8 lg:px-12">
+            <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-12">
+              <div className="lg:sticky lg:top-28 lg:self-start">
+                <span className="ledger text-[11px] uppercase tracking-[0.25em] text-primary">
+                  Reach out
+                </span>
+                <h2 className="font-display mt-4 text-3xl font-medium leading-tight text-foreground sm:text-4xl">
+                  Want to be <span className="text-gradient-signature">taught</span>?
+                </h2>
+                <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                  Everything on this page is open, but the best learning still happens
+                  face to face. Tell us where you are and what you keep, and we will
+                  point you to the next workshop, on-farm session, or visit near you.
+                </p>
+                <ul className="ledger mt-6 space-y-2 text-[13px] text-muted-foreground/80">
+                  <li>· Workshops and on-farm training</li>
+                  <li>· Individual farmers, groups, and cooperatives</li>
+                  <li>· No fees — ask us anything</li>
+                </ul>
+              </div>
+
+              <div className="rounded-3xl border border-border/50 bg-card/50 p-7 shadow-premium backdrop-blur-sm sm:p-9">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Tell us what you want to learn
+                </h3>
+                <p className="mt-1.5 text-sm text-muted-foreground">
+                  We reply within two working days.
+                </p>
+                <div className="mt-6">
+                  <InquiryForm
+                    subject="training"
+                    contextLabel="Learn — Training request"
+                    prefill="I'd like to learn more about "
+                    submitLabel="Send my request"
+                  />
+                </div>
               </div>
             </div>
           </div>

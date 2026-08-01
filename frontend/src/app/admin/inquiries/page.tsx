@@ -19,6 +19,7 @@ import {
   Briefcase,
   HelpCircle,
   GraduationCap,
+  BookOpen,
   Send,
   X,
 } from "lucide-react"
@@ -66,6 +67,7 @@ const subjectIcons: Record<string, React.ReactNode> = {
   investment: <Briefcase size={14} />,
   partnership: <User size={14} />,
   academy: <GraduationCap size={14} />,
+  training: <BookOpen size={14} />,
   visit: <Calendar size={14} />,
   support: <HelpCircle size={14} />,
   other: <MessageSquare size={14} />,
