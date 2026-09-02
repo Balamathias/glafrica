@@ -26,12 +26,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024
 
@@ -324,15 +326,15 @@ export default function AdminCourseMaterialsPage() {
 
       {/* Create / edit */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent size="md" className="flex max-h-[90vh] flex-col">
+          <DialogHeader className="pr-12">
             <DialogTitle>{editing ? "Edit material" : "Add material"}</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Materials are grouped by topic on the public page, in the order set here.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <DialogBody className="min-h-0 flex-1 space-y-5">
             <div>
               <label className="text-sm font-medium">Title</label>
               <Input
@@ -429,16 +431,13 @@ export default function AdminCourseMaterialsPage() {
               />
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.is_published}
-                onChange={(e) => setForm({ ...form, is_published: e.target.checked })}
-                className="h-4 w-4 rounded border-border"
-              />
-              Publish — show this on the Learn page
-            </label>
-          </div>
+            <Checkbox
+              checked={form.is_published}
+              onChange={(is_published) => setForm({ ...form, is_published })}
+              label="Publish"
+              description="Show this material on the public Learn page."
+            />
+          </DialogBody>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>
@@ -454,8 +453,8 @@ export default function AdminCourseMaterialsPage() {
 
       {/* Delete confirmation */}
       <Dialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent size="sm">
+          <DialogHeader className="pr-12">
             <DialogTitle>Delete material?</DialogTitle>
             <DialogDescription>
               &ldquo;{deleting?.title}&rdquo; will be removed from the Learn page. This

@@ -22,12 +22,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 
@@ -319,18 +321,18 @@ export default function AdminCertificatesPage() {
 
       {/* Create / edit */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent size="md" className="flex max-h-[90vh] flex-col">
+          <DialogHeader className="pr-12">
             <DialogTitle>
               {editing ? "Edit certificate" : "Add certificate"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               The phone number is the farmer&apos;s search key — enter it exactly as
               they use it. It is never shown in full on the public site.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <DialogBody className="min-h-0 flex-1 space-y-5">
             <div>
               <label className="text-sm font-medium">Full name</label>
               <Input
@@ -440,16 +442,13 @@ export default function AdminCertificatesPage() {
               />
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.is_published}
-                onChange={(e) => setForm({ ...form, is_published: e.target.checked })}
-                className="h-4 w-4 rounded border-border"
-              />
-              Publish — make this findable on the public directory
-            </label>
-          </div>
+            <Checkbox
+              checked={form.is_published}
+              onChange={(is_published) => setForm({ ...form, is_published })}
+              label="Publish"
+              description="Make this certificate findable on the public directory."
+            />
+          </DialogBody>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>
@@ -465,8 +464,8 @@ export default function AdminCertificatesPage() {
 
       {/* Delete confirmation */}
       <Dialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent size="sm">
+          <DialogHeader className="pr-12">
             <DialogTitle>Delete certificate?</DialogTitle>
             <DialogDescription>
               {deleting?.holder_name}&apos;s certificate ({deleting?.certificate_number})
