@@ -254,3 +254,48 @@ class CanManageEggs(BasePermission):
 
         required = method_permissions.get(request.method, "livestock.view")
         return profile.has_permission(required)
+
+
+class _ResourcePermission(BasePermission):
+    """Maps HTTP methods onto ``<resource>.<action>`` role permissions."""
+
+    resource = ""
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        profile = getattr(request.user, "profile", None)
+        if not profile:
+            return False
+
+        method_actions = {
+            "GET": "view",
+            "HEAD": "view",
+            "OPTIONS": "view",
+            "POST": "add",
+            "PUT": "change",
+            "PATCH": "change",
+            "DELETE": "delete",
+        }
+        action = method_actions.get(request.method, "view")
+        return profile.has_permission(f"{self.resource}.{action}")
+
+
+class CanManageCertificates(_ResourcePermission):
+    """Shortcut permission for training certificate management."""
+
+    resource = "certificate"
+
+
+class CanManageCourseMaterials(_ResourcePermission):
+    """Shortcut permission for course material management."""
+
+    resource = "course"
+
+
+class CanManageSiteFigures(_ResourcePermission):
+    """Shortcut permission for editing public headline figures."""
+
+    resource = "sitefigure"

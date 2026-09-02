@@ -4,6 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Mail, Phone, MapPin, Instagram, Facebook, Linkedin } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { FarmersTrained } from "@/components/brand"
 
 // lucide-react has no TikTok glyph, so provide one matching the icon interface
 // (accepts a `size` prop like the others).
@@ -124,7 +125,7 @@ export function Footer() {
                 className="inline-block h-1.5 w-1.5 rounded-full"
                 style={{ backgroundColor: "var(--ochre)" }}
               />
-              Cohort 01 · 93 farmers trained
+              Cohort 01 · <FarmersTrained /> farmers trained
             </p>
 
             {/* Social Links */}

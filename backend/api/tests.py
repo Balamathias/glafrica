@@ -1,6 +1,12 @@
-from django.test import TestCase
+import json
+from datetime import date
 
-from .models import Category, Livestock
+from django.core.cache import cache
+from django.test import TestCase
+from django.urls import reverse
+from rest_framework.test import APITestCase
+
+from .models import Category, Certificate, Livestock, SiteFigure, normalize_phone
 from .services.ai import AIService
 
 
@@ -125,3 +131,123 @@ class SemanticSearchTests(TestCase):
 
     def test_empty_query_returns_empty(self):
         self.assertEqual(self.service.semantic_search("   "), [])
+
+
+class PhoneNormalizationTests(TestCase):
+    """The lookup key. If these diverge, farmers cannot find their own record."""
+
+    def test_local_international_and_spaced_forms_converge(self):
+        self.assertEqual(normalize_phone("08012344521"), "8012344521")
+        self.assertEqual(normalize_phone("0801 234 4521"), "8012344521")
+        self.assertEqual(normalize_phone("+234 801 234 4521"), "8012344521")
+        self.assertEqual(normalize_phone("+2348012344521"), "8012344521")
+
+    def test_short_numbers_are_kept_whole_not_discarded(self):
+        self.assertEqual(normalize_phone("12345"), "12345")
+
+    def test_empty_input_is_safe(self):
+        self.assertEqual(normalize_phone(""), "")
+        self.assertEqual(normalize_phone(None), "")
+
+
+class CertificateLookupTests(APITestCase):
+    """The public certificate endpoint is the one place farmer PII is exposed,
+    so its guard rails get direct cover."""
+
+    def setUp(self):
+        self.url = reverse("certificate-lookup")
+        self.cert = Certificate.objects.create(
+            holder_name="Amina Yusuf",
+            phone="0801 234 4521",
+            certificate_number="GLA-2026-0001",
+            cohort="Cohort 01",
+            programme="Small Ruminants",
+            issued_on=date(2026, 3, 12),
+        )
+        for i in range(12):
+            Certificate.objects.create(
+                holder_name=f"Bala Musa {i}",
+                phone=f"080333198{i:02d}",
+                certificate_number=f"GLA-2026-01{i:02d}",
+                issued_on=date(2026, 3, 12),
+            )
+
+    def tearDown(self):
+        cache.clear()  # reset throttle history between tests
+
+    def test_blank_and_short_queries_are_rejected(self):
+        for query in ["", "a", "ab"]:
+            response = self.client.get(self.url, {"q": query})
+            self.assertEqual(response.status_code, 400, msg=query)
+
+    def test_name_search_finds_the_holder(self):
+        response = self.client.get(self.url, {"q": "Amina"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["holder_name"], "Amina Yusuf")
+
+    def test_phone_search_matches_across_input_formats(self):
+        for query in ["08012344521", "+2348012344521", "8012344521"]:
+            response = self.client.get(self.url, {"q": query})
+            self.assertEqual(response.data["count"], 1, msg=query)
+            self.assertEqual(
+                response.data["results"][0]["certificate_number"], "GLA-2026-0001"
+            )
+
+    def test_partial_phone_does_not_match(self):
+        """Phone lookup is exact. A prefix must not enumerate holders."""
+        response = self.client.get(self.url, {"q": "0801234"})
+        self.assertEqual(response.data["count"], 0)
+
+    def test_response_never_contains_the_raw_phone_number(self):
+        response = self.client.get(self.url, {"q": "Amina"})
+        result = response.data["results"][0]
+        self.assertNotIn("phone", result)
+        self.assertEqual(result["phone_masked"], "080****4521")
+        self.assertNotIn("8012344521", json.dumps(response.data))
+
+    def test_results_are_capped_and_flagged_as_truncated(self):
+        response = self.client.get(self.url, {"q": "Bala"})
+        self.assertEqual(response.data["count"], 10)
+        self.assertTrue(response.data["truncated"])
+
+    def test_unpublished_certificates_are_not_discoverable(self):
+        self.cert.is_published = False
+        self.cert.save()
+        response = self.client.get(self.url, {"q": "Amina"})
+        self.assertEqual(response.data["count"], 0)
+
+    def test_lookup_is_throttled(self):
+        for _ in range(20):
+            self.client.get(self.url, {"q": "Amina"})
+        response = self.client.get(self.url, {"q": "Amina"})
+        self.assertEqual(response.status_code, 429)
+
+    def test_there_is_no_certificate_list_endpoint(self):
+        """Guards the core design decision: no route returns all certificates."""
+        response = self.client.get("/api/v1/certificates/")
+        self.assertIn(response.status_code, (301, 404))
+
+
+class SiteFigureTests(APITestCase):
+    def test_farmers_trained_defaults_to_zero_before_it_is_set(self):
+        response = self.client.get(reverse("site-figures"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["farmers_trained"], 0)
+
+    def test_configured_value_is_served(self):
+        SiteFigure.objects.create(key="farmers_trained", integer_value=147)
+        response = self.client.get(reverse("site-figures"))
+        self.assertEqual(response.data["farmers_trained"], 147)
+
+
+class AdminCertificateAccessTests(APITestCase):
+    def test_anonymous_writes_are_rejected(self):
+        response = self.client.post(
+            "/api/v1/admin/certificates/", {"holder_name": "Intruder"}
+        )
+        self.assertIn(response.status_code, (401, 403))
+
+    def test_anonymous_listing_is_rejected(self):
+        response = self.client.get("/api/v1/admin/certificates/")
+        self.assertIn(response.status_code, (401, 403))

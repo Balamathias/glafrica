@@ -342,7 +342,21 @@ class UserProfile(TimeStampedModel):
                 "media.add",
                 "media.delete",
                 "analytics.view",
+                "certificate.view",
+                "certificate.add",
+                "certificate.change",
+                "certificate.delete",
+                "course.view",
+                "course.add",
+                "course.change",
+                "course.delete",
+                "sitefigure.view",
+                "sitefigure.change",
             ],
+            # The secretary runs on this role. Certificate and course rights
+            # live here rather than in a dedicated "secretary" role — a
+            # deliberate speed-over-least-privilege call by the owner. Promoting
+            # it later is an entry in this dict plus a sidebar permission check.
             "staff": [
                 "livestock.view",
                 "livestock.add",
@@ -352,6 +366,13 @@ class UserProfile(TimeStampedModel):
                 "tag.add",
                 "media.view",
                 "media.add",
+                "certificate.view",
+                "certificate.add",
+                "certificate.change",
+                "certificate.delete",
+                "course.view",
+                "course.add",
+                "course.change",
             ],
             "viewer": [
                 "livestock.view",
@@ -649,12 +670,8 @@ class VaccinationEvent(TimeStampedModel):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    species = models.ForeignKey(
-        Species, on_delete=models.CASCADE, related_name="events"
-    )
-    category = models.CharField(
-        max_length=20, choices=CATEGORY_CHOICES, default="vaccine"
-    )
+    species = models.ForeignKey(Species, on_delete=models.CASCADE, related_name="events")
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default="vaccine")
     # What is administered, e.g. "PPR vaccine", "Newcastle (Lasota)"
     name = models.CharField(max_length=160)
     # What it protects against, e.g. "Peste des Petits Ruminants"
@@ -680,3 +697,126 @@ class VaccinationEvent(TimeStampedModel):
 
     def __str__(self):
         return f"{self.species.name}: {self.name} @ {self.age_label}"
+
+
+class CourseMaterial(TimeStampedModel):
+    """A downloadable training PDF published on /learn.
+
+    Replaces the Herd Health Card as the primary teaching artefact on the
+    public Learn page. Ordering is manual — the curriculum sequence is an
+    editorial decision, not an alphabetical one.
+    """
+
+    TOPIC_CHOICES = [
+        ("breeding", "Breeding & improved genetics"),
+        ("nutrition", "Feeding & nutrition"),
+        ("health", "Disease prevention"),
+        ("management", "Farm management & records"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, unique=True)
+    summary = models.TextField(blank=True, help_text="One or two lines shown on the course card")
+    topic = models.CharField(max_length=20, choices=TOPIC_CHOICES, default="management")
+    # PDFs are not images — Cloudinary must store them as raw resources.
+    file = CloudinaryField("course material", resource_type="raw")
+    file_size_bytes = models.PositiveIntegerField(null=True, blank=True)
+    page_count = models.PositiveIntegerField(null=True, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_published = models.BooleanField(default=True)
+    download_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "title"]
+        indexes = [models.Index(fields=["is_published", "sort_order"])]
+
+    def __str__(self):
+        return self.title
+
+
+def normalize_phone(raw: str) -> str:
+    """Reduce a phone number to a comparable key.
+
+    Strips every non-digit and keeps the last 10 digits, so that
+    ``0801 234 4521``, ``08012344521`` and ``+2348012344521`` all collapse to
+    the same value. Numbers shorter than 10 digits are kept whole rather than
+    silently discarded.
+    """
+    digits = "".join(c for c in (raw or "") if c.isdigit())
+    return digits[-10:] if len(digits) >= 10 else digits
+
+
+class Certificate(TimeStampedModel):
+    """A training certificate issued to a farmer.
+
+    Publicly discoverable by an exact phone match or a name search only — there
+    is deliberately no endpoint that lists these. See ``CertificateLookupView``.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    holder_name = models.CharField(max_length=160, db_index=True)
+    # As the secretary typed it — shown to admins, never to the public.
+    phone = models.CharField(max_length=32)
+    # Digits-only search key. Indexed because every public lookup hits it.
+    phone_normalized = models.CharField(max_length=16, db_index=True, editable=False)
+    certificate_number = models.CharField(max_length=40, unique=True)
+    cohort = models.CharField(max_length=80, blank=True)
+    programme = models.CharField(max_length=120, blank=True)
+    issued_on = models.DateField()
+    file = CloudinaryField("certificate", resource_type="raw")
+    is_published = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="certificates_created",
+    )
+
+    class Meta:
+        ordering = ["-issued_on", "holder_name"]
+        indexes = [models.Index(fields=["is_published", "-issued_on"])]
+
+    def __str__(self):
+        return f"{self.certificate_number} — {self.holder_name}"
+
+    def save(self, *args, **kwargs):
+        self.phone_normalized = normalize_phone(self.phone)
+        super().save(*args, **kwargs)
+
+    @property
+    def phone_masked(self) -> str:
+        """``08012344521`` -> ``080****4521``. Enough for a holder to recognise
+        their own record, useless to a harvester."""
+        digits = "".join(c for c in self.phone if c.isdigit())
+        if len(digits) < 7:
+            return "*" * len(digits)
+        return f"{digits[:3]}****{digits[-4:]}"
+
+
+class SiteFigure(TimeStampedModel):
+    """An editable headline number shown on the public site.
+
+    A key/value table rather than a one-row singleton so the next figure the
+    CEO asks for is a row insert, not a migration. First key:
+    ``farmers_trained``.
+    """
+
+    key = models.SlugField(max_length=60, unique=True)
+    label = models.CharField(max_length=120, blank=True)
+    integer_value = models.IntegerField(null=True, blank=True)
+    text_value = models.CharField(max_length=200, blank=True)
+    updated_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="site_figures_updated",
+    )
+
+    class Meta:
+        ordering = ["key"]
+
+    def __str__(self):
+        return f"{self.key} = {self.integer_value or self.text_value}"

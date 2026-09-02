@@ -16,6 +16,8 @@ import {
   LogOut,
   ChevronRight,
   MessageSquare,
+  Award,
+  FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAdminUIStore, useAuthStore } from "@/lib/admin-store"
@@ -47,6 +49,13 @@ const NAV_ITEMS: NavItem[] = [
   { id: "media", label: "Media Library", icon: Image, href: "/admin/media" },
   { id: "categories", label: "Categories", icon: Folder, href: "/admin/categories" },
   { id: "tags", label: "Tags", icon: Tags, href: "/admin/tags" },
+  { id: "certificates", label: "Certificates", icon: Award, href: "/admin/certificates" },
+  {
+    id: "course-materials",
+    label: "Course Materials",
+    icon: FileText,
+    href: "/admin/course-materials",
+  },
   { id: "inquiries", label: "Inquiries", icon: MessageSquare, href: "/admin/inquiries" },
   { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
   { id: "users", label: "Users", icon: Users, href: "/admin/users", requiredRole: "superadmin" },

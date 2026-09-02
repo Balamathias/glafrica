@@ -1,7 +1,9 @@
 import json
 from datetime import timedelta
 
-from django.http import Http404, StreamingHttpResponse
+from django.core.exceptions import ValidationError
+from django.db.models import F
+from django.http import Http404, HttpResponseRedirect, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django_filters.rest_framework import DjangoFilterBackend
@@ -14,17 +16,23 @@ from rest_framework.views import APIView
 
 from .models import (
     Category,
+    Certificate,
+    CourseMaterial,
     Egg,
     EggCategory,
     Livestock,
     PageView,
+    SiteFigure,
     Species,
     VisitorSession,
+    normalize_phone,
 )
 from .serializers import (
     CategorySerializer,
     CategoryWithPreviewSerializer,
+    CertificatePublicSerializer,
     ContactInquirySerializer,
+    CourseMaterialSerializer,
     EggCategoryListSerializer,
     EggCategorySerializer,
     EggDetailSerializer,
@@ -459,9 +467,7 @@ class VaccinationScheduleView(APIView):
                     data["age_label"] = self._humanize_age(offset)
                     data["notes"] = (data["notes"] + " (booster)").strip()
                 if birth_date:
-                    data["scheduled_date"] = (
-                        birth_date + timedelta(days=offset)
-                    ).isoformat()
+                    data["scheduled_date"] = (birth_date + timedelta(days=offset)).isoformat()
                 rows.append((offset, data))
 
         rows.sort(key=lambda pair: pair[0])
@@ -592,3 +598,123 @@ class EggViewSet(viewsets.ReadOnlyModelViewSet):
             return self.get_paginated_response(serializer.data)
         serializer = EggListSerializer(eggs, many=True)
         return Response(serializer.data)
+
+
+# ============================================
+# Course materials, certificates & site figures
+# ============================================
+
+
+class CertificateLookupRateThrottle(AnonRateThrottle):
+    """Rate limiting for the public certificate lookup.
+
+    Ample for a farmer finding their own record; far too slow to enumerate a
+    dictionary of names.
+    """
+
+    rate = "20/min"
+
+
+class CourseMaterialViewSet(viewsets.ReadOnlyModelViewSet):
+    """Published training PDFs shown on /learn."""
+
+    queryset = CourseMaterial.objects.filter(is_published=True)
+    serializer_class = CourseMaterialSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    lookup_field = "slug"
+
+    @action(detail=True, methods=["get"], url_path="download")
+    def download(self, request, slug=None):
+        material = self.get_object()
+        CourseMaterial.objects.filter(pk=material.pk).update(download_count=F("download_count") + 1)
+        return HttpResponseRedirect(material.file.url)
+
+
+class CertificateLookupView(APIView):
+    """Search-only public certificate lookup.
+
+    ``GET /certificates/lookup/?q=<name-or-phone>``
+
+    There is deliberately no endpoint that lists certificates. A public
+    directory of farmer names beside phone numbers is a harvesting target, so
+    four rules constrain this view:
+
+    1. Queries under ``MIN_QUERY_LENGTH`` characters are rejected — a blank
+       query must never fall through to "everything".
+    2. A numeric query matches ``phone_normalized`` exactly. You either know
+       the number or you get nothing; there is no partial phone search.
+    3. Results are capped at ``MAX_RESULTS`` with no pagination cursor, so a
+       common surname cannot be paged through to enumerate the population.
+    4. The response is throttled per IP.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [CertificateLookupRateThrottle]
+
+    MIN_QUERY_LENGTH = 3
+    MAX_RESULTS = 10
+
+    def get(self, request):
+        query = (request.query_params.get("q") or "").strip()
+
+        if len(query) < self.MIN_QUERY_LENGTH:
+            return Response(
+                {
+                    "detail": (
+                        f"Enter at least {self.MIN_QUERY_LENGTH} characters of a name "
+                        "or a full phone number."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        published = Certificate.objects.filter(is_published=True)
+        digits = "".join(c for c in query if c.isdigit())
+
+        # A query that is mostly digits is a phone number; match it exactly.
+        if digits and len(digits) >= self.MIN_QUERY_LENGTH and not any(c.isalpha() for c in query):
+            matches = published.filter(phone_normalized=normalize_phone(query))
+        else:
+            matches = published.filter(holder_name__icontains=query)
+
+        results = list(matches[: self.MAX_RESULTS + 1])
+        truncated = len(results) > self.MAX_RESULTS
+        results = results[: self.MAX_RESULTS]
+
+        return Response(
+            {
+                "count": len(results),
+                "truncated": truncated,
+                "results": CertificatePublicSerializer(results, many=True).data,
+            }
+        )
+
+
+class CertificateDownloadView(APIView):
+    """Redirect to a published certificate's PDF."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [CertificateLookupRateThrottle]
+
+    def get(self, request, pk):
+        try:
+            certificate = Certificate.objects.get(pk=pk, is_published=True)
+        except (Certificate.DoesNotExist, ValidationError, ValueError):
+            raise Http404 from None
+        return HttpResponseRedirect(certificate.file.url)
+
+
+class SiteFigureListView(APIView):
+    """Public headline figures, e.g. ``{"farmers_trained": 147}``."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        figures = {
+            f.key: (f.integer_value if f.integer_value is not None else f.text_value)
+            for f in SiteFigure.objects.all()
+        }
+        # The public site must render something sane before the CEO has set it.
+        figures.setdefault("farmers_trained", 0)
+        return Response(figures)

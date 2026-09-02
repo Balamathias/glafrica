@@ -6,6 +6,7 @@ import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { HEADLINE_STATS } from "@/lib/impact"
+import { FarmersTrained } from "@/components/brand"
 
 export function ImpactStrip() {
   const ref = useRef<HTMLDivElement>(null)
@@ -62,7 +63,7 @@ export function ImpactStrip() {
                   className="font-display text-4xl font-medium tabular-nums md:text-5xl"
                   style={{ color: "var(--ochre)" }}
                 >
-                  {s.value}
+                  {s.key === "farmers_trained" ? <FarmersTrained /> : s.value}
                 </dd>
                 <dt className="mt-2 text-sm font-medium text-foreground">{s.label}</dt>
                 <p className="ledger mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/60">

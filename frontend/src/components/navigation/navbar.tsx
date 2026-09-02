@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronDown, BookOpen, GraduationCap } from "lucide-react"
+import { ChevronDown, BookOpen, GraduationCap, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MobileNav } from "./mobile-nav"
 import { ModeToggle } from "@/components/ui/mode-toggle"
@@ -14,7 +14,7 @@ const LEARN_MENU = [
   {
     href: "/learn",
     label: "Learn Hub",
-    description: "Open training & the Herd Health Card",
+    description: "Open training & free course material",
     icon: BookOpen,
   },
   {
@@ -22,6 +22,12 @@ const LEARN_MENU = [
     label: "Future Farmers Academy",
     description: "Growing the farmers of tomorrow",
     icon: GraduationCap,
+  },
+  {
+    href: "/certificates",
+    label: "Certificate Directory",
+    description: "Verify & download a training certificate",
+    icon: ShieldCheck,
   },
 ]
 
@@ -37,6 +43,7 @@ const NAV_LINKS = [
 const MOBILE_LINKS = [
   { href: "/learn", label: "Learn" },
   { href: "/academy", label: "Future Farmers Academy" },
+  { href: "/certificates", label: "Certificate Directory" },
   ...NAV_LINKS,
 ]
 

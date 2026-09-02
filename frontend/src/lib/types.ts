@@ -279,3 +279,48 @@ export interface VaccinationSchedule {
   schedule: VaccinationRow[]
   disclaimer: string
 }
+
+// ============================================
+// Course materials, certificates & site figures
+// ============================================
+
+export type CourseTopic = 'breeding' | 'nutrition' | 'health' | 'management'
+
+export interface CourseMaterial {
+  id: string
+  title: string
+  slug: string
+  summary: string
+  topic: CourseTopic
+  topic_display: string
+  file_size_bytes: number | null
+  page_count: number | null
+  download_url: string
+}
+
+/**
+ * Public shape of a certificate. There is deliberately no `phone` field — the
+ * API masks it server-side so a full number never reaches the browser.
+ */
+export interface PublicCertificate {
+  id: string
+  holder_name: string
+  phone_masked: string
+  certificate_number: string
+  cohort: string
+  programme: string
+  issued_on: string
+  download_url: string
+}
+
+export interface CertificateLookupResult {
+  count: number
+  /** True when more matches exist than the API will return. Prompt a narrower search. */
+  truncated: boolean
+  results: PublicCertificate[]
+}
+
+export interface SiteFigures {
+  farmers_trained: number
+  [key: string]: number | string
+}

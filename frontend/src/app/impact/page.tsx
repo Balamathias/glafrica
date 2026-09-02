@@ -2,14 +2,14 @@ import { Metadata } from "next"
 import Link from "next/link"
 import { Navbar } from "@/components/navigation"
 import { Footer } from "@/components/layout"
-import { Stamp, RecordLine, EarTag } from "@/components/brand"
+import { Stamp, RecordLine, EarTag, FarmersTrained } from "@/components/brand"
 import { ImpactStrip } from "@/components/home/impact-strip"
 import { COHORTS } from "@/lib/impact"
 
 export const metadata: Metadata = {
   title: "Impact — Outcomes, plainly stated",
   description:
-    "Transparent outcomes reporting for sponsors and partners. Real numbers only: 93 farmers trained in our first cohort. No projections, no inflation.",
+    "Transparent outcomes reporting for sponsors and partners. Real numbers only \u2014 confirmed cohort results, no projections, no inflation.",
 }
 
 // Render placeholder fields as an honest "to be confirmed" rather than raw tokens.
@@ -37,7 +37,16 @@ export default function ImpactPage() {
               Every figure below is confirmed before it appears here.
             </p>
             <div className="mt-8">
-              <RecordLine segments={["93 Farmers Trained", "Cohort 01", "Verified"]} verified />
+              <RecordLine
+                segments={[
+                  <>
+                    <FarmersTrained /> Farmers Trained
+                  </>,
+                  "Cohort 01",
+                  "Verified",
+                ]}
+                verified
+              />
             </div>
           </div>
         </section>

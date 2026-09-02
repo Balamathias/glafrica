@@ -1,6 +1,6 @@
 # Course Materials, Certificate Directory & Configurable Impact Count — Design
 
-**Date:** 2026-09-02 · **Status:** Approved by owner (design; not yet implemented)
+**Date:** 2026-09-02 · **Status:** Approved by owner — implemented on branch `docs/course-materials-certificates-design`
 
 Follows on from [2026-07-23 Education-First Repositioning](./2026-07-23-education-first-repositioning-design.md).
 Three CEO-requested changes, designed together because they share an admin surface and a
@@ -98,9 +98,9 @@ These four rules are what make the search-only model actually hold:
    Phone lookup is exact only: you either know the number or you get nothing.
 3. **Capped at 10 results, no pagination cursor.** A common surname returns the first ten
    with a "refine your search" note. There is no mechanism to page through the population.
-4. **Throttled** via DRF `ScopedRateThrottle` (scope `certificate_lookup`, ~20/min per
-   IP). Ample for a farmer finding their own record; useless for enumerating a name
-   dictionary.
+4. **Throttled** via a `CertificateLookupRateThrottle(AnonRateThrottle)` at 20/min per
+   IP — matching how `ContactRateThrottle` is already done in this codebase. Ample for a
+   farmer finding their own record; useless for enumerating a name dictionary.
 
 The public serializer returns `phone_masked` (`080****4521`) and **never** the raw
 `phone` field. Masking is server-side — the full number must not be present in the JSON

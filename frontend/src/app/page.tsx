@@ -5,7 +5,6 @@ import {
   Hero,
   HeroTransition,
   ModelPillars,
-  HerdHealthTeaser,
   BreedingGenetics,
   Hatchery,
   DualPath,
@@ -20,7 +19,7 @@ import {
 export const metadata: Metadata = {
   title: "Green Livestock Africa | Raising the next generation of African farmers",
   description:
-    "Open training in breeding, nutrition, and disease prevention for livestock farmers across Africa — knowledge as a direct answer to hunger and food insecurity. 93 farmers trained in our first cohort.",
+    "Open training in breeding, nutrition, and disease prevention for livestock farmers across Africa — knowledge as a direct answer to hunger and food insecurity.",
   openGraph: {
     title: "Green Livestock Africa | Raising the next generation of African farmers",
     description:
@@ -47,9 +46,6 @@ export default function HomePage() {
 
         {/* The model: Enlighten → Equip → Verify → Grow */}
         <ModelPillars />
-
-        {/* Signature: the Herd Health Card, live on the homepage */}
-        <HerdHealthTeaser />
 
         {/* Equip, continued: artificial insemination as a service + training */}
         <BreedingGenetics />

@@ -1751,3 +1751,225 @@ export default {
   herdHealth: herdHealthApi,
   aiQuickfill: aiQuickfillApi,
 }
+
+
+// ============================================
+// Course materials, certificates & site figures
+// ============================================
+
+export type CourseTopic = 'breeding' | 'nutrition' | 'health' | 'management'
+
+export interface AdminCourseMaterial {
+  id: string
+  title: string
+  slug: string
+  summary: string
+  topic: CourseTopic
+  topic_display: string
+  file_url: string | null
+  file_size_bytes: number | null
+  page_count: number | null
+  sort_order: number
+  is_published: boolean
+  download_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminCertificate {
+  id: string
+  holder_name: string
+  /** Full number — admin-only. The public lookup returns `phone_masked` instead. */
+  phone: string
+  phone_masked: string
+  /** True when another certificate shares this normalised phone. A warning, not a block. */
+  duplicate_phone: boolean
+  certificate_number: string
+  cohort: string
+  programme: string
+  issued_on: string
+  file_url: string | null
+  is_published: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminSiteFigure {
+  id: number
+  key: string
+  label: string
+  integer_value: number | null
+  text_value: string
+  updated_by_name: string
+  updated_at: string
+}
+
+export type CourseMaterialPayload = Partial<
+  Omit<
+    AdminCourseMaterial,
+    'id' | 'topic_display' | 'file_url' | 'download_count' | 'created_at' | 'updated_at'
+  >
+>
+export type CertificatePayload = Partial<
+  Omit<
+    AdminCertificate,
+    'id' | 'phone_masked' | 'duplicate_phone' | 'file_url' | 'created_at' | 'updated_at'
+  >
+>
+
+/** Build multipart form data, since both models carry a PDF upload. */
+function toFormData(payload: Record<string, unknown>, file?: File | null): FormData {
+  const formData = new FormData()
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined || value === null) return
+    formData.append(key, typeof value === 'boolean' ? String(value) : String(value))
+  })
+  if (file) formData.append('file', file)
+  return formData
+}
+
+const MULTIPART = { headers: { 'Content-Type': 'multipart/form-data' } }
+
+export const courseMaterialsApi = {
+  async list(): Promise<AdminCourseMaterial[]> {
+    try {
+      const { data } = await adminApi.get<AdminCourseMaterial[]>('/course-materials/')
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async create(payload: CourseMaterialPayload, file?: File | null): Promise<AdminCourseMaterial> {
+    try {
+      const { data } = await adminApi.post<AdminCourseMaterial>(
+        '/course-materials/',
+        toFormData(payload, file),
+        MULTIPART
+      )
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async update(
+    id: string,
+    payload: CourseMaterialPayload,
+    file?: File | null
+  ): Promise<AdminCourseMaterial> {
+    try {
+      const { data } = await adminApi.patch<AdminCourseMaterial>(
+        `/course-materials/${id}/`,
+        toFormData(payload, file),
+        MULTIPART
+      )
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async remove(id: string): Promise<void> {
+    try {
+      await adminApi.delete(`/course-materials/${id}/`)
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
+export const certificatesApi = {
+  async list(params?: { search?: string; page?: number }): Promise<PaginatedResponse<AdminCertificate>> {
+    try {
+      const query = new URLSearchParams()
+      if (params?.search) query.append('search', params.search)
+      if (params?.page) query.append('page', String(params.page))
+      const { data } = await adminApi.get<PaginatedResponse<AdminCertificate>>(
+        `/certificates/?${query.toString()}`
+      )
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  /** Suggested next number for the current year, e.g. `GLA-2026-0094`. */
+  async nextNumber(): Promise<string> {
+    try {
+      const { data } = await adminApi.get<{ certificate_number: string }>(
+        '/certificates/next-number/'
+      )
+      return data.certificate_number
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async create(payload: CertificatePayload, file?: File | null): Promise<AdminCertificate> {
+    try {
+      const { data } = await adminApi.post<AdminCertificate>(
+        '/certificates/',
+        toFormData(payload, file),
+        MULTIPART
+      )
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async update(
+    id: string,
+    payload: CertificatePayload,
+    file?: File | null
+  ): Promise<AdminCertificate> {
+    try {
+      const { data } = await adminApi.patch<AdminCertificate>(
+        `/certificates/${id}/`,
+        toFormData(payload, file),
+        MULTIPART
+      )
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  async remove(id: string): Promise<void> {
+    try {
+      await adminApi.delete(`/certificates/${id}/`)
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
+export const siteFiguresApi = {
+  async list(): Promise<AdminSiteFigure[]> {
+    try {
+      const { data } = await adminApi.get<AdminSiteFigure[]>('/site-figures/')
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  /** Upsert by key — the CEO edits `farmers_trained` without caring whether a row exists. */
+  async setInteger(key: string, value: number, label?: string): Promise<AdminSiteFigure> {
+    try {
+      const { data } = await adminApi.patch<AdminSiteFigure>(`/site-figures/${key}/`, {
+        integer_value: value,
+        ...(label ? { label } : {}),
+      })
+      return data
+    } catch {
+      const { data } = await adminApi.post<AdminSiteFigure>('/site-figures/', {
+        key,
+        integer_value: value,
+        label: label ?? '',
+      })
+      return data
+    }
+  },
+}

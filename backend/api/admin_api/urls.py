@@ -21,12 +21,15 @@ from .views import (
     AdminAIClassifyView,
     AdminAuditLogViewSet,
     AdminCategoryViewSet,
+    AdminCertificateViewSet,
     AdminContactInquiryViewSet,
+    AdminCourseMaterialViewSet,
     AdminEggCategoryViewSet,
     AdminEggMediaViewSet,
     AdminEggViewSet,
     AdminLivestockViewSet,
     AdminMediaViewSet,
+    AdminSiteFigureViewSet,
     AdminSpeciesViewSet,
     AdminTagViewSet,
     AdminVaccinationEventViewSet,
@@ -50,6 +53,9 @@ router.register(r"species", AdminSpeciesViewSet, basename="admin-species")
 router.register(
     r"vaccination-events", AdminVaccinationEventViewSet, basename="admin-vaccination-events"
 )
+router.register(r"certificates", AdminCertificateViewSet, basename="admin-certificates")
+router.register(r"course-materials", AdminCourseMaterialViewSet, basename="admin-course-materials")
+router.register(r"site-figures", AdminSiteFigureViewSet, basename="admin-site-figures")
 
 urlpatterns = [
     # Authentication endpoints

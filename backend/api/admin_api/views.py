@@ -10,7 +10,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -18,21 +18,27 @@ from rest_framework.views import APIView
 from ..models import (
     AuditLog,
     Category,
+    Certificate,
     ContactInquiry,
+    CourseMaterial,
     Egg,
     EggCategory,
     EggMediaAsset,
     Livestock,
     MediaAsset,
+    SiteFigure,
     Species,
     Tag,
     VaccinationEvent,
 )
 from ..permissions import (
     CanManageCategories,
+    CanManageCertificates,
+    CanManageCourseMaterials,
     CanManageEggs,
     CanManageLivestock,
     CanManageMedia,
+    CanManageSiteFigures,
     CanManageTags,
     CanViewAnalytics,
     IsAdminUser,
@@ -42,8 +48,10 @@ from ..services.analytics import AnalyticsService
 from .serializers import (
     AdminAuditLogSerializer,
     AdminCategorySerializer,
+    AdminCertificateSerializer,
     AdminContactInquiryDetailSerializer,
     AdminContactInquiryListSerializer,
+    AdminCourseMaterialSerializer,
     AdminEggCategorySerializer,
     AdminEggDetailSerializer,
     AdminEggListSerializer,
@@ -51,6 +59,7 @@ from .serializers import (
     AdminLivestockDetailSerializer,
     AdminLivestockListSerializer,
     AdminMediaAssetSerializer,
+    AdminSiteFigureSerializer,
     AdminSpeciesSerializer,
     AdminTagSerializer,
     AdminVaccinationEventSerializer,
@@ -1175,9 +1184,7 @@ class AdminEggMediaViewSet(viewsets.ModelViewSet):
 class AdminSpeciesViewSet(viewsets.ModelViewSet):
     """Manage Herd Health Card species (goats, cattle, poultry, ...)."""
 
-    queryset = Species.objects.annotate(event_count=Count("events")).order_by(
-        "sort_order", "name"
-    )
+    queryset = Species.objects.annotate(event_count=Count("events")).order_by("sort_order", "name")
     serializer_class = AdminSpeciesSerializer
     permission_classes = [IsAuthenticated, IsAdminUser, CanManageLivestock]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -1247,9 +1254,7 @@ class AdminVaccinationEventViewSet(viewsets.ModelViewSet):
             user=self.request.user,
             action_type="create",
             resource_type="vaccination_event",
-            description=(
-                f"Added protocol entry '{instance.name}' to {instance.species.name}"
-            ),
+            description=(f"Added protocol entry '{instance.name}' to {instance.species.name}"),
             resource_id=str(instance.id),
             request=self.request,
         )
@@ -1260,9 +1265,7 @@ class AdminVaccinationEventViewSet(viewsets.ModelViewSet):
             user=self.request.user,
             action_type="update",
             resource_type="vaccination_event",
-            description=(
-                f"Updated protocol entry '{instance.name}' of {instance.species.name}"
-            ),
+            description=(f"Updated protocol entry '{instance.name}' of {instance.species.name}"),
             resource_id=str(instance.id),
             request=self.request,
         )
@@ -1341,3 +1344,160 @@ class AdminAIClassifyView(APIView):
             request=request,
         )
         return Response({"kind": kind, "suggestion": suggestion})
+
+
+class AdminCourseMaterialViewSet(viewsets.ModelViewSet):
+    """Manage the downloadable training PDFs shown on /learn."""
+
+    queryset = CourseMaterial.objects.all()
+    serializer_class = AdminCourseMaterialSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser, CanManageCourseMaterials]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["title", "slug", "summary"]
+    ordering_fields = ["title", "sort_order", "download_count", "created_at"]
+    ordering = ["sort_order", "title"]
+    pagination_class = None
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="create",
+            resource_type="course_material",
+            description=f"Added course material: {instance.title}",
+            resource_id=str(instance.id),
+            request=self.request,
+        )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="update",
+            resource_type="course_material",
+            description=f"Updated course material: {instance.title}",
+            resource_id=str(instance.id),
+            request=self.request,
+        )
+
+    def perform_destroy(self, instance):
+        title, material_id = instance.title, str(instance.id)
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="delete",
+            resource_type="course_material",
+            description=f"Deleted course material: {title}",
+            resource_id=material_id,
+            request=self.request,
+        )
+        instance.delete()
+
+
+class AdminCertificateViewSet(viewsets.ModelViewSet):
+    """Manage training certificates.
+
+    The secretary's workspace. Note this returns the full phone number, which
+    the public lookup never does.
+    """
+
+    queryset = Certificate.objects.all().select_related("created_by")
+    serializer_class = AdminCertificateSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser, CanManageCertificates]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["holder_name", "phone", "certificate_number", "cohort", "programme"]
+    ordering_fields = ["holder_name", "issued_on", "created_at"]
+    ordering = ["-issued_on", "holder_name"]
+
+    def perform_create(self, serializer):
+        instance = serializer.save(created_by=self.request.user)
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="create",
+            resource_type="certificate",
+            description=(
+                f"Issued certificate {instance.certificate_number} to {instance.holder_name}"
+            ),
+            resource_id=str(instance.id),
+            request=self.request,
+        )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="update",
+            resource_type="certificate",
+            description=f"Updated certificate {instance.certificate_number}",
+            resource_id=str(instance.id),
+            request=self.request,
+        )
+
+    def perform_destroy(self, instance):
+        number, name, cert_id = (
+            instance.certificate_number,
+            instance.holder_name,
+            str(instance.id),
+        )
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type="delete",
+            resource_type="certificate",
+            description=f"Deleted certificate {number} ({name})",
+            resource_id=cert_id,
+            request=self.request,
+        )
+        instance.delete()
+
+    @action(detail=False, methods=["get"], url_path="next-number")
+    def next_number(self, request):
+        """Suggest the next certificate number for the current year."""
+        year = timezone.now().year
+        prefix = f"GLA-{year}-"
+        last = (
+            Certificate.objects.filter(certificate_number__startswith=prefix)
+            .order_by("-certificate_number")
+            .values_list("certificate_number", flat=True)
+            .first()
+        )
+        sequence = 1
+        if last:
+            try:
+                sequence = int(last.rsplit("-", 1)[1]) + 1
+            except (IndexError, ValueError):
+                sequence = (
+                    Certificate.objects.filter(certificate_number__startswith=prefix).count() + 1
+                )
+        return Response({"certificate_number": f"{prefix}{sequence:04d}"})
+
+
+class AdminSiteFigureViewSet(viewsets.ModelViewSet):
+    """Edit the headline numbers shown on the public site."""
+
+    queryset = SiteFigure.objects.all()
+    serializer_class = AdminSiteFigureSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser, CanManageSiteFigures]
+    lookup_field = "key"
+    pagination_class = None
+
+    def perform_create(self, serializer):
+        instance = serializer.save(updated_by=self.request.user)
+        self._log(instance, "create", "Created")
+
+    def perform_update(self, serializer):
+        instance = serializer.save(updated_by=self.request.user)
+        self._log(instance, "update", "Updated")
+
+    def _log(self, instance, action_type, verb):
+        AuditLog.log_action(
+            user=self.request.user,
+            action_type=action_type,
+            resource_type="site_figure",
+            description=(
+                f"{verb} site figure {instance.key} = "
+                f"{instance.integer_value if instance.integer_value is not None else instance.text_value}"
+            ),
+            resource_id=str(instance.id),
+            request=self.request,
+        )

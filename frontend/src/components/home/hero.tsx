@@ -6,7 +6,7 @@ import { ArrowRight, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { VideoRotator } from "@/components/brand"
-import { RecordLine } from "@/components/brand"
+import { RecordLine, FarmersTrained } from "@/components/brand"
 import { VIDEOS, LOCAL_VIDEOS, POSTERS } from "@/lib/media"
 
 export function Hero() {
@@ -117,7 +117,13 @@ export function Hero() {
             className="mt-8 sm:mt-10"
           >
             <RecordLine
-              segments={["Cohort 01", "93 Farmers Trained", "Verified"]}
+              segments={[
+                "Cohort 01",
+                <>
+                  <FarmersTrained /> Farmers Trained
+                </>,
+                "Verified",
+              ]}
               verified
             />
           </motion.div>

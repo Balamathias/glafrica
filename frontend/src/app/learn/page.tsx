@@ -2,7 +2,6 @@ import { Metadata } from "next"
 import Link from "next/link"
 import {
   BookOpen,
-  Stethoscope,
   Wheat,
   ShieldAlert,
   Baby,
@@ -12,14 +11,15 @@ import {
 } from "lucide-react"
 import { Navbar } from "@/components/navigation"
 import { Footer } from "@/components/layout"
-import { VideoField, RecordLine, EarTag, HerdHealthCard } from "@/components/brand"
+import { VideoField, RecordLine, EarTag } from "@/components/brand"
+import { CourseMaterials } from "@/components/learn"
 import { InquiryForm } from "@/components/inquiry/inquiry-form"
 import { VIDEOS, POSTERS } from "@/lib/media"
 
 export const metadata: Metadata = {
   title: "Learn — Open livestock knowledge",
   description:
-    "Free, open training on breeding, nutrition, disease prevention, and farm management for livestock farmers across Africa. Generate a vaccination schedule with the Herd Health Card.",
+    "Free, open training on breeding, nutrition, disease prevention, and farm management for livestock farmers across Africa. Download the full course material, free.",
 }
 
 const TOPICS = [
@@ -113,9 +113,9 @@ export default function LearnPage() {
           </div>
         </section>
 
-        {/* Herd Health Card — the signature tool */}
+        {/* Course materials — the signature block on this page */}
         <section
-          id="herd-health"
+          id="course-materials"
           className="relative overflow-hidden bg-gradient-to-b from-background via-muted/30 to-background py-20 md:py-28"
         >
           {/* Background glow decoration */}
@@ -127,17 +127,17 @@ export default function LearnPage() {
           <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
             <div className="mx-auto mb-12 max-w-2xl text-center">
               <div className="mb-4 inline-flex">
-                <Stethoscope className="h-6 w-6" style={{ color: "var(--ochre)" }} />
+                <BookOpen className="h-6 w-6" style={{ color: "var(--ochre)" }} />
               </div>
               <h2 className="font-display text-3xl font-medium text-foreground sm:text-4xl md:text-5xl">
-                The <span className="text-gradient-signature">Herd Health Card</span>
+                The <span className="text-gradient-signature">course material</span>
               </h2>
               <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-                A working vaccination and health schedule for your animals — pick a
-                species, add a birth date, and take the protocol with you.
+                Everything we teach in the field, written down and free to download.
+                Take it to your farm, print it, share it — no enrollment, no paywall.
               </p>
             </div>
-            <HerdHealthCard />
+            <CourseMaterials />
           </div>
         </section>
 

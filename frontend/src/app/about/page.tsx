@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 import { Footer } from "@/components/layout/footer"
 import { Navbar } from "@/components/navigation"
 import { LocationMap } from "@/components/home/location-map"
+import { FarmersTrained } from "@/components/brand"
 
 const values = [
   {
@@ -45,8 +46,8 @@ const values = [
   },
 ]
 
-const stats = [
-  { value: "93", label: "Farmers trained in Cohort 01" },
+const stats: { value: React.ReactNode; label: string }[] = [
+  { value: <FarmersTrained />, label: "Farmers trained in Cohort 01" },
   { value: "01", label: "Cohorts completed" },
   { value: "4", label: "Core disciplines taught" },
   { value: "0", label: "Naira to enroll — open by design" },
@@ -191,7 +192,7 @@ export default function AboutPage() {
                   <div>
                     <p className="text-white font-semibold">Cohort 01 delivered</p>
                     <p className="text-white/60 text-sm">
-                      93 farmers trained — and counting
+                      <FarmersTrained static /> farmers trained — and counting
                     </p>
                   </div>
                 </div>

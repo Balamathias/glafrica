@@ -2,7 +2,9 @@ from rest_framework import serializers
 
 from .models import (
     Category,
+    Certificate,
     ContactInquiry,
+    CourseMaterial,
     Egg,
     EggCategory,
     EggMediaAsset,
@@ -200,9 +202,7 @@ class VaccinationEventSerializer(serializers.ModelSerializer):
     a birth date is supplied; it is not stored on the model."""
 
     route_display = serializers.CharField(source="get_route_display", read_only=True)
-    category_display = serializers.CharField(
-        source="get_category_display", read_only=True
-    )
+    category_display = serializers.CharField(source="get_category_display", read_only=True)
     scheduled_date = serializers.DateField(read_only=True, required=False)
 
     class Meta:
@@ -382,3 +382,59 @@ class EggCreateUpdateSerializer(serializers.ModelSerializer):
             "is_featured",
             "tag_ids",
         ]
+
+
+# ============================================
+# Course materials, certificates & site figures
+# ============================================
+
+
+class CourseMaterialSerializer(serializers.ModelSerializer):
+    """Published training PDF as shown on /learn."""
+
+    topic_display = serializers.CharField(source="get_topic_display", read_only=True)
+    download_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CourseMaterial
+        fields = [
+            "id",
+            "title",
+            "slug",
+            "summary",
+            "topic",
+            "topic_display",
+            "file_size_bytes",
+            "page_count",
+            "download_url",
+        ]
+
+    def get_download_url(self, obj) -> str:
+        return f"/api/v1/course-materials/{obj.slug}/download/"
+
+
+class CertificatePublicSerializer(serializers.ModelSerializer):
+    """Public shape of a certificate.
+
+    Deliberately excludes ``phone``. Masking happens here, server-side, so the
+    full number is never present in a payload the browser can read.
+    """
+
+    phone_masked = serializers.CharField(read_only=True)
+    download_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Certificate
+        fields = [
+            "id",
+            "holder_name",
+            "phone_masked",
+            "certificate_number",
+            "cohort",
+            "programme",
+            "issued_on",
+            "download_url",
+        ]
+
+    def get_download_url(self, obj) -> str:
+        return f"/api/v1/certificates/{obj.id}/download/"

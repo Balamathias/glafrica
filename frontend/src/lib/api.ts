@@ -14,6 +14,9 @@ import type {
   SmartSearchResponse,
   Species,
   VaccinationSchedule,
+  CourseMaterial,
+  CertificateLookupResult,
+  SiteFigures,
 } from './types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
@@ -348,6 +351,45 @@ export const inquiryApi = {
   },
 }
 
+// Course materials — the downloadable training PDFs on /learn
+export const courseMaterialsApi = {
+  async getList(): Promise<CourseMaterial[]> {
+    try {
+      const { data } = await api.get<CourseMaterial[]>('/course-materials/')
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
+// Certificate directory — search-only. There is no list endpoint by design.
+export const certificatesApi = {
+  async lookup(query: string): Promise<CertificateLookupResult> {
+    try {
+      const { data } = await api.get<CertificateLookupResult>('/certificates/lookup/', {
+        params: { q: query },
+      })
+      return data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+}
+
+// Editable public headline figures (farmers trained, ...)
+export const siteFiguresApi = {
+  async get(): Promise<SiteFigures> {
+    try {
+      const { data } = await api.get<SiteFigures>('/site-figures/')
+      return data
+    } catch {
+      // A missing figure must never break a page render.
+      return { farmers_trained: 0 }
+    }
+  },
+}
+
 // Export default API object
 export default {
   livestock: livestockApi,
@@ -358,4 +400,7 @@ export default {
   search: searchApi,
   herdHealth: herdHealthApi,
   inquiry: inquiryApi,
+  courseMaterials: courseMaterialsApi,
+  certificates: certificatesApi,
+  siteFigures: siteFiguresApi,
 }

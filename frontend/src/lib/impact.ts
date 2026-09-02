@@ -1,9 +1,15 @@
 /**
  * Outcomes data for the Impact page and homepage strip.
  *
- * Only `farmersTrained: 93` and the cohort label are confirmed real. Every field
- * tagged `TODO_OWNER` is a placeholder awaiting the owner's real figures — keep
- * the honesty rule: no projected or inflated numbers ship to production.
+ * The cohort label is confirmed real. Every field tagged `TODO_OWNER` is a
+ * placeholder awaiting the owner's real figures — keep the honesty rule: no
+ * projected or inflated numbers ship to production.
+ *
+ * NOTE: the live "farmers trained" headline is no longer sourced from here. It
+ * is admin-editable via the `farmers_trained` site figure — see
+ * `useFarmersTrained` in `lib/site-figures.ts` and the `<FarmersTrained />`
+ * component. The 93 below is the historical Cohort 01 record, and the fallback
+ * used when the API is unreachable.
  */
 
 export interface Cohort {
@@ -29,8 +35,19 @@ export const COHORTS: Cohort[] = [
   },
 ]
 
-export const HEADLINE_STATS = [
-  { value: "93", label: "Farmers trained", note: "First cohort, delivered" },
+export interface HeadlineStat {
+  value: string
+  label: string
+  note: string
+  /**
+   * Set when the figure is admin-editable. `ImpactStrip` swaps these for a live,
+   * animated `<FarmersTrained />` — `value` is only the static fallback.
+   */
+  key?: "farmers_trained"
+}
+
+export const HEADLINE_STATS: HeadlineStat[] = [
+  { value: "93", key: "farmers_trained", label: "Farmers trained", note: "First cohort, delivered" },
   { value: "01", label: "Cohorts completed", note: "and counting" },
   { value: "4", label: "Core disciplines", note: "breeding to management" },
   { value: "0", label: "Naira to enroll", note: "open by design" },

@@ -9,15 +9,19 @@ from rest_framework import serializers
 from ..models import (
     AuditLog,
     Category,
+    Certificate,
     ContactInquiry,
+    CourseMaterial,
     Egg,
     EggCategory,
     EggMediaAsset,
     Livestock,
     MediaAsset,
+    SiteFigure,
     Species,
     Tag,
     VaccinationEvent,
+    normalize_phone,
 )
 
 
@@ -648,9 +652,7 @@ class AdminVaccinationEventSerializer(serializers.ModelSerializer):
     )
     species_slug = serializers.CharField(source="species.slug", read_only=True)
     route_display = serializers.CharField(source="get_route_display", read_only=True)
-    category_display = serializers.CharField(
-        source="get_category_display", read_only=True
-    )
+    category_display = serializers.CharField(source="get_category_display", read_only=True)
 
     class Meta:
         model = VaccinationEvent
@@ -705,3 +707,116 @@ class AdminSpeciesSerializer(serializers.ModelSerializer):
         if not attrs.get("slug") and attrs.get("name"):
             attrs["slug"] = slugify(attrs["name"])
         return attrs
+
+
+class AdminCourseMaterialSerializer(serializers.ModelSerializer):
+    """Full CRUD serializer for a downloadable course material."""
+
+    slug = serializers.SlugField(required=False, allow_blank=True)
+    topic_display = serializers.CharField(source="get_topic_display", read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CourseMaterial
+        fields = [
+            "id",
+            "title",
+            "slug",
+            "summary",
+            "topic",
+            "topic_display",
+            "file",
+            "file_url",
+            "file_size_bytes",
+            "page_count",
+            "sort_order",
+            "is_published",
+            "download_count",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "download_count", "created_at", "updated_at"]
+        extra_kwargs = {"file": {"write_only": True, "required": False}}
+
+    def get_file_url(self, obj) -> str | None:
+        return obj.file.url if obj.file else None
+
+    def validate(self, attrs):
+        name = attrs.get("title") or getattr(self.instance, "title", "")
+        if not attrs.get("slug"):
+            attrs["slug"] = unique_slug(CourseMaterial, name, instance=self.instance)
+        return attrs
+
+
+class AdminCertificateSerializer(serializers.ModelSerializer):
+    """Full CRUD serializer for a training certificate.
+
+    Unlike the public serializer this exposes the raw ``phone`` — staff need it
+    to tell two farmers with the same name apart. That is exactly why this
+    endpoint sits behind authentication.
+    """
+
+    phone_masked = serializers.CharField(read_only=True)
+    file_url = serializers.SerializerMethodField()
+    duplicate_phone = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Certificate
+        fields = [
+            "id",
+            "holder_name",
+            "phone",
+            "phone_masked",
+            "duplicate_phone",
+            "certificate_number",
+            "cohort",
+            "programme",
+            "issued_on",
+            "file",
+            "file_url",
+            "is_published",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+        extra_kwargs = {"file": {"write_only": True, "required": False}}
+
+    def get_file_url(self, obj) -> str | None:
+        return obj.file.url if obj.file else None
+
+    def get_duplicate_phone(self, obj) -> bool:
+        """Flag, don't block. Re-training a farmer is legitimate; a silent
+        duplicate that confuses public lookup is not."""
+        if not obj.phone_normalized:
+            return False
+        return (
+            Certificate.objects.filter(phone_normalized=obj.phone_normalized)
+            .exclude(pk=obj.pk)
+            .exists()
+        )
+
+    def validate_phone(self, value):
+        if not normalize_phone(value):
+            raise serializers.ValidationError("Enter a phone number with digits in it.")
+        return value
+
+
+class AdminSiteFigureSerializer(serializers.ModelSerializer):
+    """Editable public headline figure."""
+
+    updated_by_name = serializers.CharField(
+        source="updated_by.get_full_name", read_only=True, default=""
+    )
+
+    class Meta:
+        model = SiteFigure
+        fields = [
+            "id",
+            "key",
+            "label",
+            "integer_value",
+            "text_value",
+            "updated_by_name",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "updated_at"]

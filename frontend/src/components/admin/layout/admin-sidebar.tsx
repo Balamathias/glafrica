@@ -19,9 +19,13 @@ import {
   Globe,
   Egg,
   Stethoscope,
+  Award,
+  FileText,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAdminUIStore, useAuthStore } from "@/lib/admin-store"
+import { hasPermission } from "@/lib/admin-permissions"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -37,6 +41,9 @@ interface NavItem {
   href: string
   badge?: number | "dynamic"
   requiredRole?: "superadmin"
+  /** Hidden unless the signed-in role carries this permission. Mirrors the
+   * server-side `CanManage*` classes, which do the actual enforcing. */
+  requiredPermission?: string
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -59,10 +66,31 @@ const NAV_ITEMS: NavItem[] = [
   { id: "categories", label: "Categories", icon: Folder, href: "/admin/categories" },
   { id: "tags", label: "Tags", icon: Tags, href: "/admin/tags" },
   { id: "herd-health", label: "Herd Health", icon: Stethoscope, href: "/admin/herd-health" },
+  {
+    id: "certificates",
+    label: "Certificates",
+    icon: Award,
+    href: "/admin/certificates",
+    requiredPermission: "certificate.view",
+  },
+  {
+    id: "course-materials",
+    label: "Course Materials",
+    icon: FileText,
+    href: "/admin/course-materials",
+    requiredPermission: "course.view",
+  },
   { id: "inquiries", label: "Inquiries", icon: MessageSquare, href: "/admin/inquiries", badge: "dynamic" },
   { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
   { id: "visitor-analytics", label: "Visitor Analytics", icon: Globe, href: "/admin/visitor-analytics" },
   { id: "users", label: "Users", icon: Users, href: "/admin/users", requiredRole: "superadmin" },
+  {
+    id: "settings",
+    label: "Site Figures",
+    icon: Settings,
+    href: "/admin/settings",
+    requiredPermission: "sitefigure.change",
+  },
 ]
 
 export function AdminSidebar() {
@@ -80,11 +108,13 @@ export function AdminSidebar() {
     window.location.href = "/admin/login"
   }
 
-  // Filter items based on user role
+  // Filter items based on user role and permissions
   const visibleItems = NAV_ITEMS.filter((item) => {
-    if (!item.requiredRole) return true
     if (item.requiredRole === "superadmin") {
       return user?.is_superuser || user?.role === "superadmin"
+    }
+    if (item.requiredPermission) {
+      return hasPermission(user, item.requiredPermission)
     }
     return true
   })

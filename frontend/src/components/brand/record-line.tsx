@@ -1,8 +1,11 @@
+import type { ReactNode } from "react"
+
 import { cn } from "@/lib/utils"
 
 interface RecordLineProps {
-  /** Ordered mono segments joined by a ledger divider (·). */
-  segments: string[]
+  /** Ordered mono segments joined by a ledger divider (·). Nodes are allowed so
+   * a segment can carry an animated figure. */
+  segments: ReactNode[]
   /** Mark the entry as verified with an ochre stamp dot on the trailing segment. */
   verified?: boolean
   className?: string
