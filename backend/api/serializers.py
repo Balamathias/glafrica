@@ -390,10 +390,13 @@ class EggCreateUpdateSerializer(serializers.ModelSerializer):
 
 
 class CourseMaterialSerializer(serializers.ModelSerializer):
-    """Published training PDF as shown on /learn."""
+    """Published training material as shown on /learn."""
 
     topic_display = serializers.CharField(source="get_topic_display", read_only=True)
     download_url = serializers.SerializerMethodField()
+    # So the card can say "PPTX · 18 slides" rather than assuming everything is a PDF.
+    format_label = serializers.CharField(read_only=True)
+    page_unit = serializers.CharField(read_only=True)
 
     class Meta:
         model = CourseMaterial
@@ -406,6 +409,8 @@ class CourseMaterialSerializer(serializers.ModelSerializer):
             "topic_display",
             "file_size_bytes",
             "page_count",
+            "format_label",
+            "page_unit",
             "download_url",
         ]
 

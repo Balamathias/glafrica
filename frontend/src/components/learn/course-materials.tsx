@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { Baby, Wheat, ShieldAlert, ClipboardCheck, Download, FileText } from "lucide-react"
+import {
+  Baby,
+  Wheat,
+  ShieldAlert,
+  ClipboardCheck,
+  Download,
+  FileText,
+  Presentation,
+} from "lucide-react"
 import { courseMaterialsApi } from "@/lib/api"
 import type { CourseMaterial, CourseTopic } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -27,10 +35,18 @@ function formatFileSize(bytes: number | null): string | null {
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`
 }
 
-/** "12 pages · 2.4 MB", skipping whichever half we don't know. */
+/**
+ * "PPTX · 18 slides · 2.4 MB", skipping whatever we don't know.
+ *
+ * The format leads: a farmer on a phone needs to know before tapping whether
+ * this is a PDF they can read anywhere or a deck that wants an Office app.
+ */
 function formatMeta(material: CourseMaterial): string {
   return [
-    material.page_count ? `${material.page_count} pages` : null,
+    material.format_label || null,
+    material.page_count
+      ? `${material.page_count} ${material.page_unit || "pages"}`
+      : null,
     formatFileSize(material.file_size_bytes),
   ]
     .filter(Boolean)
@@ -39,6 +55,7 @@ function formatMeta(material: CourseMaterial): string {
 
 function CourseCard({ material, index }: { material: CourseMaterial; index: number }) {
   const meta = formatMeta(material)
+  const FileIcon = material.page_unit === "slides" ? Presentation : FileText
 
   return (
     <motion.a
@@ -60,7 +77,7 @@ function CourseCard({ material, index }: { material: CourseMaterial; index: numb
 
       <div className="relative flex flex-1 flex-col">
         <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/50 transition-colors duration-300 group-hover:bg-background/80">
-          <FileText className="h-5 w-5 text-primary" />
+          <FileIcon className="h-5 w-5 text-primary" />
         </div>
 
         <h3 className="mt-5 text-lg font-semibold leading-snug text-foreground">
@@ -75,7 +92,7 @@ function CourseCard({ material, index }: { material: CourseMaterial; index: numb
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <span className="ledger text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
-            {meta || "PDF"}
+            {meta || "Download"}
           </span>
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
             <Download className="h-4 w-4 transition-transform duration-300 group-hover:translate-y-0.5" />

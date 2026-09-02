@@ -295,6 +295,10 @@ export interface CourseMaterial {
   topic_display: string
   file_size_bytes: number | null
   page_count: number | null
+  /** "PDF", "PPTX", … — derived server-side from the stored file. */
+  format_label: string
+  /** "pages", or "slides" for a deck. */
+  page_unit: string
   download_url: string
 }
 

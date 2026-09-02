@@ -715,6 +715,7 @@ class AdminCourseMaterialSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(required=False, allow_blank=True)
     topic_display = serializers.CharField(source="get_topic_display", read_only=True)
     file_url = serializers.SerializerMethodField()
+    format_label = serializers.CharField(read_only=True)
 
     class Meta:
         model = CourseMaterial
@@ -727,6 +728,7 @@ class AdminCourseMaterialSerializer(serializers.ModelSerializer):
             "topic_display",
             "file",
             "file_url",
+            "format_label",
             "file_size_bytes",
             "page_count",
             "sort_order",
@@ -740,6 +742,26 @@ class AdminCourseMaterialSerializer(serializers.ModelSerializer):
 
     def get_file_url(self, obj) -> str | None:
         return obj.file.url if obj.file else None
+
+    def validate_file(self, uploaded):
+        """Reject anything outside the PDF/Word/PowerPoint family.
+
+        The browser already filters the file picker, but that is a convenience,
+        not a control — a direct API call bypasses it entirely. Extension is
+        the check that matters here because it is what Cloudinary stores and
+        what the download later advertises; a mislabelled upload would hand
+        farmers a file their phone cannot open.
+        """
+        name = getattr(uploaded, "name", "") or ""
+        _, _, ext = name.rpartition(".")
+        ext = ext.lower() if ext and ext != name else ""
+
+        if ext not in CourseMaterial.FORMAT_LABELS:
+            allowed = ", ".join(sorted(CourseMaterial.FORMAT_LABELS))
+            raise serializers.ValidationError(
+                f"Unsupported file type '{ext or name}'. Allowed: {allowed}."
+            )
+        return uploaded
 
     def validate(self, attrs):
         name = attrs.get("title") or getattr(self.instance, "title", "")

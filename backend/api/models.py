@@ -700,11 +700,16 @@ class VaccinationEvent(TimeStampedModel):
 
 
 class CourseMaterial(TimeStampedModel):
-    """A downloadable training PDF published on /learn.
+    """A downloadable training document published on /learn.
 
     Replaces the Herd Health Card as the primary teaching artefact on the
     public Learn page. Ordering is manual — the curriculum sequence is an
     editorial decision, not an alphabetical one.
+
+    Materials arrive from the trainers in whatever form they were authored:
+    slide decks as often as PDFs. Rather than forcing a conversion step on the
+    secretary, the model accepts the whole Office/PDF family and reports the
+    real format so the public card can label it honestly.
     """
 
     TOPIC_CHOICES = [
@@ -714,15 +719,30 @@ class CourseMaterial(TimeStampedModel):
         ("management", "Farm management & records"),
     ]
 
+    # Extension → the label shown on the public card. Also the allow-list: an
+    # upload whose extension is absent here is rejected by the admin serializer.
+    FORMAT_LABELS = {
+        "pdf": "PDF",
+        "doc": "DOC",
+        "docx": "DOCX",
+        "ppt": "PPT",
+        "pptx": "PPTX",
+    }
+
+    # Formats measured in slides rather than pages, so the meta line reads right.
+    SLIDE_FORMATS = {"ppt", "pptx"}
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True)
     summary = models.TextField(blank=True, help_text="One or two lines shown on the course card")
     topic = models.CharField(max_length=20, choices=TOPIC_CHOICES, default="management")
-    # PDFs are not images — Cloudinary must store them as raw resources.
+    # Documents are not images — Cloudinary must store them as raw resources.
     file = CloudinaryField("course material", resource_type="raw")
     file_size_bytes = models.PositiveIntegerField(null=True, blank=True)
-    page_count = models.PositiveIntegerField(null=True, blank=True)
+    page_count = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Pages, or slides for a deck"
+    )
     sort_order = models.PositiveIntegerField(default=0)
     is_published = models.BooleanField(default=True)
     download_count = models.PositiveIntegerField(default=0)
@@ -733,6 +753,26 @@ class CourseMaterial(TimeStampedModel):
 
     def __str__(self):
         return self.title
+
+    @property
+    def file_extension(self) -> str:
+        """Lower-case extension of the stored file, or "" if undeterminable.
+
+        Cloudinary keeps the extension on the public ID of a raw resource, so
+        the stored value is the source of truth — no separate column to drift.
+        """
+        name = str(self.file or "").split("?")[0]
+        _, _, ext = name.rpartition(".")
+        return ext.lower() if ext and ext != name else ""
+
+    @property
+    def format_label(self) -> str:
+        """ "PPTX", "PDF", … — what the download actually is."""
+        return self.FORMAT_LABELS.get(self.file_extension, self.file_extension.upper())
+
+    @property
+    def page_unit(self) -> str:
+        return "slides" if self.file_extension in self.SLIDE_FORMATS else "pages"
 
 
 def normalize_phone(raw: str) -> str:

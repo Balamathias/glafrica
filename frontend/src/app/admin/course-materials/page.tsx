@@ -37,6 +37,24 @@ import { Checkbox } from "@/components/ui/checkbox"
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024
 
+/**
+ * Mirrors `CourseMaterial.FORMAT_LABELS` on the backend. Trainers hand over
+ * decks as often as PDFs, so all three families are accepted as-is rather than
+ * making the secretary convert anything first.
+ *
+ * Matched on extension, not MIME type: browsers report Office types
+ * inconsistently (and Windows sometimes sends an empty string), whereas the
+ * extension is exactly what the server validates against.
+ */
+const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "ppt", "pptx"] as const
+
+const FILE_ACCEPT = ALLOWED_EXTENSIONS.map((ext) => `.${ext}`).join(",")
+
+function extensionOf(name: string): string {
+  const parts = name.split(".")
+  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : ""
+}
+
 /** Mirrors `CourseMaterial.TOPIC_CHOICES` on the backend. */
 const TOPIC_OPTIONS: { value: CourseTopic; label: string }[] = [
   { value: "breeding", label: "Breeding & improved genetics" },
@@ -119,8 +137,9 @@ export default function AdminCourseMaterialsPage() {
 
   const handleFile = (selected: File | null) => {
     if (!selected) return setFile(null)
-    if (selected.type !== "application/pdf") {
-      toast.error("Course materials must be PDF files.")
+    const ext = extensionOf(selected.name)
+    if (!ALLOWED_EXTENSIONS.includes(ext as (typeof ALLOWED_EXTENSIONS)[number])) {
+      toast.error("Course materials must be PDF, Word or PowerPoint files.")
       return
     }
     if (selected.size > MAX_FILE_BYTES) {
@@ -136,7 +155,7 @@ export default function AdminCourseMaterialsPage() {
       return
     }
     if (!editing && !file) {
-      toast.error("Attach the PDF.")
+      toast.error("Attach the file.")
       return
     }
 
@@ -201,7 +220,7 @@ export default function AdminCourseMaterialsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Course Materials"
-        description="The downloadable training PDFs on the public Learn page. Order here is the order farmers see."
+        description="The downloadable training materials on the public Learn page. Order here is the order farmers see."
         actions={
           <Button onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" />
@@ -218,8 +237,8 @@ export default function AdminCourseMaterialsPage() {
           </div>
         ) : materials.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            No course materials yet. Add the first PDF to replace the placeholder on
-            the Learn page.
+            No course materials yet. Add the first document to replace the placeholder
+            on the Learn page.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -229,6 +248,7 @@ export default function AdminCourseMaterialsPage() {
                   <th className="p-4 font-medium">Order</th>
                   <th className="p-4 font-medium">Title</th>
                   <th className="p-4 font-medium">Topic</th>
+                  <th className="p-4 font-medium">Format</th>
                   <th className="p-4 font-medium">Size</th>
                   <th className="p-4 font-medium">Downloads</th>
                   <th className="p-4 font-medium">Status</th>
@@ -271,6 +291,11 @@ export default function AdminCourseMaterialsPage() {
                     </td>
                     <td className="p-4 text-muted-foreground">
                       {material.topic_display}
+                    </td>
+                    <td className="p-4">
+                      <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                        {material.format_label || "—"}
+                      </span>
                     </td>
                     <td className="p-4 text-muted-foreground">
                       {formatSize(material.file_size_bytes)}
@@ -374,7 +399,7 @@ export default function AdminCourseMaterialsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium">Page count</label>
+                <label className="text-sm font-medium">Pages / slides</label>
                 <Input
                   type="number"
                   min={0}
@@ -387,7 +412,7 @@ export default function AdminCourseMaterialsPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium">PDF</label>
+              <label className="text-sm font-medium">File</label>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -415,17 +440,19 @@ export default function AdminCourseMaterialsPage() {
                     <Upload className="h-5 w-5" />
                     <span>
                       {editing
-                        ? "Drop a new PDF to replace the current one"
-                        : "Drop the PDF, or click to browse"}
+                        ? "Drop a new file to replace the current one"
+                        : "Drop the file, or click to browse"}
                     </span>
-                    <span className="text-xs">PDF only, up to 25 MB</span>
+                    <span className="text-xs">
+                      PDF, Word or PowerPoint — up to 25 MB
+                    </span>
                   </>
                 )}
               </button>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="application/pdf"
+                accept={FILE_ACCEPT}
                 hidden
                 onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
               />

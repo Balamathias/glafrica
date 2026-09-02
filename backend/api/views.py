@@ -616,7 +616,7 @@ class CertificateLookupRateThrottle(AnonRateThrottle):
 
 
 class CourseMaterialViewSet(viewsets.ReadOnlyModelViewSet):
-    """Published training PDFs shown on /learn."""
+    """Published training materials (PDF / Word / PowerPoint) shown on /learn."""
 
     queryset = CourseMaterial.objects.filter(is_published=True)
     serializer_class = CourseMaterialSerializer

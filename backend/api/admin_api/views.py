@@ -1347,7 +1347,7 @@ class AdminAIClassifyView(APIView):
 
 
 class AdminCourseMaterialViewSet(viewsets.ModelViewSet):
-    """Manage the downloadable training PDFs shown on /learn."""
+    """Manage the downloadable training materials shown on /learn."""
 
     queryset = CourseMaterial.objects.all()
     serializer_class = AdminCourseMaterialSerializer

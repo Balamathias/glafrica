@@ -2,11 +2,22 @@ import json
 from datetime import date
 
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITestCase
 
-from .models import Category, Certificate, Livestock, SiteFigure, normalize_phone
+from .admin_api.serializers import AdminCourseMaterialSerializer
+from .models import (
+    Category,
+    Certificate,
+    CourseMaterial,
+    Livestock,
+    SiteFigure,
+    normalize_phone,
+)
+from .serializers import CourseMaterialSerializer
 from .services.ai import AIService
 
 
@@ -190,9 +201,7 @@ class CertificateLookupTests(APITestCase):
         for query in ["08012344521", "+2348012344521", "8012344521"]:
             response = self.client.get(self.url, {"q": query})
             self.assertEqual(response.data["count"], 1, msg=query)
-            self.assertEqual(
-                response.data["results"][0]["certificate_number"], "GLA-2026-0001"
-            )
+            self.assertEqual(response.data["results"][0]["certificate_number"], "GLA-2026-0001")
 
     def test_partial_phone_does_not_match(self):
         """Phone lookup is exact. A prefix must not enumerate holders."""
@@ -243,11 +252,85 @@ class SiteFigureTests(APITestCase):
 
 class AdminCertificateAccessTests(APITestCase):
     def test_anonymous_writes_are_rejected(self):
-        response = self.client.post(
-            "/api/v1/admin/certificates/", {"holder_name": "Intruder"}
-        )
+        response = self.client.post("/api/v1/admin/certificates/", {"holder_name": "Intruder"})
         self.assertIn(response.status_code, (401, 403))
 
     def test_anonymous_listing_is_rejected(self):
         response = self.client.get("/api/v1/admin/certificates/")
         self.assertIn(response.status_code, (401, 403))
+
+
+class CourseMaterialFormatTests(TestCase):
+    """Course materials are not all PDFs.
+
+    Trainers author in PowerPoint and Word as often as they export to PDF, so
+    the model has to report the real format instead of letting the public card
+    promise a PDF and hand over a .pptx.
+    """
+
+    def _material(self, filename, **kwargs):
+        return CourseMaterial(
+            title="Feeding basics",
+            slug=f"feeding-basics-{filename}",
+            file=f"course-materials/{filename}",
+            **kwargs,
+        )
+
+    def test_format_label_reflects_the_stored_file(self):
+        cases = {
+            "ration.pdf": "PDF",
+            "ration.docx": "DOCX",
+            "ration.pptx": "PPTX",
+            "ration.doc": "DOC",
+            "ration.ppt": "PPT",
+        }
+        for filename, expected in cases.items():
+            with self.subTest(filename=filename):
+                self.assertEqual(self._material(filename).format_label, expected)
+
+    def test_extension_is_case_insensitive(self):
+        self.assertEqual(self._material("RATION.PPTX").format_label, "PPTX")
+
+    def test_a_file_without_an_extension_degrades_quietly(self):
+        material = self._material("ration")
+        self.assertEqual(material.file_extension, "")
+        self.assertEqual(material.format_label, "")
+        self.assertEqual(material.page_unit, "pages")
+
+    def test_decks_are_measured_in_slides_and_documents_in_pages(self):
+        self.assertEqual(self._material("deck.pptx").page_unit, "slides")
+        self.assertEqual(self._material("deck.ppt").page_unit, "slides")
+        self.assertEqual(self._material("notes.docx").page_unit, "pages")
+        self.assertEqual(self._material("notes.pdf").page_unit, "pages")
+
+    def test_public_serializer_exposes_the_format(self):
+        data = CourseMaterialSerializer(self._material("deck.pptx")).data
+        self.assertEqual(data["format_label"], "PPTX")
+        self.assertEqual(data["page_unit"], "slides")
+
+
+class CourseMaterialUploadValidationTests(TestCase):
+    """The file picker's `accept` attribute is a convenience, not a control —
+    a direct API call bypasses it, so the serializer has to hold the line."""
+
+    def _validate(self, filename):
+        upload = SimpleUploadedFile(filename, b"stub", content_type="application/octet-stream")
+        return AdminCourseMaterialSerializer().validate_file(upload)
+
+    def test_office_and_pdf_uploads_are_accepted(self):
+        for filename in ("guide.pdf", "guide.docx", "guide.pptx", "guide.doc", "guide.ppt"):
+            with self.subTest(filename=filename):
+                self.assertIsNotNone(self._validate(filename))
+
+    def test_uppercase_extensions_are_accepted(self):
+        self.assertIsNotNone(self._validate("GUIDE.PPTX"))
+
+    def test_unsupported_types_are_rejected(self):
+        for filename in ("payload.exe", "sheet.xlsx", "photo.png", "archive.zip"):
+            with self.subTest(filename=filename):
+                with self.assertRaises(ValidationError):
+                    self._validate(filename)
+
+    def test_a_file_with_no_extension_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            self._validate("guide")

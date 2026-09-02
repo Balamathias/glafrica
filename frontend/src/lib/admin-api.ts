@@ -1767,6 +1767,8 @@ export interface AdminCourseMaterial {
   topic: CourseTopic
   topic_display: string
   file_url: string | null
+  /** "PDF", "PPTX", … — derived server-side from the stored file. */
+  format_label: string
   file_size_bytes: number | null
   page_count: number | null
   sort_order: number
