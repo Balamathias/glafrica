@@ -13,9 +13,11 @@ import {
   ExternalLink,
   ArrowUp,
   ArrowDown,
+  Download,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { downloadFile, toFilename } from "@/lib/download"
 import {
   courseMaterialsApi,
   type AdminCourseMaterial,
@@ -97,6 +99,7 @@ export default function AdminCourseMaterialsPage() {
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<AdminCourseMaterial | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -216,6 +219,21 @@ export default function AdminCourseMaterialsPage() {
     }
   }
 
+  const handleFileDownload = async (material: AdminCourseMaterial) => {
+    if (!material.file_url || downloadingId) return
+    setDownloadingId(material.id)
+    try {
+      await downloadFile(
+        material.file_url,
+        `${toFilename(material.title)}.${(material.format_label || "pdf").toLowerCase()}`
+      )
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to download")
+    } finally {
+      setDownloadingId(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -318,15 +336,32 @@ export default function AdminCourseMaterialsPage() {
                     <td className="p-4">
                       <div className="flex justify-end gap-1">
                         {material.file_url && (
-                          <Button variant="ghost" size="sm" asChild>
-                            <a
-                              href={material.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                          <>
+                            <Button variant="ghost" size="sm" asChild>
+                              <a
+                                href={material.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Preview in the PDF viewer"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={downloadingId !== null}
+                              onClick={() => handleFileDownload(material)}
+                              title={`Download ${material.format_label || "file"}`}
                             >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </a>
-                          </Button>
+                              <Download
+                                className={cn(
+                                  "h-3.5 w-3.5",
+                                  downloadingId === material.id && "animate-bounce"
+                                )}
+                              />
+                            </Button>
+                          </>
                         )}
                         <Button variant="ghost" size="sm" onClick={() => openEdit(material)}>
                           <Pencil className="h-3.5 w-3.5" />

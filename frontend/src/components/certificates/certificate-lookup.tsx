@@ -2,10 +2,11 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Download, Loader2, ShieldCheck, SearchX } from "lucide-react"
+import { Search, Download, Loader2, ShieldCheck, SearchX, Eye } from "lucide-react"
 import Link from "next/link"
 import { certificatesApi } from "@/lib/api"
-import type { CertificateLookupResult } from "@/lib/types"
+import type { CertificateLookupResult, PublicCertificate } from "@/lib/types"
+import { downloadFile, toFilename } from "@/lib/download"
 import { RecordLine } from "@/components/brand"
 import { cn } from "@/lib/utils"
 
@@ -22,6 +23,105 @@ function formatIssueDate(iso: string): string {
     month: "short",
     year: "numeric",
   })
+}
+
+/** One matched certificate card — preview in the PDF viewer, or download via JS. */
+function CertificateRow({
+  certificate,
+  index,
+}: {
+  certificate: PublicCertificate
+  index: number
+}) {
+  const [downloading, setDownloading] = useState(false)
+
+  const previewUrl = `${API_ORIGIN}${certificate.download_url}`
+
+  const handleDownload = async () => {
+    if (downloading) return
+    setDownloading(true)
+    try {
+      await downloadFile(
+        previewUrl,
+        `${toFilename(certificate.holder_name)}-certificate.pdf`
+      )
+    } catch {
+      // Fall back to the preview tab if the download can't complete.
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.06, ease: "easeOut" }}
+      className={cn(
+        "group relative overflow-hidden rounded-3xl p-6 md:p-7",
+        "border border-border/50 bg-card/50 backdrop-blur-sm",
+        "transition-all duration-500 hover:border-primary/30 hover:shadow-premium"
+      )}
+    >
+      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h3 className="font-display text-xl font-medium text-foreground">
+            {certificate.holder_name}
+          </h3>
+          <p className="ledger mt-1.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            {certificate.phone_masked}
+          </p>
+          <div className="mt-4">
+            <RecordLine
+              className="!border-border/60 !bg-muted/40 !text-foreground/80"
+              segments={[
+                certificate.cohort || "Training",
+                certificate.programme || "Livestock",
+                `Issued ${formatIssueDate(certificate.issued_on)}`,
+              ]}
+            />
+          </div>
+          <p className="ledger mt-3 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
+            <ShieldCheck
+              className="mr-1.5 inline-block h-3 w-3 align-middle"
+              style={{ color: "var(--ochre)" }}
+            />
+            {certificate.certificate_number}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Preview in the PDF viewer"
+            className={cn(
+              "inline-flex items-center justify-center gap-2 rounded-full border border-border/60 px-5 py-3 text-sm font-semibold",
+              "text-foreground transition-colors hover:border-primary/40"
+            )}
+          >
+            <Eye className="h-4 w-4" />
+            Preview
+          </a>
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading}
+            className={cn(
+              "inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold",
+              "bg-primary text-primary-foreground transition-transform",
+              "hover:scale-[1.03] active:scale-95",
+              "disabled:pointer-events-none disabled:opacity-60"
+            )}
+          >
+            <Download className={cn("h-4 w-4", downloading && "animate-bounce")} />
+            {downloading ? "Downloading…" : "Download"}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  )
 }
 
 /**
@@ -150,59 +250,7 @@ export function CertificateLookup() {
             className="mt-10 space-y-4"
           >
             {result.results.map((certificate, index) => (
-              <motion.div
-                key={certificate.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.06, ease: "easeOut" }}
-                className={cn(
-                  "group relative overflow-hidden rounded-3xl p-6 md:p-7",
-                  "border border-border/50 bg-card/50 backdrop-blur-sm",
-                  "transition-all duration-500 hover:border-primary/30 hover:shadow-premium"
-                )}
-              >
-                <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                  <div className="min-w-0">
-                    <h3 className="font-display text-xl font-medium text-foreground">
-                      {certificate.holder_name}
-                    </h3>
-                    <p className="ledger mt-1.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {certificate.phone_masked}
-                    </p>
-                    <div className="mt-4">
-                      <RecordLine
-                        className="!border-border/60 !bg-muted/40 !text-foreground/80"
-                        segments={[
-                          certificate.cohort || "Training",
-                          certificate.programme || "Livestock",
-                          `Issued ${formatIssueDate(certificate.issued_on)}`,
-                        ]}
-                      />
-                    </div>
-                    <p className="ledger mt-3 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
-                      <ShieldCheck
-                        className="mr-1.5 inline-block h-3 w-3 align-middle"
-                        style={{ color: "var(--ochre)" }}
-                      />
-                      {certificate.certificate_number}
-                    </p>
-                  </div>
-
-                  <a
-                    href={`${API_ORIGIN}${certificate.download_url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(
-                      "inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold",
-                      "bg-primary text-primary-foreground transition-transform",
-                      "hover:scale-[1.03] active:scale-95"
-                    )}
-                  >
-                    <Download className="h-4 w-4" />
-                    Download
-                  </a>
-                </div>
-              </motion.div>
+              <CertificateRow key={certificate.id} certificate={certificate} index={index} />
             ))}
 
             {result.truncated && (
