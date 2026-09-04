@@ -6,7 +6,7 @@ import { Search, Download, Loader2, ShieldCheck, SearchX, Eye } from "lucide-rea
 import Link from "next/link"
 import { certificatesApi } from "@/lib/api"
 import type { CertificateLookupResult, PublicCertificate } from "@/lib/types"
-import { downloadFile, toFilename } from "@/lib/download"
+import { downloadFile } from "@/lib/download"
 import { RecordLine } from "@/components/brand"
 import { cn } from "@/lib/utils"
 
@@ -36,20 +36,14 @@ function CertificateRow({
   const [downloading, setDownloading] = useState(false)
 
   const previewUrl = `${API_ORIGIN}${certificate.download_url}`
+  const downloadUrl = `${API_ORIGIN}${certificate.download_file_url}`
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (downloading) return
     setDownloading(true)
-    try {
-      await downloadFile(
-        previewUrl,
-        `${toFilename(certificate.holder_name)}-certificate.pdf`
-      )
-    } catch {
-      // Fall back to the preview tab if the download can't complete.
-    } finally {
-      setDownloading(false)
-    }
+    // Streamed straight from the same-origin endpoint as an attachment.
+    downloadFile(downloadUrl)
+    setTimeout(() => setDownloading(false), 0)
   }
 
   return (

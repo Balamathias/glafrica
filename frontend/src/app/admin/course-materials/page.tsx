@@ -17,7 +17,7 @@ import {
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { downloadFile, toFilename } from "@/lib/download"
+import { downloadFile } from "@/lib/download"
 import {
   courseMaterialsApi,
   type AdminCourseMaterial,
@@ -38,6 +38,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024
+
+const API_ORIGIN = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+).replace(/\/api\/v1\/?$/, "")
 
 /**
  * Mirrors `CourseMaterial.FORMAT_LABELS` on the backend. Trainers hand over
@@ -219,14 +223,12 @@ export default function AdminCourseMaterialsPage() {
     }
   }
 
-  const handleFileDownload = async (material: AdminCourseMaterial) => {
-    if (!material.file_url || downloadingId) return
+  const handleFileDownload = (material: AdminCourseMaterial) => {
+    if (downloadingId) return
     setDownloadingId(material.id)
     try {
-      await downloadFile(
-        material.file_url,
-        `${toFilename(material.title)}.${(material.format_label || "pdf").toLowerCase()}`
-      )
+      // Same-origin endpoint streams the file as an attachment — no cross-origin fetch.
+      downloadFile(`${API_ORIGIN}/api/v1/course-materials/${material.slug}/download-file/`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to download")
     } finally {

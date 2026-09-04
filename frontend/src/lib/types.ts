@@ -300,6 +300,8 @@ export interface CourseMaterial {
   /** "pages", or "slides" for a deck. */
   page_unit: string
   download_url: string
+  /** Same-origin endpoint that streams the file as an attachment. */
+  download_file_url: string
 }
 
 /**
@@ -315,6 +317,8 @@ export interface PublicCertificate {
   programme: string
   issued_on: string
   download_url: string
+  /** Same-origin endpoint that streams the PDF as an attachment. */
+  download_file_url: string
 }
 
 export interface CertificateLookupResult {

@@ -18,7 +18,7 @@ import {
 
 import { cn } from "@/lib/utils"
 import { certificatesApi, type AdminCertificate } from "@/lib/admin-api"
-import { downloadFile, toFilename } from "@/lib/download"
+import { downloadFile } from "@/lib/download"
 import { PageHeader } from "@/components/admin/ui/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,6 +34,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
+
+const API_ORIGIN = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+).replace(/\/api\/v1\/?$/, "")
 
 interface FormState {
   holder_name: string
@@ -184,14 +188,12 @@ export default function AdminCertificatesPage() {
     }
   }
 
-  const handleFileDownload = async (certificate: AdminCertificate) => {
-    if (!certificate.file_url || downloadingId) return
+  const handleFileDownload = (certificate: AdminCertificate) => {
+    if (downloadingId) return
     setDownloadingId(certificate.id)
     try {
-      await downloadFile(
-        certificate.file_url,
-        `${toFilename(certificate.holder_name)}-certificate-${certificate.certificate_number}.pdf`
-      )
+      // Same-origin endpoint streams the certificate PDF as an attachment.
+      downloadFile(`${API_ORIGIN}/api/v1/certificates/${certificate.id}/download-file/`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to download")
     } finally {

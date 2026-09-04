@@ -394,6 +394,8 @@ class CourseMaterialSerializer(serializers.ModelSerializer):
 
     topic_display = serializers.CharField(source="get_topic_display", read_only=True)
     download_url = serializers.SerializerMethodField()
+    # Same-origin endpoint that serves the file as an attachment (reliable download).
+    download_file_url = serializers.SerializerMethodField()
     # So the card can say "PPTX · 18 slides" rather than assuming everything is a PDF.
     format_label = serializers.CharField(read_only=True)
     page_unit = serializers.CharField(read_only=True)
@@ -412,10 +414,14 @@ class CourseMaterialSerializer(serializers.ModelSerializer):
             "format_label",
             "page_unit",
             "download_url",
+            "download_file_url",
         ]
 
     def get_download_url(self, obj) -> str:
         return f"/api/v1/course-materials/{obj.slug}/download/"
+
+    def get_download_file_url(self, obj) -> str:
+        return f"/api/v1/course-materials/{obj.slug}/download-file/"
 
 
 class CertificatePublicSerializer(serializers.ModelSerializer):
@@ -427,6 +433,8 @@ class CertificatePublicSerializer(serializers.ModelSerializer):
 
     phone_masked = serializers.CharField(read_only=True)
     download_url = serializers.SerializerMethodField()
+    # Same-origin endpoint that serves the PDF as an attachment (reliable download).
+    download_file_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Certificate
@@ -439,7 +447,11 @@ class CertificatePublicSerializer(serializers.ModelSerializer):
             "programme",
             "issued_on",
             "download_url",
+            "download_file_url",
         ]
 
     def get_download_url(self, obj) -> str:
         return f"/api/v1/certificates/{obj.id}/download/"
+
+    def get_download_file_url(self, obj) -> str:
+        return f"/api/v1/certificates/{obj.id}/download-file/"

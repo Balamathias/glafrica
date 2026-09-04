@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 import { courseMaterialsApi } from "@/lib/api"
 import type { CourseMaterial, CourseTopic } from "@/lib/types"
-import { downloadFile, toFilename } from "@/lib/download"
+import { downloadFile } from "@/lib/download"
 import { cn } from "@/lib/utils"
 
 const API_ORIGIN = (
@@ -60,21 +60,19 @@ function CourseCard({ material, index }: { material: CourseMaterial; index: numb
   const FileIcon = material.page_unit === "slides" ? Presentation : FileText
   const [downloading, setDownloading] = useState(false)
 
-  // Entire card + title open the file in the browser's PDF viewer (preview);
-  // the Download button pulls the same bytes down via JS.
+  // Card title opens the hosted file in the browser's PDF viewer (preview); the
+  // Download button hits the same-origin endpoint which streams the file as an
+  // attachment — reliable and free of the cross-origin fetch issues.
   const previewUrl = `${API_ORIGIN}${material.download_url}`
+  const downloadUrl = `${API_ORIGIN}${material.download_file_url}`
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (downloading) return
     setDownloading(true)
-    try {
-      await downloadFile(previewUrl, `${toFilename(material.title)}.${material.format_label.toLowerCase()}`)
-    } catch {
-      // Preview is the fallback for formats the browser can open — leave the
-      // card functional rather than surfacing a transient download error.
-    } finally {
-      setDownloading(false)
-    }
+    // The download is streamed directly by the browser, so it completes
+    // immediately on click — reset the flag on the next tick.
+    downloadFile(downloadUrl)
+    setTimeout(() => setDownloading(false), 0)
   }
 
   return (

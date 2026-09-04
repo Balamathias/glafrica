@@ -1,39 +1,23 @@
 "use client"
 
 /**
- * Trigger a download entirely from JavaScript: fetch the bytes as a blob and
- * click a hidden anchor with a `download` attribute.
+ * Trigger a download from JavaScript by navigating to a same-origin endpoint
+ * that streams the file with `Content-Disposition: attachment`.
  *
- * Doing it this way (rather than a plain `<a href>` or a server
- * `Content-Disposition: attachment` header) means the same resource can be
- * previewed in the browser's PDF viewer *and* downloaded on demand, wherever
- * the file happens to live.
+ * Files themselves live on Cloudinary (cross-origin), where a browser will
+ * preview a document but silently ignore a forced download. The backend proxies
+ * the bytes through a same-origin ``download-file`` endpoint so the attachment
+ * header is honoured without any cross-origin fetch.
+ *
+ * We don't fetch here — the response is streamed by the browser directly, which
+ * is exactly why it avoids the CORS failures a blob-based fetch would hit.
  */
-export async function downloadFile(url: string, filename: string): Promise<void> {
-  const response = await fetch(url, { credentials: "include" })
-  if (!response.ok) {
-    throw new Error(`Download failed (${response.status})`)
-  }
-
-  const blob = await response.blob()
-  const objectUrl = URL.createObjectURL(blob)
-
+export function downloadFile(url: string): void {
+  // An invisible anchor keeps this navigable from within handlers without a
+  // "beforeunload" trick; the server decides the filename via Content-Disposition.
   const anchor = document.createElement("a")
-  anchor.href = objectUrl
-  anchor.download = filename
+  anchor.href = url
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-
-  // Free the object URL once the browser has had a chance to start the download.
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
-}
-
-/** Make a downloable filename from a title/name, falling back to a generic name. */
-export function toFilename(name: string, fallback = "document"): string {
-  const cleaned = (name || "")
-    .normalize("NFKD")
-    .replace(/[^\w]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-  return cleaned || fallback
 }
