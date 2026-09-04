@@ -13,12 +13,10 @@ import {
   AlertTriangle,
   EyeOff,
   ExternalLink,
-  Download,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { certificatesApi, type AdminCertificate } from "@/lib/admin-api"
-import { downloadFile } from "@/lib/download"
 import { PageHeader } from "@/components/admin/ui/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,10 +32,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
-
-const API_ORIGIN = (
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
-).replace(/\/api\/v1\/?$/, "")
 
 interface FormState {
   holder_name: string
@@ -78,7 +72,6 @@ export default function AdminCertificatesPage() {
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<AdminCertificate | null>(null)
-  const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async (query: string) => {
@@ -188,19 +181,6 @@ export default function AdminCertificatesPage() {
     }
   }
 
-  const handleFileDownload = (certificate: AdminCertificate) => {
-    if (downloadingId) return
-    setDownloadingId(certificate.id)
-    try {
-      // Same-origin endpoint streams the certificate PDF as an attachment.
-      downloadFile(`${API_ORIGIN}/api/v1/certificates/${certificate.id}/download-file/`)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to download")
-    } finally {
-      setDownloadingId(null)
-    }
-  }
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -304,32 +284,15 @@ export default function AdminCertificatesPage() {
                     <td className="p-4">
                       <div className="flex justify-end gap-1">
                         {certificate.file_url && (
-                          <>
-                            <Button variant="ghost" size="sm" asChild>
-                              <a
-                                href={certificate.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="Preview in the PDF viewer"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={downloadingId !== null}
-                              onClick={() => handleFileDownload(certificate)}
-                              title="Download the PDF"
+                          <Button variant="ghost" size="sm" asChild>
+                            <a
+                              href={certificate.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
                             >
-                              <Download
-                                className={cn(
-                                  "h-3.5 w-3.5",
-                                  downloadingId === certificate.id && "animate-bounce"
-                                )}
-                              />
-                            </Button>
-                          </>
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
                         )}
                         <Button
                           variant="ghost"

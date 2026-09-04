@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.db.models import F
-from django.http import FileResponse, Http404, HttpResponseRedirect, StreamingHttpResponse
+from django.http import Http404, HttpResponseRedirect, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django_filters.rest_framework import DjangoFilterBackend
@@ -615,42 +615,6 @@ class CertificateLookupRateThrottle(AnonRateThrottle):
     rate = "20/min"
 
 
-def _media_filename(name: str, fallback_ext: str) -> str:
-    """A presentable, safe download filename from the stored public_id."""
-    base = (name or "").split("?")[0]
-    _, _, ext = base.rpartition(".")
-    if not ext or ext == base:
-        base = f"{base}.{fallback_ext}"
-    return base.split("/")[-1]
-
-
-def _stream_download(file, fallback_ext: str, content_type: str):
-    """Serve a stored media file same-origin as an attachment.
-
-    Files live on Cloudinary (cross-origin), and a browser will happily *preview*
-    a cross-origin document but silently ignores any forced ``download`` on it.
-    Proxying the bytes through Django makes the download same-origin, so the
-    ``Content-Disposition: attachment`` header is honoured and the JS download
-    never trips CORS.
-    """
-    file.open("rb")
-    response = FileResponse(file, content_type=content_type)
-    response["Content-Disposition"] = (
-        "attachment; filename=%s" % _media_filename(file.name, fallback_ext)
-    )
-    return response
-
-
-# Rough kind → media type map for the stored documents, keyed by extension.
-_MATERIAL_MIME = {
-    "pdf": "application/pdf",
-    "doc": "application/msword",
-    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "ppt": "application/vnd.ms-powerpoint",
-    "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-}
-
-
 class CourseMaterialViewSet(viewsets.ReadOnlyModelViewSet):
     """Published training materials (PDF / Word / PowerPoint) shown on /learn."""
 
@@ -662,24 +626,9 @@ class CourseMaterialViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="download")
     def download(self, request, slug=None):
-        """Preview a published document: 302 to the hosted file (inline)."""
         material = self.get_object()
         CourseMaterial.objects.filter(pk=material.pk).update(download_count=F("download_count") + 1)
         return HttpResponseRedirect(material.file.url)
-
-    @action(detail=True, methods=["get"], url_path="download-file")
-    def download_file(self, request, slug=None):
-        """Force a browser download by streaming the file same-origin.
-
-        The public download button points at this endpoint, not Cloudinary, so
-        the attachment header is honoured without any cross-origin fetch.
-        """
-        material = self.get_object()
-        return _stream_download(
-            material.file,
-            fallback_ext=material.file_extension or "pdf",
-            content_type=_MATERIAL_MIME.get(material.file_extension, "application/octet-stream"),
-        )
 
 
 class CertificateLookupView(APIView):
@@ -742,25 +691,17 @@ class CertificateLookupView(APIView):
         )
 
 
-def _published_certificate(pk):
-    try:
-        return Certificate.objects.get(pk=pk, is_published=True)
-    except (Certificate.DoesNotExist, ValidationError, ValueError):
-        raise Http404 from None
-
-
 class CertificateDownloadView(APIView):
-    """Serve a published certificate — preview (inline) and download (attachment)."""
+    """Redirect to a published certificate's PDF."""
 
     permission_classes = [AllowAny]
     throttle_classes = [CertificateLookupRateThrottle]
 
-    def get(self, request, pk, *, as_attachment=False):
-        certificate = _published_certificate(pk)
-        if as_attachment:
-            return _stream_download(
-                certificate.file, fallback_ext="pdf", content_type="application/pdf"
-            )
+    def get(self, request, pk):
+        try:
+            certificate = Certificate.objects.get(pk=pk, is_published=True)
+        except (Certificate.DoesNotExist, ValidationError, ValueError):
+            raise Http404 from None
         return HttpResponseRedirect(certificate.file.url)
 
 

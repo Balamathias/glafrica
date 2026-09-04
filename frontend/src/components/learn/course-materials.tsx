@@ -10,11 +10,9 @@ import {
   Download,
   FileText,
   Presentation,
-  Eye,
 } from "lucide-react"
 import { courseMaterialsApi } from "@/lib/api"
 import type { CourseMaterial, CourseTopic } from "@/lib/types"
-import { downloadFile } from "@/lib/download"
 import { cn } from "@/lib/utils"
 
 const API_ORIGIN = (
@@ -58,25 +56,12 @@ function formatMeta(material: CourseMaterial): string {
 function CourseCard({ material, index }: { material: CourseMaterial; index: number }) {
   const meta = formatMeta(material)
   const FileIcon = material.page_unit === "slides" ? Presentation : FileText
-  const [downloading, setDownloading] = useState(false)
-
-  // Card title opens the hosted file in the browser's PDF viewer (preview); the
-  // Download button hits the same-origin endpoint which streams the file as an
-  // attachment — reliable and free of the cross-origin fetch issues.
-  const previewUrl = `${API_ORIGIN}${material.download_url}`
-  const downloadUrl = `${API_ORIGIN}${material.download_file_url}`
-
-  const handleDownload = () => {
-    if (downloading) return
-    setDownloading(true)
-    // The download is streamed directly by the browser, so it completes
-    // immediately on click — reset the flag on the next tick.
-    downloadFile(downloadUrl)
-    setTimeout(() => setDownloading(false), 0)
-  }
 
   return (
-    <motion.div
+    <motion.a
+      href={`${API_ORIGIN}${material.download_url}`}
+      target="_blank"
+      rel="noopener noreferrer"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
@@ -95,16 +80,9 @@ function CourseCard({ material, index }: { material: CourseMaterial; index: numb
           <FileIcon className="h-5 w-5 text-primary" />
         </div>
 
-        <a
-          href={previewUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-5 inline-flex items-center gap-2"
-        >
-          <h3 className="text-lg font-semibold leading-snug text-foreground underline-offset-4 transition-colors group-hover:text-primary">
-            {material.title}
-          </h3>
-        </a>
+        <h3 className="mt-5 text-lg font-semibold leading-snug text-foreground">
+          {material.title}
+        </h3>
 
         {material.summary && (
           <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
@@ -114,32 +92,15 @@ function CourseCard({ material, index }: { material: CourseMaterial; index: numb
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <span className="ledger text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
-            {meta || "Preview"}
+            {meta || "Download"}
           </span>
-          <div className="flex items-center gap-2">
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Preview in the PDF viewer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              <Eye className="h-4 w-4" />
-              Preview
-            </a>
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={downloading}
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 disabled:pointer-events-none disabled:opacity-60"
-            >
-              <Download className={cn("h-4 w-4", downloading && "animate-bounce")} />
-              {downloading ? "Downloading…" : "Download"}
-            </button>
-          </div>
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+            <Download className="h-4 w-4 transition-transform duration-300 group-hover:translate-y-0.5" />
+            Download
+          </span>
         </div>
       </div>
-    </motion.div>
+    </motion.a>
   )
 }
 

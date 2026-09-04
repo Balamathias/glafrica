@@ -48,12 +48,6 @@ urlpatterns = [
         CertificateDownloadView.as_view(),
         name="certificate-download",
     ),
-    path(
-        "certificates/<uuid:pk>/download-file/",
-        CertificateDownloadView.as_view(),
-        {"as_attachment": True},
-        name="certificate-download-file",
-    ),
     # Editable public headline figures (farmers trained, ...)
     path("site-figures/", SiteFigureListView.as_view(), name="site-figures"),
     # Unified AI-powered search for both livestock and eggs

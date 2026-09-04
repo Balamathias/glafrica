@@ -13,11 +13,9 @@ import {
   ExternalLink,
   ArrowUp,
   ArrowDown,
-  Download,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { downloadFile } from "@/lib/download"
 import {
   courseMaterialsApi,
   type AdminCourseMaterial,
@@ -38,10 +36,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024
-
-const API_ORIGIN = (
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
-).replace(/\/api\/v1\/?$/, "")
 
 /**
  * Mirrors `CourseMaterial.FORMAT_LABELS` on the backend. Trainers hand over
@@ -103,7 +97,6 @@ export default function AdminCourseMaterialsPage() {
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<AdminCourseMaterial | null>(null)
-  const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -223,19 +216,6 @@ export default function AdminCourseMaterialsPage() {
     }
   }
 
-  const handleFileDownload = (material: AdminCourseMaterial) => {
-    if (downloadingId) return
-    setDownloadingId(material.id)
-    try {
-      // Same-origin endpoint streams the file as an attachment — no cross-origin fetch.
-      downloadFile(`${API_ORIGIN}/api/v1/course-materials/${material.slug}/download-file/`)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to download")
-    } finally {
-      setDownloadingId(null)
-    }
-  }
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -338,32 +318,15 @@ export default function AdminCourseMaterialsPage() {
                     <td className="p-4">
                       <div className="flex justify-end gap-1">
                         {material.file_url && (
-                          <>
-                            <Button variant="ghost" size="sm" asChild>
-                              <a
-                                href={material.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="Preview in the PDF viewer"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={downloadingId !== null}
-                              onClick={() => handleFileDownload(material)}
-                              title={`Download ${material.format_label || "file"}`}
+                          <Button variant="ghost" size="sm" asChild>
+                            <a
+                              href={material.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
                             >
-                              <Download
-                                className={cn(
-                                  "h-3.5 w-3.5",
-                                  downloadingId === material.id && "animate-bounce"
-                                )}
-                              />
-                            </Button>
-                          </>
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
                         )}
                         <Button variant="ghost" size="sm" onClick={() => openEdit(material)}>
                           <Pencil className="h-3.5 w-3.5" />
